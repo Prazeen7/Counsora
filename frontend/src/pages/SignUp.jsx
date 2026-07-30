@@ -63,7 +63,7 @@ export default function SignUp() {
     const [alertSeverity, setAlertSeverity] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const URL = 'http://localhost:5000/api/auth/signup';
+    const URL = import.meta.env.VITE_BACKEND_URL;
 
     const navigate = useNavigate();
 
@@ -172,7 +172,7 @@ export default function SignUp() {
 
         // Signing up
         try {
-            const response = await fetch(URL, {
+            const response = await fetch(`${URL}/auth/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -190,6 +190,7 @@ export default function SignUp() {
             setAlertSeverity("success");
             setAlertMessage("Successfully Registered");
             clearForm(form);
+            navigate("/login")
         } catch (err) {
             setIsLoading(false);
             console.error("Error during registration:", err);

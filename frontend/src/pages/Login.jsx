@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -37,7 +37,10 @@ const LoginContainer = styled(Stack)(({ theme }) => ({
     },
 }))
 
-export default function SignUp() {
+export default function Login() {
+
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const [emailError, setEmailError] = useState(false);
     const [emailErrorMessage, setEmailErrorMessage] = useState('');
@@ -48,16 +51,21 @@ export default function SignUp() {
 
     const [rememberMe, setRememberMe] = React.useState(false)
 
-    const [alertMessage, setAlertMessage] = useState('');
+    const [alertMessage, setAlertMessage] = useState("");
     const [alertSeverity, setAlertSeverity] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleForgotPasswordOpen = () => setOpen(true)
     const handleForgotPasswordClose = () => setOpen(false)
 
-    const URL = 'http://localhost:5000/api/auth/login';
+    const URL = import.meta.env.VITE_BACKEND_URL;
 
-    const navigate = useNavigate();
+    useEffect(() => {
+        if (location.state?.message) {
+            setAlertMessage(location.state.message);
+            setAlertSeverity("warning");
+        }
+    }, [location.state]);
 
     // Toggle password visibility
     const handleClickShowPassword = () => setShowPassword(!showPassword);
@@ -97,6 +105,13 @@ export default function SignUp() {
         return isValid;
     }
 
+    const setToken = (result) => {
+        localStorage.setItem("token", result.token);
+        localStorage.setItem("user", JSON.stringify(result.user));
+
+        navigate("/dashboard");
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -116,9 +131,9 @@ export default function SignUp() {
 
         setIsLoading(true);
 
-        // Signing up
+        // Logging in
         try {
-            const response = await fetch(URL, {
+            const response = await fetch(`${URL}/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -135,7 +150,9 @@ export default function SignUp() {
             setIsLoading(false);
             setAlertSeverity("success");
             setAlertMessage("Successfully Logged in");
+            setToken(result);
             clearForm(form);
+            navigate("/dashboard")
         } catch (err) {
             setIsLoading(false);
             console.error("Error during registration:", err);
@@ -312,7 +329,7 @@ export default function SignUp() {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography sx={{ textAlign: 'center' }}>
                             Don't have an account?{' '}
-                            <NavLink to="/login" variant="body2" sx={{ alignSelf: 'center' }}>
+                            <NavLink to="/signup" variant="body2" sx={{ alignSelf: 'center' }}>
                                 Sign up
                             </NavLink>
                         </Typography>

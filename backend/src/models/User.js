@@ -35,6 +35,16 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+    sessionToken: {
+      type: String,
+      default: null,
+    },
+
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+
     isVerified: {
       type: Boolean,
       default: false,

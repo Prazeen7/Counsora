@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const hashPassword = require("../utils/hashPassword");
 const comparePassword = require("../utils/comparePassword")
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const signUp = async (req, res) => {
     try {
@@ -84,6 +86,7 @@ const login = async (req, res) => {
             });
         }
 
+        // password verification
         const passwordCheck = await comparePassword(password, existingUser.password);
         if (!passwordCheck) {
             return res.status(400).json({
@@ -91,12 +94,30 @@ const login = async (req, res) => {
             })
         }
 
+        const sessionToken = crypto.randomBytes(32).toString("hex");
+        existingUser.sessionToken = sessionToken;
+        await existingUser.save();
+
+        // creating JWT token
+        const token = jwt.sign(
+            {
+                id: existingUser._id,
+                role: existingUser.role,
+                email: existingUser.email,
+                sessionToken: existingUser.sessionToken,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+
         //  email verification check
-            // if (!existingUser.isVerified) { 
-            // return res.status(403).json({  error: 'Please verify your email before logging in',  }); }
+        // if (!existingUser.isVerified) { 
+        // return res.status(403).json({  error: 'Please verify your email before logging in',  }); }
 
         return res.status(200).json({
             message: "Logged in successfully",
+            token,
             user: {
                 id: existingUser._id,
                 name: existingUser.name,
