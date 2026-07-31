@@ -13,15 +13,27 @@ import {
     ListItem,
     ListItemText,
     Link,
+    MenuItem,
 } from "@mui/material";
 
 export default function InstitutionTabsContent({
     activeTab,
     institution,
     programs = [],
+    filteredPrograms = [],
     searchQuery,
     setSearchQuery,
-    filteredPrograms = [],
+    selectedLevel,
+    setSelectedLevel,
+    selectedField,
+    setSelectedField,
+    selectedIntake,
+    setSelectedIntake,
+    selectedTuition,
+    setSelectedTuition,
+    levels = [],
+    fields = [],
+    intakes = [],
 }) {
     const [selectedCampus, setSelectedCampus] = useState(
         institution?.campuses?.[0] || null
@@ -206,13 +218,84 @@ export default function InstitutionTabsContent({
                         Programs Offered
                     </Typography>
 
-                    <TextField
-                        fullWidth
-                        placeholder="Search programs..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        sx={{ mb: 3 }}
-                    />
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                                xs: "1fr",
+                                sm: "repeat(2, 1fr)",
+                                md: "repeat(3, 1fr)",
+                                lg: "2fr 1fr 1fr 1fr 1fr",
+                            },
+                            gap: 2,
+                            mb: 3,
+                        }}
+                    >
+                        <TextField
+                            fullWidth
+                            placeholder="Search programs..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+
+                        <TextField
+                            select
+                            fullWidth
+                            label="Level"
+                            value={selectedLevel}
+                            onChange={(e) => setSelectedLevel(e.target.value)}
+                        >
+                            <MenuItem value="all">All Levels</MenuItem>
+                            {levels.map((level) => (
+                                <MenuItem key={level} value={level}>
+                                    {level}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            fullWidth
+                            label="Field"
+                            value={selectedField}
+                            onChange={(e) => setSelectedField(e.target.value)}
+                        >
+                            <MenuItem value="all">All Fields</MenuItem>
+                            {fields.map((field) => (
+                                <MenuItem key={field} value={field}>
+                                    {field}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            fullWidth
+                            label="Intake"
+                            value={selectedIntake}
+                            onChange={(e) => setSelectedIntake(e.target.value)}
+                        >
+                            <MenuItem value="all">All Intakes</MenuItem>
+                            {intakes.map((intake) => (
+                                <MenuItem key={intake} value={intake}>
+                                    {intake}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            select
+                            fullWidth
+                            label="Tuition Fee"
+                            value={selectedTuition}
+                            onChange={(e) => setSelectedTuition(e.target.value)}
+                        >
+                            <MenuItem value="all">Any Tuition</MenuItem>
+                            <MenuItem value="under20000">Under 20,000</MenuItem>
+                            <MenuItem value="20000to30000">20,000-30,000</MenuItem>
+                            <MenuItem value="above30000">Above 30,000</MenuItem>
+                        </TextField>
+                    </Box>
 
                     <Box
                         sx={{

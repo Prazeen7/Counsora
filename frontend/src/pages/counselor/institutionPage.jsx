@@ -21,6 +21,10 @@ export default function InstitutionPage() {
     const [programs, setPrograms] = useState([]);
     const [tabIndex, setTabIndex] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedLevel, setSelectedLevel] = useState("all");
+    const [selectedField, setSelectedField] = useState("all");
+    const [selectedIntake, setSelectedIntake] = useState("all");
+    const [selectedTuition, setSelectedTuition] = useState("all");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,9 +49,41 @@ export default function InstitutionPage() {
         return <Loading loading={true} />;
     }
 
-    const filteredPrograms = programs.filter((program) =>
-        program.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const levels = [...new Set(programs.map((p) => p.level).filter(Boolean))];
+    const fields = [...new Set(programs.map((p) => p.field).filter(Boolean))];
+    const intakes = [...new Set(programs.flatMap((p) => p.intakes || []))];
+
+    const filteredPrograms = programs.filter((program) => {
+        const matchesSearch = program.name
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase());
+
+        const matchesLevel =
+            selectedLevel === "all" || program.level === selectedLevel;
+
+        const matchesField =
+            selectedField === "all" || program.field === selectedField;
+
+        const matchesIntake =
+            selectedIntake === "all" ||
+            (program.intakes || []).includes(selectedIntake);
+
+        const fee = Number(program.tuitionFee?.value || 0);
+
+        const matchesTuition =
+            selectedTuition === "all" ||
+            (selectedTuition === "under20000" && fee < 20000) ||
+            (selectedTuition === "20000to30000" && fee >= 20000 && fee <= 30000) ||
+            (selectedTuition === "above30000" && fee > 30000);
+
+        return (
+            matchesSearch &&
+            matchesLevel &&
+            matchesField &&
+            matchesIntake &&
+            matchesTuition
+        );
+    });
 
     return (
         <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
@@ -107,6 +143,17 @@ export default function InstitutionPage() {
                     filteredPrograms={filteredPrograms}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
+                    selectedLevel={selectedLevel}
+                    setSelectedLevel={setSelectedLevel}
+                    selectedField={selectedField}
+                    setSelectedField={setSelectedField}
+                    selectedIntake={selectedIntake}
+                    setSelectedIntake={setSelectedIntake}
+                    selectedTuition={selectedTuition}
+                    setSelectedTuition={setSelectedTuition}
+                    levels={levels}
+                    fields={fields}
+                    intakes={intakes}
                     navigate={navigate}
                 />
             </Container>
