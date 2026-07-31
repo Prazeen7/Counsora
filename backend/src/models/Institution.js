@@ -100,7 +100,23 @@ const institutionSchema = new mongoose.Schema(
             currency: String,
         },
 
-        entryRequirements: [String],
+        entryRequirements: {
+            undergraduate: {
+                gpa: String,
+                qualification: String
+            },
+            postgraduate: {
+                gpa: String,
+                qualification: String
+            },
+            language: {
+                IELTS: [],
+                TOEFL: [],
+                PTE: [],
+                Duolingo: [],
+                others: []
+            }
+        },
 
         intakes: [String],
 

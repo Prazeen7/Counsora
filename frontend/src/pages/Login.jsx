@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -60,6 +61,8 @@ export default function Login() {
 
     const URL = import.meta.env.VITE_BACKEND_URL;
 
+    const { login } = useAuth();
+
     useEffect(() => {
         if (location.state?.message) {
             setAlertMessage(location.state.message);
@@ -109,7 +112,7 @@ export default function Login() {
         localStorage.setItem("token", result.token);
         localStorage.setItem("user", JSON.stringify(result.user));
 
-        navigate("/dashboard");
+        navigate("/");
     };
 
     const handleSubmit = async (event) => {
@@ -146,13 +149,16 @@ export default function Login() {
             if (!response.ok) {
                 throw new Error(result.error);
             }
+            const token = result.token;
+            const user = result.user;
 
             setIsLoading(false);
             setAlertSeverity("success");
             setAlertMessage("Successfully Logged in");
             setToken(result);
             clearForm(form);
-            navigate("/dashboard")
+            login(token, user);
+            navigate("/")
         } catch (err) {
             setIsLoading(false);
             console.error("Error during registration:", err);
@@ -300,24 +306,6 @@ export default function Login() {
                                 'Login'
                             )}
                         </PrimaryButton>
-
-                        {/* Google Login button */}
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            startIcon={<GoogleIcon />}
-                            sx={{
-                                textTransform: "none",
-                                fontWeight: "bold",
-                                color: "#444",
-                                borderColor: "#ccc",
-                                "&:hover": {
-                                    borderColor: "#999",
-                                },
-                            }}
-                        >
-                            Login with Google
-                        </Button>
 
                     </Box>
 

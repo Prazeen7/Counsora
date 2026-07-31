@@ -2,16 +2,20 @@ const Institution = require('../models/Institution');
 
 const getInstitutions = async (req, res) => {
     try {
-        const { search, location, page = 1, limit = 12 } = req.query;
+        const { search, location, country, page = 1, limit = 12 } = req.body;
 
-        const query = {}
+        const query = {};
 
         if (search) {
-            query.institutionName = { $regex: search, $options: "i" }
+            query.name = { $regex: search, $options: 'i' };
         }
 
-        if (location && location !== "all") {
-            query["campuses.city"] = location
+        if (location && location !== 'all') {
+            query['campuses.city'] = location;
+        }
+
+        if (country && country !== 'all') {
+            query.country = country; 
         }
 
         const pageNumber = parseInt(page);
@@ -20,10 +24,13 @@ const getInstitutions = async (req, res) => {
 
         const [institutions, total] = await Promise.all([
             Institution.find(query)
-                .select("institutionName logo country type campuses.city entryRequirement intakes scholarship applicationFee ")
+                .populate('country', 'code name currency')
+                .select(
+                    'name logo country type campuses.city entryRequirements intakes scholarships applicationFee'
+                )
                 .skip(skip)
                 .limit(limitNumber)
-                .sort({ institutionName: 1 }),
+                .sort({ name: 1 }),
 
             Institution.countDocuments(query),
         ]);
@@ -37,13 +44,13 @@ const getInstitutions = async (req, res) => {
                 totalPages: Math.ceil(total / limitNumber),
             },
         });
-    } catch (error) {
-        console.error("Error fetching institutions:", error);
 
+    } catch (error) {
+        console.error('Error fetching institutions:', error);
         return res.status(500).json({ error: error.message });
     }
-}
+};
 
 module.exports = {
-    getInstitutions
-}
+    getInstitutions,
+};

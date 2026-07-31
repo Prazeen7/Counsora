@@ -1,22 +1,65 @@
 import { Routes, Route } from "react-router-dom";
-import './App.css'
-// Pages
-import SignUp from "./pages/SignUp"
-import Login from "./pages/Login"
-import Dashboard from "./pages/counselor/institutionList"
+import "./App.css";
+
+import SignUp from "./pages/SignUp";
+import Login from "./pages/Login";
+import Institutions from "./pages/counselor/institutionList";
+import Dashboard from "./pages/dashboard";
+
+import Navbar from "./components/NavBar";
+import ProtectedRoutes from "./components/protectedRoute";
+import PublicRoute from "./components/publicRoutes";
 
 function App() {
-
-
   return (
-    <>
-      <Routes>
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </>
-  )
+    <Routes>
+      <Route
+        path="/signup"
+        element={
+          <PublicRoute>
+            <>
+              <Navbar />
+              <SignUp />
+            </>
+          </PublicRoute>
+        }
+      />
+
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <>
+              <Navbar />
+              <Login />
+            </>
+          </PublicRoute>
+        }
+      />
+
+      <Route
+        path="/institutions"
+        element={
+          <>
+            <Navbar />
+            <ProtectedRoutes>
+              <Institutions />
+            </ProtectedRoutes>
+          </>
+        }
+      />
+
+      <Route
+        path="/"
+        element={
+          <>
+            <Navbar />
+              <Dashboard />
+          </>
+        }
+      />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

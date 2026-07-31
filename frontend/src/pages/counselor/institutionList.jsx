@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../components/Loading";
+import { useCountry } from "../../context/CountryContext";
+
 
 // MUI imports
 import {
@@ -38,6 +40,7 @@ export default function InstitutionList() {
         totalPages: 1,
         total: 0,
     });
+    const { selectedCountry } = useCountry();
 
     const URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -53,6 +56,7 @@ export default function InstitutionList() {
             const param = {
                 search: query,
                 location: location === "all" ? undefined : location,
+                country: selectedCountry?._id,
                 page,
             };
 
@@ -92,7 +96,6 @@ export default function InstitutionList() {
 
             setAllLocations(locations);
             setError(null);
-            setCurrentPage(1);
         } catch (error) {
             if (error.response && error.response.status === 404) {
                 setInstitutions([]);
@@ -114,12 +117,15 @@ export default function InstitutionList() {
             top: 0,
             behavior: "smooth"
         });
-        fetchInstitution(searchQuery, selectedLocation);
-    }, [searchQuery, selectedLocation, currentPage]);
+        fetchInstitution(searchQuery, selectedLocation, currentPage);
+    }, [searchQuery, selectedLocation, selectedCountry, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, selectedLocation]);
 
     const handlePageChange = (event, value) => {
         setCurrentPage(value);
-        fetchInstitution(searchQuery, selectedLocation, value);
 
         setTimeout(() => {
             searchBarRef.current?.scrollIntoView({
@@ -132,7 +138,7 @@ export default function InstitutionList() {
     return (
         <>
             <Box sx={{ width: "100%", margin: "0 auto", p: 3 }}>
-                <Box sx={{ mb: 4 }}>
+                <Box sx={{ mb: 4, textAlign: "center" }}>
                     <Typography level="h1" sx={{ mb: 1, color: brandColor, fontSize: "2rem" }}>
                         Find Your Perfect Institution
                     </Typography>
@@ -254,7 +260,7 @@ export default function InstitutionList() {
                                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                                     <AccessTime sx={{ fontSize: 20 }} />
                                                     <Typography level="body-sm">
-                                                        Intakes: {institution.programs?.[0]?.intakes}
+                                                        Intakes: {institution.intakes?.join(", ") || "N/A"}
                                                     </Typography>
                                                 </Box>
 
@@ -262,24 +268,23 @@ export default function InstitutionList() {
                                                     <Typography level="body-md" fontWeight="bold" sx={{ mb: 1 }}>
                                                         Language Requirements
                                                     </Typography>
-                                                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                                                        {institution.entryRequirements?.map((req) => (
-                                                            <Chip key={req} color="primary" size="sm">
-                                                                {req}
-                                                            </Chip>
-                                                        ))}
-                                                    </Box>
+                                                    <Chip size="sm" sx={{ mr: 1 }}>
+                                                        IELTS {institution.entryRequirements?.language?.IELTS}
+                                                    </Chip>
+                                                    <Chip size="sm">
+                                                        TOEFL {institution.entryRequirements?.language?.TOEFL}
+                                                    </Chip>
                                                 </Box>
 
                                                 <Box>
                                                     <Typography level="body-md" fontWeight="bold" sx={{ mb: 1 }}>
                                                         Academic Requirements
                                                     </Typography>
-                                                    <Typography level="body-sm" sx={{ mb: 1 }}>
-                                                        Undergraduate: {(institution.entryRequirements?.undergraduate?.GPA)}
+                                                    <Typography level="body-sm">
+                                                        Undergraduate GPA: {institution.entryRequirements?.undergraduate?.gpa}
                                                     </Typography>
                                                     <Typography level="body-sm">
-                                                        Postgraduate: {(institution.entryRequirements?.postgraduate?.GPA)}
+                                                        Postgraduate GPA: {institution.entryRequirements?.postgraduate?.gpa}
                                                     </Typography>
                                                 </Box>
                                             </Box>

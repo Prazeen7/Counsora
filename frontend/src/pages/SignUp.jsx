@@ -437,25 +437,6 @@ export default function SignUp() {
                                 'Sign up'
                             )}
                         </PrimaryButton>
-
-                        {/* Google sign up button */}
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            startIcon={<GoogleIcon />}
-                            sx={{
-                                textTransform: "none",
-                                fontWeight: "bold",
-                                color: "#444",
-                                borderColor: "#ccc",
-                                "&:hover": {
-                                    borderColor: "#999",
-                                },
-                            }}
-                        >
-                            Sign up with Google
-                        </Button>
-
                     </Box>
 
                     {/* Login navigation */}
