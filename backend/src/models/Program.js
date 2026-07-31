@@ -30,12 +30,6 @@ const awardSchema = new mongoose.Schema(
 
 const programSchema = new mongoose.Schema(
     {
-        institution: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Institution",
-            required: true,
-        },
-
         name: {
             type: String,
             required: true,
@@ -80,7 +74,23 @@ const programSchema = new mongoose.Schema(
             currency: String,
         },
 
-        entryRequirements: [String],
+        entryRequirements: {
+            undergraduate: {
+                gpa: String,
+                qualification: String,
+            },
+            postgraduate: {
+                gpa: String,
+                qualification: String,
+            },
+            language: {
+                IELTS: [String],
+                TOEFL: [String],
+                PTE: [String],
+                Duolingo: [String],
+                others: [String],
+            },
+        },
 
         intakes: [String],
 
@@ -100,9 +110,23 @@ const programSchema = new mongoose.Schema(
             default: true,
         },
     },
+    { _id: true }
+);
+
+const institutionProgramsSchema = new mongoose.Schema(
+    {
+        institution: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Institution",
+            required: true,
+            unique: true,
+        },
+
+        programs: [programSchema],
+    },
     {
         timestamps: true,
     }
 );
 
-module.exports = mongoose.model("Program", programSchema);
+module.exports = mongoose.model("Program", institutionProgramsSchema);

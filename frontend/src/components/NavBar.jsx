@@ -5,6 +5,7 @@ import hamBurger from "../assets/ham.png"
 import { NavLink } from "react-router-dom"
 import { useAuth } from "../context/AuthContext";
 import { useCountry } from "../context/CountryContext";
+import { getCountries } from "../services/countryService";
 
 import { Public } from "@mui/icons-material";
 
@@ -20,28 +21,16 @@ const Navbar = () => {
         setIsMenuOpen(!isMenuOpen)
     }
 
-    const URL = import.meta.env.VITE_BACKEND_URL;
-
     useEffect(() => {
         if (!isLoggedIn) return;
 
         const fetchCountries = async () => {
             try {
-                const token = localStorage.getItem("token");
-
-                const res = await fetch(`${URL}/country/get`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                });
-
-                const data = await res.json();
-
+                const data = await getCountries();
                 setCountries(data);
-
             } catch (err) {
                 console.error("Failed to fetch countries", err);
+                setCountries([]);
             }
         };
 
@@ -76,7 +65,7 @@ const Navbar = () => {
             <NavLink to="/" onClick={handleLinkClick}>
                 <div className="logo-container">
                     <img src={Logo} alt="Logo" className="logo" />
-                    <span className="website-name">GEA</span>
+                    <span className="website-name">Counsora</span>
                 </div>
             </NavLink>
 

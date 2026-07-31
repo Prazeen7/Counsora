@@ -1,5 +1,7 @@
 const Institution = require('../models/Institution');
+const mongoose = require("mongoose");
 
+// Get all institutions
 const getInstitutions = async (req, res) => {
     try {
         const { search, location, country, page = 1, limit = 12 } = req.body;
@@ -15,7 +17,7 @@ const getInstitutions = async (req, res) => {
         }
 
         if (country && country !== 'all') {
-            query.country = country; 
+            query.country = country;
         }
 
         const pageNumber = parseInt(page);
@@ -51,6 +53,33 @@ const getInstitutions = async (req, res) => {
     }
 };
 
+// Get institution by ID
+const getInstitutionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid institution ID" });
+        }
+
+        const institution = await Institution.findById(id).populate(
+            "country",
+            "code name currency"
+        );
+
+        if (!institution) {
+            return res.status(404).json({ error: "Institution not found" });
+        }
+
+        return res.status(200).json(institution);
+
+    } catch (error) {
+        console.error("Error fetching institution:", error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getInstitutions,
+    getInstitutionById,
 };

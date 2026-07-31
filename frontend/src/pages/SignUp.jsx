@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
 import { NavLink, useNavigate } from "react-router-dom";
+import { registerUser } from "../services/authService";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -172,48 +173,17 @@ export default function SignUp() {
 
         // Signing up
         try {
-            const response = await fetch(`${URL}/auth/signup`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            });
-            const result = await response.json();
+            await registerUser(data);
 
-            // Throw error if respone is not 201
-            if (!response.ok) {
-                throw new Error(result.error || "Registration failed");
-            }
-
-            setIsLoading(false);
             setAlertSeverity("success");
             setAlertMessage("Successfully Registered");
             clearForm(form);
-            navigate("/login")
+            navigate("/login");
         } catch (err) {
-            setIsLoading(false);
-            console.error("Error during registration:", err);
-
-            const errorMessage = err.message;
-
-            if (err.response?.data?.error) {
-                errorMessage = err.message;
-
-                if (errorMessage === "Email is already registered") {
-                    setEmailError(true);
-                    setEmailErrorMessage("Email is already registered.");
-                } else if (errorMessage.includes("Password must be")) {
-                    setPasswordError(true);
-                    setPasswordErrorMessage(errorMessage);
-                }
-
-                setAlertMessage(errorMessage);
-                setAlertSeverity("error");
-            }
-
-            setAlertMessage(errorMessage);
             setAlertSeverity("error");
+            setAlertMessage(err.message);
+        } finally {
+            setIsLoading(false);
         }
 
     }

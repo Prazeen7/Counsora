@@ -3,6 +3,7 @@ import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { loginUser } from "../services/authService";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -64,9 +65,19 @@ export default function Login() {
     const { login } = useAuth();
 
     useEffect(() => {
+        // Message passed through React Router
         if (location.state?.message) {
             setAlertMessage(location.state.message);
             setAlertSeverity("warning");
+            return;
+        }
+
+        // Message stored by apiRequest during forced logout
+        const logoutMessage = sessionStorage.getItem("logoutMessage");
+        if (logoutMessage) {
+            setAlertMessage(logoutMessage);
+            setAlertSeverity("warning");
+            sessionStorage.removeItem("logoutMessage");
         }
     }, [location.state]);
 
@@ -127,61 +138,22 @@ export default function Login() {
         // Extracting form data
         const form = event.currentTarget;
         const formData = new FormData(form);
-        const data = {
-            email: formData.get('email'),
-            password: formData.get('password'),
+        const credentials = {
+            email: formData.get("email"),
+            password: formData.get("password"),
         };
 
-        setIsLoading(true);
-
-        // Logging in
         try {
-            const response = await fetch(`${URL}/auth/login`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            });
-            const result = await response.json();
+            const result = await loginUser(credentials);
 
-            // Throw error if respone is not 201
-            if (!response.ok) {
-                throw new Error(result.error);
-            }
-            const token = result.token;
-            const user = result.user;
-
-            setIsLoading(false);
+            login(result.token, result.user);
             setAlertSeverity("success");
             setAlertMessage("Successfully Logged in");
-            setToken(result);
             clearForm(form);
-            login(token, user);
-            navigate("/")
+            navigate("/");
         } catch (err) {
-            setIsLoading(false);
-            console.error("Error during registration:", err);
-
-            const errorMessage = err.message;
-
-            if (err.response?.data?.error) {
-                errorMessage = err.message;
-
-                if (errorMessage === "Email is already registered") {
-                    setEmailError(true);
-                    setEmailErrorMessage("Email is already registered.");
-                } else if (errorMessage.includes("Password must be")) {
-                    setPasswordError(true);
-                    setPasswordErrorMessage(errorMessage);
-                }
-
-                setAlertMessage(errorMessage);
-                setAlertSeverity("error");
-            }
-
-            setAlertMessage(errorMessage);
             setAlertSeverity("error");
+            setAlertMessage(err.message);
         }
 
     }

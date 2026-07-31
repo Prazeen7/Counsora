@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../components/Loading";
 import { useCountry } from "../../context/CountryContext";
+import { getInstitutions } from "../../services/institutionService";
+import { getProgramsByInstitution } from "../../services/programService";
 
 
 // MUI imports
@@ -46,70 +48,44 @@ export default function InstitutionList() {
 
     const fetchInstitution = async (query, location, page) => {
         try {
-            const token = localStorage.getItem("token");
+            setLoading(true);
 
-            if (!token) {
-                navigate("/login");
-                return;
-            }
-
-            const param = {
+            const params = {
                 search: query,
                 location: location === "all" ? undefined : location,
                 country: selectedCountry?._id,
                 page,
             };
 
-            setLoading(true);
-            const response = await fetch(`${URL}/institution/get`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(param)
-            });
+            const jsonResponse = await getInstitutions(params);
 
-            const jsonResponse = await response.json();
+            const institutionsWithCounts = await Promise.all(
+                jsonResponse.institutions.map(async (inst) => {
+                    const programData = await getProgramsByInstitution(inst._id);
 
-            if (!response.ok) {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                navigate("/login", {
-                    state: {
-                        message: jsonResponse.error,
-                    },
-                });
-                return;
-            }
+                    return {
+                        ...inst,
+                        programCount: programData.count,
+                    };
+                })
+            );
 
-            setLoading(false);
-            setInstitutions(jsonResponse.institutions);
+            setInstitutions(institutionsWithCounts);
             setPagination(jsonResponse.pagination);
 
-            const locations = jsonResponse.institutions
-                .flatMap(inst =>
-                    inst.campuses ? inst.campuses.map(campus => campus.city) : []
-                )
+            const locations = institutionsWithCounts
+                .flatMap(inst => inst.campuses?.map(c => c.city) || [])
                 .filter((city, index, self) => city && self.indexOf(city) === index)
                 .sort();
 
             setAllLocations(locations);
             setError(null);
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                setInstitutions([]);
-                setError([
-                    "No institutions found matching your criteria.",
-                    "Try adjusting your search or filters to see more results.",
-                ]);
-            } else {
-                setError("Failed to fetch institutions. Please try again later.");
-            }
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     // Initial fetch
     useEffect(() => {
@@ -253,7 +229,7 @@ export default function InstitutionList() {
                                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                                     <School sx={{ fontSize: 20 }} />
                                                     <Typography level="body-sm">
-                                                        Programs: {institution.programs?.length || 0}
+                                                        Programs: {institution.programCount}
                                                     </Typography>
                                                 </Box>
 
@@ -294,7 +270,7 @@ export default function InstitutionList() {
                                                 fullWidth
                                                 color="primary"
                                                 endDecorator={<ArrowForward />}
-                                                onClick={() => institutionsCheck(institution)}
+                                                onClick={() => navigate(`/institutions/${institution._id}`)}
                                                 sx={{
                                                     backgroundColor: brandColor,
                                                     "&:hover": {
