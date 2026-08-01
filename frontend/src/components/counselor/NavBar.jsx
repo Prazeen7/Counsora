@@ -1,11 +1,11 @@
 import { useState, useEffect, useContext } from "react"
 import "./NavBar.css"
-import Logo from "../assets/Logo.png"
-import hamBurger from "../assets/ham.png"
+import Logo from "../../assets/Logo.png"
+import hamBurger from "../../assets/ham.png"
 import { NavLink } from "react-router-dom"
-import { useAuth } from "../context/AuthContext";
-import { useCountry } from "../context/CountryContext";
-import { getCountries } from "../services/countryService";
+import { useAuth } from "../../context/AuthContext";
+import { useCountry } from "../../context/CountryContext";
+import { getCountries } from "../../services/countryService";
 
 import { Public } from "@mui/icons-material";
 

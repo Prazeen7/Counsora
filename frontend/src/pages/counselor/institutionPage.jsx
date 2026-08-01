@@ -9,7 +9,7 @@ import {
     Tab,
 } from "@mui/material";
 import Loading from "../../components/Loading";
-import InstitutionTabsContent from "../../components/InstitutionTabsContent";
+import InstitutionTabsContent from "../../components/counselor/InstitutionTabsContent";
 import { getInstitutionById } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
 

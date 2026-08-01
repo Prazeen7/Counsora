@@ -1,4 +1,6 @@
 const Institution = require('../models/Institution');
+const Country = require('../models/Country');
+const Program = require('../models/Program');
 const mongoose = require("mongoose");
 
 // Get all institutions
@@ -79,7 +81,74 @@ const getInstitutionById = async (req, res) => {
     }
 };
 
+// add institution with programs
+const addInstitution = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const {
+            programs = [],
+            ...institutionData
+        } = req.body;
+
+        // Validate required fields
+        if (!institutionData.name || !institutionData.country) {
+            return res.status(400).json({
+                error: 'Institution name and country are required',
+            });
+        }
+
+        // Validate country
+        const country = await Country.findById(institutionData.country).session(session);
+        if (!country) {
+            return res.status(404).json({
+                error: 'Country not found',
+            });
+        }
+
+        // 1. Create institution
+        const institution = await Institution.create(
+            [institutionData],
+            { session }
+        );
+
+        const createdInstitution = institution[0];
+
+        // 2. Create program document linked to institution
+        await Program.create(
+            [{
+                institution: createdInstitution._id,
+                programs,
+            }],
+            { session }
+        );
+
+        await session.commitTransaction();
+
+        const populatedInstitution = await Institution.findById(createdInstitution._id)
+            .populate('country', 'code name currency');
+
+        return res.status(201).json({
+            message: 'Institution and programs created successfully',
+            institution: populatedInstitution,
+            programCount: programs.length,
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        console.error('Error creating institution:', error);
+
+        return res.status(500).json({
+            error: error.message,
+        });
+    } finally {
+        session.endSession();
+    }
+};
+
 module.exports = {
     getInstitutions,
     getInstitutionById,
+    addInstitution,
 };

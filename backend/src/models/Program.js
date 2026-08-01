@@ -28,6 +28,21 @@ const awardSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const requiredDocumentSchema = new mongoose.Schema(
+    {
+        key: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        value: {
+            type: String,
+            trim: true,
+        },
+    },
+    { _id: false }
+);
+
 const programSchema = new mongoose.Schema(
     {
         name: {
@@ -94,7 +109,7 @@ const programSchema = new mongoose.Schema(
 
         intakes: [String],
 
-        requiredDocuments: [String],
+        requiredDocuments: [requiredDocumentSchema],
 
         scholarships: [scholarshipSchema],
 
