@@ -28,17 +28,45 @@ const awardSchema = new mongoose.Schema(
     { _id: false }
 );
 
-const requiredDocumentSchema = new mongoose.Schema(
+const gpaSchema = new mongoose.Schema(
     {
-        key: {
+        type: {
             type: String,
-            required: true,
+            enum: ["GPA", "Percentage", ""],
+            default: "",
+        },
+        score: {
+            type: String,
             trim: true,
         },
-        value: {
-            type: String,
-            trim: true,
-        },
+    },
+    { _id: false }
+);
+
+const languageRequirementSchema = new mongoose.Schema(
+    {
+        testType: String,
+        overall: String,
+        minimum: String,
+        hasIndividualScores: Boolean,
+
+        listening: String,
+        reading: String,
+        writing: String,
+        speaking: String,
+
+        literacy: String,
+        comprehension: String,
+        conversation: String,
+        production: String,
+    },
+    { _id: false }
+);
+
+const entryRequirementSchema = new mongoose.Schema(
+    {
+        gpa: gpaSchema,
+        languageRequirement: languageRequirementSchema,
     },
     { _id: false }
 );
@@ -84,41 +112,21 @@ const programSchema = new mongoose.Schema(
             },
         },
 
-        applicationFee: {
-            value: String,
-            currency: String,
-        },
+        campuses: [
+            {
+                type: String,
+                trim: true,
+            },
+        ],
 
         entryRequirements: {
-            undergraduate: {
-                gpa: String,
-                qualification: String,
-            },
-            postgraduate: {
-                gpa: String,
-                qualification: String,
-            },
-            language: {
-                IELTS: [String],
-                TOEFL: [String],
-                PTE: [String],
-                Duolingo: [String],
-                others: [String],
-            },
+            undergraduate: entryRequirementSchema,
+            postgraduate: entryRequirementSchema,
         },
 
         intakes: [String],
 
-        requiredDocuments: [requiredDocumentSchema],
-
         scholarships: [scholarshipSchema],
-
-        awards: [awardSchema],
-
-        description: {
-            type: String,
-            trim: true,
-        },
 
         isActive: {
             type: Boolean,

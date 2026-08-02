@@ -51,7 +51,20 @@ export default function InstitutionPage() {
 
     const levels = [...new Set(programs.map((p) => p.level).filter(Boolean))];
     const fields = [...new Set(programs.map((p) => p.field).filter(Boolean))];
-    const intakes = [...new Set(programs.flatMap((p) => p.intakes || []))];
+    const intakes = [
+        ...new Set(
+            programs.flatMap((p) => {
+                if (Array.isArray(p.intakes)) return p.intakes;
+                if (typeof p.intakes === 'string') {
+                    return p.intakes
+                        .split(',')
+                        .map((i) => i.trim())
+                        .filter(Boolean);
+                }
+                return [];
+            })
+        ),
+    ];
 
     const filteredPrograms = programs.filter((program) => {
         const matchesSearch = program.name
@@ -64,9 +77,17 @@ export default function InstitutionPage() {
         const matchesField =
             selectedField === "all" || program.field === selectedField;
 
+        const programIntakes = Array.isArray(program.intakes)
+            ? program.intakes
+            : typeof program.intakes === 'string'
+                ? program.intakes
+                    .split(',')
+                    .map((i) => i.trim())
+                    .filter(Boolean)
+                : [];
+
         const matchesIntake =
-            selectedIntake === "all" ||
-            (program.intakes || []).includes(selectedIntake);
+            selectedIntake === 'all' || programIntakes.includes(selectedIntake);
 
         const fee = Number(program.tuitionFee?.value || 0);
 
@@ -88,26 +109,39 @@ export default function InstitutionPage() {
     return (
         <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
             <Container sx={{ py: 4 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                     <Avatar
                         src={institution.logo?.url}
                         alt={institution.name}
                         sx={{
                             width: 100,
                             height: 100,
-                            border: "2px solid #4f46e5",
+                            border: '2px solid #4f46e5',
                             boxShadow: 3,
-                            "& img": { objectFit: "contain" },
+                            '& img': { objectFit: 'contain' },
                         }}
                     />
 
                     <Box>
-                        <Typography variant="h4" fontWeight="bold">
+                        <Typography variant='h4' fontWeight='bold'>
                             {institution.name}
                         </Typography>
-                        <Typography color="text.secondary">
+
+                        <Typography color='text.secondary'>
                             {institution.country?.name} • {institution.type}
                         </Typography>
+
+                        <Typography variant='body2' color='text.secondary'>
+                            {institution.campuses?.length || 0} campus
+                            {institution.campuses?.length === 1 ? '' : 'es'}
+                        </Typography>
+
+                        {institution.applicationFee?.amount > 0 && (
+                            <Typography variant='body2' sx={{ mt: 0.5 }}>
+                                Application Fee: {institution.applicationFee.currency}{' '}
+                                {institution.applicationFee.amount}
+                            </Typography>
+                        )}
                     </Box>
                 </Box>
 

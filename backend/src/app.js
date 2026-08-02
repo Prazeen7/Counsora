@@ -2,7 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
-const institutionRoutes = require("./routes/institution");
+const institutionRoutes = require("./routes/institutionRoutes");
 const countryRoutes = require("./routes/countryRoutes");
 const programRoutes = require("./routes/programRoutes");
 

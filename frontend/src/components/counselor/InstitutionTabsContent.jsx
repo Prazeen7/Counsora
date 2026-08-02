@@ -412,54 +412,70 @@ export default function InstitutionTabsContent({
                                                 Entry Requirement
                                             </Typography>
 
-                                            <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                                <b>Qualification:</b>{" "}
-                                                {isBachelor
-                                                    ? program.entryRequirements?.undergraduate?.qualification
-                                                    : program.entryRequirements?.postgraduate?.qualification}
-                                            </Typography>
+                                            {(() => {
+                                                const isUndergraduate = ["Certificate", "Diploma", "Bachelor"].includes(
+                                                    program.level
+                                                );
 
-                                            <Typography variant="body2" sx={{ mb: 1 }}>
-                                                <b>Minimum GPA:</b>{" "}
-                                                {isBachelor
-                                                    ? program.entryRequirements?.undergraduate?.gpa
-                                                    : program.entryRequirements?.postgraduate?.gpa}
-                                            </Typography>
+                                                const programReq = isUndergraduate
+                                                    ? program.undergraduateRequirement
+                                                    : program.postgraduateRequirement;
 
-                                            {/* Language Requirement */}
+                                                const institutionReq = isUndergraduate
+                                                    ? institution?.entryRequirements?.undergraduate
+                                                    : institution?.entryRequirements?.postgraduate;
+
+                                                // Use program requirement if available, otherwise institution requirement
+                                                const gpaType =
+                                                    programReq?.gpa?.type || institutionReq?.gpa?.type || "GPA";
+
+                                                const gpaScore =
+                                                    programReq?.gpa?.score || institutionReq?.gpa?.score || "N/A";
+
+                                                const languageTest =
+                                                    programReq?.languageRequirement?.testType ||
+                                                    institutionReq?.languageRequirement?.testType ||
+                                                    "N/A";
+
+                                                const languageOverall =
+                                                    programReq?.languageRequirement?.overall ||
+                                                    institutionReq?.languageRequirement?.overall ||
+                                                    "";
+
+                                                return (
+                                                    <>
+                                                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                                            <b>Minimum {gpaType}:</b> {gpaScore}
+                                                        </Typography>
+
+                                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                                            <b>Language:</b> {languageTest}
+                                                            {languageOverall ? ` ${languageOverall}` : ""}
+                                                        </Typography>
+                                                    </>
+                                                );
+                                            })()}
+                                        </Box>
+
+                                        <Divider />
+
+                                        {/* Campuses */}
+                                        <Box>
                                             <Typography
                                                 variant="caption"
                                                 color="text.secondary"
                                                 sx={{ display: "block", mb: 1 }}
                                             >
-                                                Language Requirement
+                                                Available Campuses
                                             </Typography>
 
                                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                                                {program.entryRequirements?.language?.IELTS?.map((v, i) => (
-                                                    <Chip
-                                                        key={`ielts-${i}`}
-                                                        label={`IELTS ${v}`}
-                                                        size="small"
-                                                    />
-                                                ))}
-
-                                                {program.entryRequirements?.language?.PTE?.map((v, i) => (
-                                                    <Chip
-                                                        key={`pte-${i}`}
-                                                        label={`PTE ${v}`}
-                                                        size="small"
-                                                    />
-                                                ))}
-
-                                                {program.entryRequirements?.language?.Duolingo?.map(
-                                                    (v, i) => (
-                                                        <Chip
-                                                            key={`duo-${i}`}
-                                                            label={`Duolingo ${v}`}
-                                                            size="small"
-                                                        />
-                                                    )
+                                                {program.campuses?.length ? (
+                                                    program.campuses.map((campus, i) => (
+                                                        <Chip key={i} label={campus} size="small" />
+                                                    ))
+                                                ) : (
+                                                    <Typography variant="body2">All campuses</Typography>
                                                 )}
                                             </Box>
                                         </Box>
@@ -471,19 +487,17 @@ export default function InstitutionTabsContent({
                 </Paper>
             );
 
-        case 3:
+        case 3: {
+            const allIntakes = [...new Set(programs.flatMap((p) => p.intakes || []))];
+
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                         Available Intakes
                     </Typography>
 
-                    <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mb: 3 }}
-                    >
-                        Select from the available admission periods for this institution.
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Intakes available across all programs offered by this institution.
                     </Typography>
 
                     <Box
@@ -496,38 +510,40 @@ export default function InstitutionTabsContent({
                             gap: 2,
                         }}
                     >
-                        {institution?.intakes?.map((intake, index) => (
-                            <Paper
-                                key={index}
-                                variant="outlined"
-                                sx={{
-                                    p: 2,
-                                    borderRadius: 2,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1.5,
-                                }}
-                            >
-                                <Box
+                        {allIntakes.length ? (
+                            allIntakes.map((intake, index) => (
+                                <Paper
+                                    key={index}
+                                    variant="outlined"
                                     sx={{
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: "50%",
-                                        bgcolor: "primary.main",
+                                        p: 2,
+                                        borderRadius: 2,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1.5,
                                     }}
-                                />
-
-                                <Typography
-                                    variant="body1"
-                                    fontWeight="medium"
                                 >
-                                    {intake}
-                                </Typography>
-                            </Paper>
-                        ))}
+                                    <Box
+                                        sx={{
+                                            width: 10,
+                                            height: 10,
+                                            borderRadius: "50%",
+                                            bgcolor: "primary.main",
+                                        }}
+                                    />
+
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {intake}
+                                    </Typography>
+                                </Paper>
+                            ))
+                        ) : (
+                            <Typography color="text.secondary">No intake information available.</Typography>
+                        )}
                     </Box>
                 </Paper>
             );
+        }
 
         case 4:
             return (
@@ -622,19 +638,15 @@ export default function InstitutionTabsContent({
 
         case 5:
             return (
-                <Paper sx={{ p: 4, borderRadius: 3 }}> <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    Institution Entry Requirements </Typography>
-
-                    <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mb: 3 }}
-                    >
-                        Minimum academic and language requirements for admission to this
-                        institution.
+                <Paper sx={{ p: 4, borderRadius: 3 }}>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                        Institution Entry Requirements
                     </Typography>
 
-                    {/* Undergraduate & Postgraduate */}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Minimum academic and language requirements for admission to this institution.
+                    </Typography>
+
                     <Box
                         sx={{
                             display: "grid",
@@ -655,20 +667,22 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Minimum GPA
+                                        Minimum {institution?.entryRequirements?.undergraduate?.gpa?.type || "GPA"}
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.undergraduate?.gpa || "N/A"}
+                                        {institution?.entryRequirements?.undergraduate?.gpa?.score || "N/A"}
                                     </Typography>
                                 </Box>
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Required Qualification
+                                        Language Requirement
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.undergraduate?.qualification ||
-                                            "N/A"}
+                                        {institution?.entryRequirements?.undergraduate?.languageRequirement?.testType || "N/A"}
+                                        {institution?.entryRequirements?.undergraduate?.languageRequirement?.overall
+                                            ? ` ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
+                                            : ""}
                                     </Typography>
                                 </Box>
                             </CardContent>
@@ -684,83 +698,28 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Minimum GPA
+                                        Minimum {institution?.entryRequirements?.postgraduate?.gpa?.type || "GPA"}
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.postgraduate?.gpa || "N/A"}
+                                        {institution?.entryRequirements?.postgraduate?.gpa?.score || "N/A"}
                                     </Typography>
                                 </Box>
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Required Qualification
+                                        Language Requirement
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.postgraduate?.qualification ||
-                                            "N/A"}
+                                        {institution?.entryRequirements?.postgraduate?.languageRequirement?.testType || "N/A"}
+                                        {institution?.entryRequirements?.postgraduate?.languageRequirement?.overall
+                                            ? ` ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
+                                            : ""}
                                     </Typography>
                                 </Box>
                             </CardContent>
                         </Card>
                     </Box>
-
-                    {/* Language Requirements */}
-                    <Card sx={{ borderRadius: 3, mt: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                Language Requirements
-                            </Typography>
-
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ mb: 2 }}
-                            >
-                                Accepted English proficiency tests and minimum score requirements.
-                            </Typography>
-
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                {institution?.entryRequirements?.language?.IELTS?.map((v, i) => (
-                                    <Chip
-                                        key={`ielts-${i}`}
-                                        label={`IELTS ${v}`}
-                                        color="primary"
-                                        variant="outlined"
-                                    />
-                                ))}
-
-                                {institution?.entryRequirements?.language?.TOEFL?.map((v, i) => (
-                                    <Chip
-                                        key={`toefl-${i}`}
-                                        label={`TOEFL ${v}`}
-                                        color="primary"
-                                        variant="outlined"
-                                    />
-                                ))}
-
-                                {institution?.entryRequirements?.language?.PTE?.map((v, i) => (
-                                    <Chip
-                                        key={`pte-${i}`}
-                                        label={`PTE ${v}`}
-                                        color="primary"
-                                        variant="outlined"
-                                    />
-                                ))}
-
-                                {institution?.entryRequirements?.language?.Duolingo?.map((v, i) => (
-                                    <Chip
-                                        key={`duo-${i}`}
-                                        label={`Duolingo ${v}`}
-                                        color="primary"
-                                        variant="outlined"
-                                    />
-                                ))}
-                            </Box>
-                        </CardContent>
-                    </Card>
                 </Paper>
-
-
             );
 
 
@@ -852,16 +811,83 @@ export default function InstitutionTabsContent({
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
-                        Required Documents
+                        Financial Document Requirements
                     </Typography>
 
-                    <List>
-                        {institution?.requiredDocuments?.map((doc, index) => (
-                            <ListItem key={index}>
-                                <ListItemText primary={doc} />
-                            </ListItem>
-                        ))}
-                    </List>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={6}>
+                            <Typography fontWeight="bold">Income Sources</Typography>
+                            <List dense>
+                                {institution?.documents?.incomeSources?.length ? (
+                                    institution.documents.incomeSources.map((item, i) => (
+                                        <ListItem key={i}>
+                                            <ListItemText primary={item} />
+                                        </ListItem>
+                                    ))
+                                ) : (
+                                    <ListItem>
+                                        <ListItemText primary="Not specified" />
+                                    </ListItem>
+                                )}
+                            </List>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Typography fontWeight="bold">Accepted Sponsors</Typography>
+                            <List dense>
+                                {institution?.documents?.sponsors?.length ? (
+                                    institution.documents.sponsors.map((item, i) => (
+                                        <ListItem key={i}>
+                                            <ListItemText primary={item} />
+                                        </ListItem>
+                                    ))
+                                ) : (
+                                    <ListItem>
+                                        <ListItemText primary="Not specified" />
+                                    </ListItem>
+                                )}
+                            </List>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Typography fontWeight="bold">Accepted Banks</Typography>
+                            <List dense>
+                                {institution?.documents?.banks?.length ? (
+                                    institution.documents.banks.map((item, i) => (
+                                        <ListItem key={i}>
+                                            <ListItemText primary={item} />
+                                        </ListItem>
+                                    ))
+                                ) : (
+                                    <ListItem>
+                                        <ListItemText primary="Not specified" />
+                                    </ListItem>
+                                )}
+                            </List>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Typography fontWeight="bold">Minimum Sponsor Count</Typography>
+                            <Typography>{institution?.documents?.minSponsorCount || "N/A"}</Typography>
+
+                            <Box sx={{ mt: 2 }}>
+                                <Typography fontWeight="bold">Minimum Income Amount</Typography>
+                                <Typography>{institution?.documents?.minIncomeAmount || "N/A"}</Typography>
+                            </Box>
+
+                            <Box sx={{ mt: 2 }}>
+                                <Typography fontWeight="bold">Previous Visa Refusal</Typography>
+                                <Typography>{institution?.documents?.previousVisaRefusal || "N/A"}</Typography>
+                            </Box>
+
+                            <Box sx={{ mt: 2 }}>
+                                <Typography fontWeight="bold">Level Change After Refusal</Typography>
+                                <Typography>
+                                    {institution?.documents?.levelChangeAfterRefusal ? "Yes" : "No"}
+                                </Typography>
+                            </Box>
+                        </Grid>
+                    </Grid>
                 </Paper>
             );
 

@@ -63,9 +63,26 @@ export default function InstitutionList() {
                 jsonResponse.institutions.map(async (inst) => {
                     const programData = await getProgramsByInstitution(inst._id);
 
+                    const intakes = [
+                        ...new Set(
+                            (programData.programs || [])
+                                .flatMap((program) => {
+                                    if (Array.isArray(program.intakes)) return program.intakes;
+                                    if (typeof program.intakes === 'string') {
+                                        return program.intakes
+                                            .split(',')
+                                            .map((i) => i.trim())
+                                            .filter(Boolean);
+                                    }
+                                    return [];
+                                })
+                        ),
+                    ];
+
                     return {
                         ...inst,
                         programCount: programData.count,
+                        intakes,
                     };
                 })
             );
@@ -203,82 +220,149 @@ export default function InstitutionList() {
                                             },
                                         }}
                                     >
-                                        <CardContent sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                                            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                                        <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                            {/* Header */}
+                                            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                                                 <Avatar
-                                                    src={institution.logo.url}
+                                                    src={institution.logo?.url || undefined}
                                                     sx={{ width: 56, height: 56 }}
                                                 />
                                                 <Box sx={{ flex: 1 }}>
-                                                    <Typography level="h4">
-                                                        {institution.name}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-
-                                            <Divider sx={{ my: 2 }} />
-
-                                            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <LocationOn sx={{ fontSize: 20 }} />
-                                                    <Typography level="body-sm">
-                                                        {institution.campuses?.map(loc => loc.city).join(", ") || "Location not available"}
-                                                    </Typography>
-                                                </Box>
-
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <School sx={{ fontSize: 20 }} />
-                                                    <Typography level="body-sm">
-                                                        Programs: {institution.programCount}
-                                                    </Typography>
-                                                </Box>
-
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <AccessTime sx={{ fontSize: 20 }} />
-                                                    <Typography level="body-sm">
-                                                        Intakes: {institution.intakes?.join(", ") || "N/A"}
-                                                    </Typography>
-                                                </Box>
-
-                                                <Box>
-                                                    <Typography level="body-md" fontWeight="bold" sx={{ mb: 1 }}>
-                                                        Language Requirements
-                                                    </Typography>
-                                                    <Chip size="sm" sx={{ mr: 1 }}>
-                                                        IELTS {institution.entryRequirements?.language?.IELTS}
+                                                    <Typography level='title-lg'>{institution.name}</Typography>
+                                                    <Chip size='sm' variant='soft' sx={{ mt: 0.5 }}>
+                                                        {institution.type}
                                                     </Chip>
-                                                    <Chip size="sm">
-                                                        TOEFL {institution.entryRequirements?.language?.TOEFL}
-                                                    </Chip>
-                                                </Box>
-
-                                                <Box>
-                                                    <Typography level="body-md" fontWeight="bold" sx={{ mb: 1 }}>
-                                                        Academic Requirements
-                                                    </Typography>
-                                                    <Typography level="body-sm">
-                                                        Undergraduate GPA: {institution.entryRequirements?.undergraduate?.gpa}
-                                                    </Typography>
-                                                    <Typography level="body-sm">
-                                                        Postgraduate GPA: {institution.entryRequirements?.postgraduate?.gpa}
-                                                    </Typography>
                                                 </Box>
                                             </Box>
 
                                             <Divider sx={{ mb: 2 }} />
+
+                                            {/* Location */}
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                <LocationOn sx={{ fontSize: 18 }} />
+                                                <Typography level='body-sm'>
+                                                    {institution.campuses?.length
+                                                        ? institution.campuses
+                                                            .map((campus) => campus.city)
+                                                            .filter(Boolean)
+                                                            .join(', ')
+                                                        : 'Location not available'}
+                                                </Typography>
+                                            </Box>
+
+                                            {/* Stats */}
+                                            <Grid container spacing={1} sx={{ mb: 2 }}>
+                                                <Grid xs={6}>
+                                                    <Sheet
+                                                        variant='soft'
+                                                        sx={{ p: 1.5, borderRadius: 'md', textAlign: 'center' }}
+                                                    >
+                                                        <Typography level='title-md'>{institution.programCount}</Typography>
+                                                        <Typography level='body-xs'>Programs</Typography>
+                                                    </Sheet>
+                                                </Grid>
+                                                <Grid xs={6}>
+                                                    <Sheet
+                                                        variant='soft'
+                                                        sx={{ p: 1.5, borderRadius: 'md', textAlign: 'center' }}
+                                                    >
+                                                        <Typography level='title-md'>
+                                                            {institution.campuses?.length || 0}
+                                                        </Typography>
+                                                        <Typography level='body-xs'>Campuses</Typography>
+                                                    </Sheet>
+                                                </Grid>
+                                            </Grid>
+
+                                            {/* Intakes */}
+                                            <Box sx={{ mb: 2 }}>
+                                                <Typography level='body-sm' fontWeight='lg' sx={{ mb: 0.75 }}>
+                                                    Available Intakes
+                                                </Typography>
+                                                {institution.intakes?.length ? (
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                        {institution.intakes.map((intake) => (
+                                                            <Chip key={intake} size='sm' variant='soft'>
+                                                                {intake}
+                                                            </Chip>
+                                                        ))}
+                                                    </Box>
+                                                ) : (
+                                                    <Typography level='body-xs' color='neutral'>
+                                                        Intake information not available
+                                                    </Typography>
+                                                )}
+                                            </Box>
+
+                                            {/* Entry Requirements */}
+                                            <Box sx={{ mb: 2 }}>
+                                                <Typography level='body-sm' fontWeight='lg' sx={{ mb: 0.75 }}>
+                                                    Entry Requirements
+                                                </Typography>
+
+                                                <Box sx={{ mb: 1 }}>
+                                                    <Typography level='body-xs' fontWeight='lg'>
+                                                        Undergraduate
+                                                    </Typography>
+                                                    <Typography level='body-xs'>
+                                                        GPA:{' '}
+                                                        {institution.entryRequirements?.undergraduate?.gpa?.score
+                                                            ? `${institution.entryRequirements.undergraduate.gpa.score} ${institution.entryRequirements.undergraduate.gpa.type}`
+                                                            : 'N/A'}
+                                                    </Typography>
+                                                    <Typography level='body-xs'>
+                                                        {institution.entryRequirements?.undergraduate?.languageRequirement?.testType
+                                                            ? `${institution.entryRequirements.undergraduate.languageRequirement.testType} ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
+                                                            : 'Language: N/A'}
+                                                    </Typography>
+                                                </Box>
+
+                                                <Divider sx={{ my: 1 }} />
+
+                                                <Box>
+                                                    <Typography level='body-xs' fontWeight='lg'>
+                                                        Postgraduate
+                                                    </Typography>
+                                                    <Typography level='body-xs'>
+                                                        GPA:{' '}
+                                                        {institution.entryRequirements?.postgraduate?.gpa?.score
+                                                            ? `${institution.entryRequirements.postgraduate.gpa.score} ${institution.entryRequirements.postgraduate.gpa.type}`
+                                                            : 'N/A'}
+                                                    </Typography>
+                                                    <Typography level='body-xs'>
+                                                        {institution.entryRequirements?.postgraduate?.languageRequirement?.testType
+                                                            ? `${institution.entryRequirements.postgraduate.languageRequirement.testType} ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
+                                                            : 'Language: N/A'}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+
+                                            {/* Application Fee */}
+                                            <Box sx={{ mb: 2 }}>
+                                                <Typography level='body-sm' fontWeight='lg' sx={{ mb: 0.5 }}>
+                                                    Application Fee
+                                                </Typography>
+                                                <Typography level='body-sm'>
+                                                    {institution.applicationFee?.amount
+                                                        ? `${institution.applicationFee.currency || ''} ${institution.applicationFee.amount}`
+                                                        : 'Not specified'}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ flexGrow: 1 }} />
+
                                             <Button
                                                 fullWidth
-                                                color="primary"
+                                                color='primary'
                                                 endDecorator={<ArrowForward />}
                                                 onClick={() => navigate(`/institutions/${institution._id}`)}
                                                 sx={{
+                                                    mt: 1,
                                                     backgroundColor: brandColor,
-                                                    "&:hover": {
-                                                        backgroundColor: "#4338ca",
-                                                    },
+                                                    '&:hover': { backgroundColor: '#4338ca' },
                                                 }}
                                             >
-                                                Learn More
+                                                View Institution
                                             </Button>
                                         </CardContent>
                                     </Card>

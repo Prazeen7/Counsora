@@ -38,6 +38,49 @@ const campusSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const gpaSchema = new mongoose.Schema(
+    {
+        type: {
+            type: String,
+            enum: ["GPA", "Percentage", ""],
+            default: "",
+        },
+        score: {
+            type: String,
+            trim: true,
+        },
+    },
+    { _id: false }
+);
+
+const languageRequirementSchema = new mongoose.Schema(
+    {
+        testType: String,
+        overall: String,
+        minimum: String,
+        hasIndividualScores: Boolean,
+
+        listening: String,
+        reading: String,
+        writing: String,
+        speaking: String,
+
+        literacy: String,
+        comprehension: String,
+        conversation: String,
+        production: String,
+    },
+    { _id: false }
+);
+
+const entryRequirementSchema = new mongoose.Schema(
+    {
+        gpa: gpaSchema,
+        languageRequirement: languageRequirementSchema,
+    },
+    { _id: false }
+);
+
 const scholarshipSchema = new mongoose.Schema(
     {
         name: {
@@ -68,14 +111,18 @@ const awardSchema = new mongoose.Schema(
 
 const requiredDocumentSchema = new mongoose.Schema(
     {
-        key: {
-            type: String,
-            required: true,
-            trim: true,
+        incomeSources: [String],
+        sponsors: [String],
+        minSponsorCount: {
+            type: Number,
+            default: 1,
         },
-        value: {
-            type: String,
-            trim: true,
+        minIncomeAmount: String,
+        banks: [String],
+        previousVisaRefusal: String,
+        levelChangeAfterRefusal: {
+            type: Boolean,
+            default: false,
         },
     },
     { _id: false }
@@ -103,7 +150,21 @@ const institutionSchema = new mongoose.Schema(
             default: "Other",
         },
 
-        website: String,
+        website: {
+            type: String,
+            trim: true,
+        },
+
+        email: {
+            type: String,
+            trim: true,
+            lowercase: true,
+        },
+
+        contactNumber: {
+            type: String,
+            trim: true,
+        },
 
         logo: {
             url: String,
@@ -116,32 +177,20 @@ const institutionSchema = new mongoose.Schema(
         },
 
         entryRequirements: {
-            undergraduate: {
-                gpa: String,
-                qualification: String
-            },
-            postgraduate: {
-                gpa: String,
-                qualification: String
-            },
-            language: {
-                IELTS: [],
-                TOEFL: [],
-                PTE: [],
-                Duolingo: [],
-                others: []
-            }
+            undergraduate: entryRequirementSchema,
+            postgraduate: entryRequirementSchema,
         },
 
-        intakes: [String],
-
-        requiredDocuments: [requiredDocumentSchema],
+        documents: requiredDocumentSchema,
 
         scholarships: [scholarshipSchema],
 
         awards: [awardSchema],
 
-        description: String,
+        description: {
+            type: String,
+            trim: true,
+        },
 
         isActive: {
             type: Boolean,

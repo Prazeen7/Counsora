@@ -1,7 +1,7 @@
+import { useEffect, useState } from "react";
 import {
     Grid,
     TextField,
-    Typography,
     Checkbox,
     FormControlLabel,
     MenuItem,
@@ -11,39 +11,23 @@ import {
     Box,
 } from "@mui/material";
 
-
-const LanguageRequirementFields = ({
-    value = {},
-    onChange,
-}) => {
-
+const LanguageRequirementFields = ({ value = {}, onChange }) => {
     const languageTests = {
-        IELTS: [
-            "Listening",
-            "Reading",
-            "Writing",
-            "Speaking",
-        ],
-        PTE: [
-            "Listening",
-            "Reading",
-            "Writing",
-            "Speaking",
-        ],
-        TOEFL: [
-            "Listening",
-            "Reading",
-            "Writing",
-            "Speaking",
-        ],
-        Duolingo: [
-            "Literacy",
-            "Comprehension",
-            "Conversation",
-            "Production",
-        ],
+        IELTS: ["Listening", "Reading", "Writing", "Speaking"],
+        PTE: ["Listening", "Reading", "Writing", "Speaking"],
+        TOEFL: ["Listening", "Reading", "Writing", "Speaking"],
+        Duolingo: ["Literacy", "Comprehension", "Conversation", "Production"],
     };
 
+    const [overallInput, setOverallInput] = useState("");
+
+    useEffect(() => {
+        if (value.minimum !== undefined && value.minimum !== "") {
+            setOverallInput(`${value.overall || ""}/${value.minimum}`);
+        } else {
+            setOverallInput(value.overall || "");
+        }
+    }, [value.overall, value.minimum]);
 
     const handleChange = (key, newValue) => {
         onChange({
@@ -52,135 +36,90 @@ const LanguageRequirementFields = ({
         });
     };
 
-
     const handleOverallChange = (e) => {
         const input = e.target.value;
+        setOverallInput(input);
 
-        const [overall, minimum] = input.split("/");
+        const parts = input.split("/");
 
         onChange({
             ...value,
-            overall: overall || "",
-            minimum: minimum || "",
+            overall: parts[0] || "",
+            minimum: parts.length > 1 ? parts.slice(1).join("/") : "",
         });
     };
 
-
-    const fields =
-        languageTests[value.testType] || [];
-
+    const fields = languageTests[value.testType] || [];
 
     return (
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ width: "100%", mb: 2 }}>
+            <Box
+                sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 2,
+                    alignItems: "center",
+                    mb: 2,
+                }}
+            >
+                <FormControl size="small" sx={{ minWidth: 100, flex: 1 }}>
+                    <InputLabel>Test</InputLabel>
+                    <Select
+                        value={value.testType || ""}
+                        label="Test"
+                        onChange={(e) => handleChange("testType", e.target.value)}
+                    >
+                        {Object.keys(languageTests).map((test) => (
+                            <MenuItem key={test} value={test}>
+                                {test}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
 
-            <Grid container spacing={1.5}>
+                <TextField
+                    label="Overall / Minimum"
+                    size="small"
+                    sx={{ minWidth: 180, flex: 1 }}
+                    value={overallInput}
+                    onChange={handleOverallChange}
+                    placeholder="6.5/6.0"
+                />
 
-                {/* Test Type */}
-                <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth size="small">
-                        <InputLabel>
-                            Test
-                        </InputLabel>
-
-                        <Select
-                            value={value.testType || ""}
-                            label="Test"
+                <FormControlLabel
+                    sx={{ m: 0 }}
+                    control={
+                        <Checkbox
+                            size="small"
+                            checked={value.hasIndividualScores || false}
                             onChange={(e) =>
-                                handleChange(
-                                    "testType",
-                                    e.target.value
-                                )
+                                handleChange("hasIndividualScores", e.target.checked)
                             }
-                        >
-                            {Object.keys(languageTests).map(
-                                (test) => (
-                                    <MenuItem
-                                        key={test}
-                                        value={test}
-                                    >
-                                        {test}
-                                    </MenuItem>
-                                )
-                            )}
-                        </Select>
+                        />
+                    }
+                    label="Individual scores"
+                />
+            </Box>
 
-                    </FormControl>
-                </Grid>
-
-
-                {/* Overall */}
-                <Grid item xs={12} sm={4}>
-                    <TextField
-                        label="Overall"
-                        size="small"
-                        fullWidth
-                        value={
-                            value.minimum
-                                ? `${value.overall}/${value.minimum}`
-                                : value.overall || ""
-                        }
-                        onChange={handleOverallChange}
-                        placeholder="6.5 or 6/5.5"
-                    />
-                </Grid>
-
-
-                {/* Individual Toggle */}
-                <Grid item xs={12} sm={4}>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                size="small"
-                                checked={
-                                    value.hasIndividualScores || false
-                                }
-                                onChange={(e) =>
-                                    handleChange(
-                                        "hasIndividualScores",
-                                        e.target.checked
-                                    )
-                                }
-                            />
-                        }
-                        label="Individual scores"
-                    />
-                </Grid>
-
-
-                {/* Individual Scores */}
-                {value.hasIndividualScores &&
-                    fields.map((field) => (
-                        <Grid
-                            item
-                            xs={6}
-                            sm={3}
-                            key={field}
-                        >
+            {value.hasIndividualScores && (
+                <Grid container spacing={1.5}>
+                    {fields.map((field) => (
+                        <Grid item xs={6} sm={3} key={field}>
                             <TextField
                                 label={field}
                                 size="small"
                                 fullWidth
-                                value={
-                                    value[
-                                    field.toLowerCase()
-                                    ] || ""
-                                }
+                                value={value[field.toLowerCase()] || ""}
                                 onChange={(e) =>
-                                    handleChange(
-                                        field.toLowerCase(),
-                                        e.target.value
-                                    )
+                                    handleChange(field.toLowerCase(), e.target.value)
                                 }
                             />
                         </Grid>
-                    ))
-                }
-
-            </Grid>
-
+                    ))}
+                </Grid>
+            )}
         </Box>
     );
 };
-
 
 export default LanguageRequirementFields;

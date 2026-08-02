@@ -37,6 +37,8 @@ import {
 } from "@mui/icons-material";
 import { getCountries } from "../../services/countryService";
 import LanguageRequirementFields from "./LanguageRequirementFields";
+import { addInstitution } from '../../services/institutionService';
+
 
 export default function AddInstitution({ onClose }) {
     const theme = useTheme();
@@ -137,8 +139,14 @@ export default function AddInstitution({ onClose }) {
     const [minSponsorCount, setMinSponsorCount] = useState("");
     const [minIncomeAmount, setMinIncomeAmount] = useState("");
     const [banks, setBanks] = useState([]);
-    const [previousVisaRefusal, setPreviousVisaRefusal] = useState("no");
+    const [previousVisaRefusal, setPreviousVisaRefusal] = useState("");
     const [levelChangeAfterRefusal, setLevelChangeAfterRefusal] = useState(false);
+    const [offerLetter, setOfferLetter] = useState({
+        document: "",
+        docs: [{ id: 1, name: "" }],
+        src: [{ id: 1, name: "" }],
+        info: [{ id: 1, name: "" }],
+    });
 
 
     useEffect(() => {
@@ -189,28 +197,6 @@ export default function AddInstitution({ onClose }) {
         });
     };
 
-    // Handler for banner images upload
-    const handleBannerImagesUpload = (event) => {
-        if (event.target.files && event.target.files[0]) {
-            const files = Array.from(event.target.files);
-
-            // Check image limit
-            if (bannerImages.length + files.length > MAX_BANNER_IMAGES) {
-                setBannerError(`Maximum ${MAX_BANNER_IMAGES} banner images allowed`);
-                return;
-            }
-
-            // Reset error if valid
-            setBannerError("");
-
-            const newBannerImages = files.map((file) => ({
-                file: file,
-                preview: URL.createObjectURL(file),
-            }));
-            setBannerImages([...bannerImages, ...newBannerImages]);
-        }
-    };
-
     // Handler for adding a location
     const handleAddLocation = () => {
         setLocations([
@@ -242,36 +228,88 @@ export default function AddInstitution({ onClose }) {
         );
     };
 
-    // Handler for adding an agent
-    const handleAddAgent = () => {
-        setAgents([...agents, { id: Date.now(), name: "" }]);
-    };
-
-    // Handler for changing agent details
-    const handleAgentChange = (id, value) => {
-        setAgents(
-            agents.map((agent) =>
-                agent.id === id ? { ...agent, name: value } : agent
-            )
-        );
-    };
-
-    // Handler for removing an agent
-    const handleRemoveAgent = (id) => {
-        setAgents(agents.filter((agent) => agent.id !== id));
-    };
-
     // Handler for adding a program
     const handleAddProgram = () => {
-        setPrograms([...programs, { id: Date.now(), name: "", level: "", url: "", duration: "", intakes: "", firstYearFees: "", cricosCode: "", discipline: "", campuses: "", fundsRequired: "", ielts: "", pte: "", toefl: "" }]);
+        setPrograms([
+            ...programs,
+            {
+                id: Date.now(),
+                name: '',
+                level: '',
+                field: '',
+                duration: '',
+
+                tuitionFee: {
+                    value: '',
+                    currency: selectedCountry?.currency || '',
+                    per: 'year',
+                },
+
+                campuses: [],
+
+                useInstitutionRequirements: true,
+
+                undergraduateRequirement: {
+                    gpa: { type: '', score: '' },
+                    languageRequirement: {
+                        testType: '',
+                        overall: '',
+                        minimum: '',
+                        hasIndividualScores: false,
+                        listening: '',
+                        reading: '',
+                        writing: '',
+                        speaking: '',
+                        literacy: '',
+                        comprehension: '',
+                        conversation: '',
+                        production: '',
+                    },
+                },
+
+                postgraduateRequirement: {
+                    gpa: { type: '', score: '' },
+                    languageRequirement: {
+                        testType: '',
+                        overall: '',
+                        minimum: '',
+                        hasIndividualScores: false,
+                        listening: '',
+                        reading: '',
+                        writing: '',
+                        speaking: '',
+                        literacy: '',
+                        comprehension: '',
+                        conversation: '',
+                        production: '',
+                    },
+                },
+
+                intakes: '',
+                description: '',
+            },
+        ]);
     };
 
     // Handler for changing program details
-    const handleProgramChange = (id, field, value) => {
-        setPrograms(
-            programs.map((program) =>
-                program.id === id ? { ...program, [field]: value } : program
-            )
+    const handleProgramChange = (id, path, value) => {
+        setPrograms((prevPrograms) =>
+            prevPrograms.map((program) => {
+                if (program.id !== id) return program;
+
+                const updated = structuredClone(program);
+
+                const keys = path.split(".");
+                let current = updated;
+
+                for (let i = 0; i < keys.length - 1; i++) {
+                    current = current[keys[i]];
+                }
+
+                current[keys[keys.length - 1]] = value;
+
+                return updated;
+            })
         );
     };
 
@@ -282,7 +320,16 @@ export default function AddInstitution({ onClose }) {
 
     // Handler for adding a scholarship
     const handleAddScholarship = () => {
-        setScholarships([...scholarships, { id: Date.now(), name: "", link: "" }]);
+        setScholarships([
+            ...scholarships,
+            {
+                id: Date.now(),
+                name: "",
+                value: "",
+                description: "",
+                eligibility: "",
+            },
+        ]);
     };
 
     // Handler for changing scholarship details
@@ -297,6 +344,84 @@ export default function AddInstitution({ onClose }) {
     // Handler for removing a scholarship
     const handleRemoveScholarship = (id) => {
         setScholarships(scholarships.filter((scholarship) => scholarship.id !== id));
+    };
+
+    const handleAddRequiredDoc = () => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            docs: [...prev.docs, { id: Date.now(), name: "" }],
+        }));
+    };
+
+    const handleRequiredDocChange = (id, value) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            docs: prev.docs.map((doc) =>
+                doc.id === id ? { ...doc, name: value } : doc
+            ),
+        }));
+    };
+
+    const handleRemoveRequiredDoc = (id) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            docs:
+                prev.docs.length === 1
+                    ? prev.docs
+                    : prev.docs.filter((doc) => doc.id !== id),
+        }));
+    };
+
+    const handleAddSource = () => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            src: [...prev.src, { id: Date.now(), name: "" }],
+        }));
+    };
+
+    const handleSourceChange = (id, value) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            src: prev.src.map((item) =>
+                item.id === id ? { ...item, name: value } : item
+            ),
+        }));
+    };
+
+    const handleRemoveSource = (id) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            src:
+                prev.src.length === 1
+                    ? prev.src
+                    : prev.src.filter((item) => item.id !== id),
+        }));
+    };
+
+    const handleAddInfo = () => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            info: [...prev.info, { id: Date.now(), name: "" }],
+        }));
+    };
+
+    const handleInfoChange = (id, value) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            info: prev.info.map((item) =>
+                item.id === id ? { ...item, name: value } : item
+            ),
+        }));
+    };
+
+    const handleRemoveInfo = (id) => {
+        setOfferLetter((prev) => ({
+            ...prev,
+            info:
+                prev.info.length === 1
+                    ? prev.info
+                    : prev.info.filter((item) => item.id !== id),
+        }));
     };
 
     // Handler for adding an income source
@@ -360,132 +485,115 @@ export default function AddInstitution({ onClose }) {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        // Frontend validation
         if (!institutionName || !institutionType || !selectedCountry) {
-            alert("Institution name, country, and type are required");
+            alert('Institution name, country, and type are required');
             return;
         }
 
-        // Validate profile picture if exists
-        if (profilePicture.file) {
-            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(profilePicture.file.type)) {
-                alert('Profile picture must be a JPEG/PNG/JPG image');
-                return;
-            }
-            if (profilePicture.file.size > 5 * 1024 * 1024) {
-                alert('Profile picture is too large. Maximum 5MB allowed');
-                return;
-            }
-        }
-
-        // Validate banner images if exist
-        for (const image of bannerImages) {
-            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(image.file.type)) {
-                alert('Banner images must be JPEG/PNG/JPG format');
-                return;
-            }
-            if (image.file.size > 5 * 1024 * 1024) {
-                alert('One or more banner images are too large. Maximum 5MB allowed');
-                return;
-            }
-        }
-
-        // Create FormData object
-        const formData = new FormData();
-
-        // Append files with correct field names
-        if (profilePicture.file) {
-            formData.append("profilePicture", profilePicture.file);
-        }
-
-        bannerImages.forEach((image) => {
-            formData.append("bannerImages", image.file);
-        });
-
-        // Append other fields
-        formData.append("institutionName", institutionName);
-        formData.append("country", selectedCountry._id);
-        formData.append("institutionType", institutionType);
-        formData.append("overviewHeading", overviewHeading);
-        formData.append("overviewDetails", overviewDetails);
-        formData.append("applicationFee", applicationFee);
-        formData.append("undergraduateGPA", undergraduateGPA);
-        formData.append("undergraduateIELTS", undergraduateIELTS);
-        formData.append("undergraduatePTE", undergraduatePTE);
-        formData.append("undergraduateTOEFL", undergraduateTOEFL);
-        formData.append("postgraduateGPA", postgraduateGPA);
-        formData.append("postgraduateIELTS", postgraduateIELTS);
-        formData.append("postgraduatePTE", postgraduatePTE);
-        formData.append("postgraduateTOEFL", postgraduateTOEFL);
-        formData.append("minSponsorCount", minSponsorCount);
-        formData.append("minIncomeAmount", minIncomeAmount);
-        formData.append("previousVisaRefusal", previousVisaRefusal);
-        formData.append("levelChangeAfterRefusal", levelChangeAfterRefusal);
-
-        // Append JSON stringified fields
-        formData.append("locations", JSON.stringify(locations));
-        formData.append("programs", JSON.stringify(programs));
-        formData.append("scholarships", JSON.stringify(scholarships));
-        formData.append("agents", JSON.stringify(agents.map(agent => agent.name)));
-        formData.append("incomeSources", JSON.stringify(incomeSources.map(source => source.name)));
-        formData.append("sponsors", JSON.stringify(sponsors.map(sponsor => sponsor.name)));
-        formData.append("banks", JSON.stringify(banks.map(bank => bank.name)));
-
         try {
-            const response = await fetch("https://global-edu-assist.onrender.com/api/institutions", {
-                method: "POST",
-                body: formData,
-            });
+            const payload = {
+                name: institutionName,
+                country: selectedCountry._id,
+                type: institutionType,
+                website,
+                email: institutionEmail,
+                contactNumber: institutionContact,
+                description,
+                applicationFee: Number(applicationFee) || 0,
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to add institution");
-            }
+                campuses: locations.map((location) => ({
+                    name: location.name,
+                    address: location.address,
+                    city: location.city,
+                    contactNumber: location.useInstitutionContact
+                        ? institutionContact
+                        : location.contactNumber,
+                    email: location.useInstitutionContact
+                        ? institutionEmail
+                        : location.email,
+                    mapEmbedUrl: location.mapEmbedUrl,
+                })),
 
-            const data = await response.json();
-            console.log("Institution added successfully:", data);
-            alert("Institution added successfully!");
+                entryRequirements: {
+                    undergraduate: {
+                        gpa: undergraduateGPA,
+                        languageRequirement: undergraduateLanguageRequirement,
+                    },
+                    postgraduate: {
+                        gpa: postgraduateGPA,
+                        languageRequirement: postgraduateLanguageRequirement,
+                    },
+                },
 
-            // Clear the form after successful submission
-            setInstitutionName("");
-            setInstitutionType("university");
-            setProfilePicture({ file: null, preview: null });
-            setBannerImages([]);
-            setBannerError("");
-            setOverviewHeading("");
-            setOverviewDetails("");
+                scholarships: scholarships.map((scholarship) => ({
+                    name: scholarship.name,
+                    value: scholarship.value,
+                    description: scholarship.description,
+                    eligibility: scholarship.eligibility,
+                })),
+
+                documents: {
+                    incomeSources: incomeSources.map((source) => source.name),
+                    sponsors: sponsors.map((sponsor) => sponsor.name),
+                    banks: banks.map((bank) => bank.name),
+                    minSponsorCount,
+                    minIncomeAmount,
+                    previousVisaRefusal,
+                    levelChangeAfterRefusal,
+                },
+
+                programs: programs.map((program) => ({
+                    name: program.name,
+                    level: program.level,
+                    field: program.field,
+                    duration: program.duration,
+                    tuitionFee: program.tuitionFee,
+                    campuses: program.campuses.map((campusId) => {
+                        const campus = locations.find((loc) => loc.id === campusId);
+                        return campus ? campus.name : '';
+                    }),
+                    useInstitutionRequirements: program.useInstitutionRequirements,
+                    undergraduateRequirement: program.undergraduateRequirement,
+                    postgraduateRequirement: program.postgraduateRequirement,
+                    intakes: program.intakes,
+                    description: program.description,
+                })),
+            };
+
+            const data = await addInstitution(payload);
+
+            console.log('Institution added successfully:', data);
+            alert('Institution added successfully!');
+
+            // reset the form if needed
+            setInstitutionName('');
+            setInstitutionType('');
+            setWebsite('');
+            setInstitutionEmail('');
+            setInstitutionContact('');
+            setDescription('');
+            setSelectedCountry(null);
             setLocations([]);
-            setApplicationFee("");
-            setUndergraduateGPA("");
-            setUndergraduateIELTS("");
-            setUndergraduatePTE("");
-            setUndergraduateTOEFL("");
-            setPostgraduateGPA("");
-            setPostgraduateIELTS("");
-            setPostgraduatePTE("");
-            setPostgraduateTOEFL("");
-            setAgents([]);
             setPrograms([]);
             setScholarships([]);
             setIncomeSources([]);
             setSponsors([]);
-            setMinSponsorCount("");
-            setMinIncomeAmount("");
             setBanks([]);
-            setPreviousVisaRefusal("no");
-            setLevelChangeAfterRefusal(false);
 
         } catch (error) {
-            console.error("Error adding institution:", error);
-            // Show more specific error messages
-            if (error.message.includes("Invalid file type")) {
-                alert("Upload error: " + error.message);
-            } else if (error.message.includes("File size too large")) {
-                alert("Upload error: " + error.message);
-            } else {
-                alert(error.message || "Failed to add institution. Please try again.");
-            }
+            console.error('Error adding institution:', error);
+            alert(error.message || 'Failed to add institution');
         }
+    };
+
+
+    const scrollableMenuProps = {
+        PaperProps: {
+            style: {
+                maxHeight: 240,
+                overflowY: "auto",
+            },
+        },
     };
 
     return (
@@ -509,967 +617,1336 @@ export default function AddInstitution({ onClose }) {
                 </Button>
             </Box>
 
-
+            {/* Form Content - two explicit flex columns. We deliberately avoid CSS
+                `columns` (multi-column) here: it puts MUI's Grid (which sizes itself
+                via negative margins + flexbox) into a formatting context where
+                browsers can miscalculate available width, causing Selects/inputs to
+                collapse to their content width. Plain flex columns don't have that
+                problem. */}
             <Box
                 sx={{
-                    columnCount: { xs: 1, md: 2 },
-                    columnGap: 3,
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    gap: 3,
                 }}
             >
-                {/* Basic Information */}
-                <Paper
-                    sx={{
-                        p: 3,
-                        mb: 3,
-                        breakInside: 'avoid',
-                        display: 'inline-block',
-                        width: '100%',
-                    }}
-                >
-                    <Typography variant="h6" gutterBottom>
-                        Basic Information
-                    </Typography>
+                {/* Left column */}
+                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
 
-                    <Stack spacing={3}>
-                        {/* Logo + Institution Name */}
-                        <Grid container spacing={3} alignItems="center">
-                            <Grid item xs={12} md={2}>
-                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                    <Box sx={{ position: 'relative', width: 80, height: 80 }}>
-                                        <Avatar
-                                            src={profilePicture.preview || ''}
-                                            sx={{
-                                                width: 80,
-                                                height: 80,
-                                                bgcolor: 'grey.200',
-                                            }}
-                                        />
-                                        <input
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                            id="profile-picture-upload"
-                                            type="file"
-                                            onChange={handleProfilePictureUpload}
-                                        />
-                                        <label htmlFor="profile-picture-upload">
-                                            <IconButton
-                                                component="span"
-                                                size="small"
+                    {/* Basic Information */}
+                    <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                            Basic Information
+                        </Typography>
+
+                        <Stack spacing={3}>
+                            {/* Logo + Institution Name */}
+                            <Grid container spacing={3} alignItems="center">
+                                <Grid item xs={12} md={2}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                        <Box sx={{ position: 'relative', width: 80, height: 80 }}>
+                                            <Avatar
+                                                src={profilePicture.preview || ''}
                                                 sx={{
-                                                    position: 'absolute',
-                                                    bottom: -4,
-                                                    right: -4,
-                                                    bgcolor: 'primary.main',
-                                                    color: 'white',
-                                                    '&:hover': { bgcolor: 'primary.dark' },
+                                                    width: 80,
+                                                    height: 80,
+                                                    bgcolor: 'grey.200',
                                                 }}
-                                            >
-                                                <PhotoCamera fontSize="small" />
-                                            </IconButton>
-                                        </label>
+                                            />
+                                            <input
+                                                accept="image/*"
+                                                style={{ display: 'none' }}
+                                                id="profile-picture-upload"
+                                                type="file"
+                                                onChange={handleProfilePictureUpload}
+                                            />
+                                            <label htmlFor="profile-picture-upload">
+                                                <IconButton
+                                                    component="span"
+                                                    size="small"
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        bottom: -4,
+                                                        right: -4,
+                                                        bgcolor: 'primary.main',
+                                                        color: 'white',
+                                                        '&:hover': { bgcolor: 'primary.dark' },
+                                                    }}
+                                                >
+                                                    <PhotoCamera fontSize="small" />
+                                                </IconButton>
+                                            </label>
+                                        </Box>
                                     </Box>
-                                </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={10}>
+                                    <TextField
+                                        label="Institution Name"
+                                        fullWidth
+                                        value={institutionName}
+                                        onChange={(e) => setInstitutionName(e.target.value)}
+                                        placeholder="e.g. Australian Catholic University"
+                                        required
+                                    />
+                                </Grid>
                             </Grid>
 
-                            <Grid item xs={12} md={10}>
-                                <TextField
-                                    label="Institution Name"
-                                    fullWidth
-                                    value={institutionName}
-                                    onChange={(e) => setInstitutionName(e.target.value)}
-                                    placeholder="e.g. Australian Catholic University"
-                                    required
-                                />
-                            </Grid>
-                        </Grid>
+                            <Divider />
 
-                        <Divider />
-
-                        {/* Country + Type */}
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                                <FormControl fullWidth>
-                                    <InputLabel id="country-label">Country</InputLabel>
-                                    <Select
-                                        labelId="country-label"
-                                        value={selectedCountry?._id || ""}
-                                        label="Country"
-                                        onChange={(e) => {
-                                            const country = countries.find((c) => c._id === e.target.value);
-                                            setSelectedCountry(country || null);
-                                        }}
-                                    >
-                                        {countries.map((country) => (
-                                            <MenuItem key={country._id} value={country._id}>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                                    <Avatar
-                                                        src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
-                                                        sx={{ width: 22, height: 22 }}
-                                                    />
-                                                    <Box>
-                                                        <Typography variant="body2">{country.name}</Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {country.code}
+                            {/* Country + Type */}
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth sx={{ minWidth: 220 }}>
+                                        <InputLabel id="country-label">Country</InputLabel>
+                                        <Select
+                                            labelId="country-label"
+                                            value={selectedCountry?._id || ""}
+                                            label="Country"
+                                            fullWidth
+                                            sx={{ width: "100%" }}
+                                            MenuProps={scrollableMenuProps}
+                                            onChange={(e) => {
+                                                const country = countries.find((c) => c._id === e.target.value);
+                                                setSelectedCountry(country || null);
+                                            }}
+                                            renderValue={(value) => {
+                                                const country = countries.find((c) => c._id === value);
+                                                if (!country) return "";
+                                                return (
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                        <Avatar
+                                                            src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
+                                                            sx={{ width: 20, height: 20 }}
+                                                        />
+                                                        <Typography variant="body2" noWrap>
+                                                            {country.name}
                                                         </Typography>
                                                     </Box>
-                                                </Box>
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                                <FormControl fullWidth>
-                                    <InputLabel id="institution-type-label">Institution Type</InputLabel>
-                                    <Select
-                                        labelId="institution-type-label"
-                                        value={institutionType}
-                                        onChange={(e) => setInstitutionType(e.target.value)}
-                                        label="Institution Type"
-                                    >
-                                        <MenuItem value="Public">Public</MenuItem>
-                                        <MenuItem value="Private">Private</MenuItem>
-                                        <MenuItem value="Community">Community</MenuItem>
-                                        <MenuItem value="Other">Other</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                        </Grid>
-
-                        {/* Website + Email + Contact + Application Fee */}
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={4}>
-                                <TextField
-                                    label="Website"
-                                    fullWidth
-                                    value={website}
-                                    onChange={(e) => setWebsite(e.target.value)}
-                                    placeholder="https://www.example.edu"
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={4}>
-                                <TextField
-                                    label="Institution Email"
-                                    fullWidth
-                                    value={institutionEmail}
-                                    onChange={(e) => setInstitutionEmail(e.target.value)}
-                                    placeholder="info@example.edu"
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={4}>
-                                <TextField
-                                    label="Institution Contact Number"
-                                    fullWidth
-                                    value={institutionContact}
-                                    onChange={(e) => setInstitutionContact(e.target.value)}
-                                    placeholder="+61 2 9701 4000"
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    label={`Application Fee (${selectedCountry?.currency ?? ""})`}
-                                    fullWidth
-                                    value={applicationFee}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/[^0-9.]/g, "");
-                                        setApplicationFee(value);
-                                    }}
-                                    placeholder="0.00"
-                                    inputProps={{
-                                        inputMode: "decimal",
-                                        pattern: "[0-9.]*",
-                                    }}
-                                />
-                            </Grid>
-                        </Grid>
-
-                        <Divider />
-
-                        {/* Overview */}
-                        <Box>
-                            <Typography variant="subtitle1" gutterBottom>
-                                Overview
-                            </Typography>
-                            <TextField
-                                label="Institution Description"
-                                fullWidth
-                                multiline
-                                rows={5}
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Write a concise overview of the institution, its strengths, facilities, rankings, and academic focus."
-                            />
-                        </Box>
-
-                        <Divider />
-
-                        {/* Campuses */}
-                        <Box>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    mb: 2,
-                                }}
-                            >
-                                <Typography variant="subtitle1">Campuses</Typography>
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<AddIcon />}
-                                    onClick={handleAddLocation}
-                                >
-                                    Add Campus
-                                </Button>
-                            </Box>
-
-                            {locations.map((location, index) => (
-                                <Card key={location.id} sx={{ mb: 2, position: 'relative' }}>
-                                    <CardContent>
-                                        <IconButton
-                                            size="small"
-                                            sx={{ position: 'absolute', top: 8, right: 8 }}
-                                            onClick={() => handleRemoveLocation(location.id)}
+                                                );
+                                            }}
                                         >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            Campus #{index + 1}
-                                        </Typography>
-
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={12} md={6}>
-                                                <TextField
-                                                    label="Campus Name"
-                                                    fullWidth
-                                                    value={location.name}
-                                                    onChange={(e) =>
-                                                        handleLocationChange(location.id, 'name', e.target.value)
-                                                    }
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} md={6}>
-                                                <TextField
-                                                    label="City"
-                                                    fullWidth
-                                                    value={location.city}
-                                                    onChange={(e) =>
-                                                        handleLocationChange(location.id, 'city', e.target.value)
-                                                    }
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12}>
-                                                <TextField
-                                                    label="Address"
-                                                    fullWidth
-                                                    value={location.address}
-                                                    onChange={(e) =>
-                                                        handleLocationChange(location.id, 'address', e.target.value)
-                                                    }
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12}>
-                                                <FormControlLabel
-                                                    control={
-                                                        <Checkbox
-                                                            checked={location.useInstitutionContact || false}
-                                                            onChange={(e) =>
-                                                                handleLocationChange(
-                                                                    location.id,
-                                                                    'useInstitutionContact',
-                                                                    e.target.checked
-                                                                )
-                                                            }
+                                            {countries.map((country) => (
+                                                <MenuItem key={country._id} value={country._id}>
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                        <Avatar
+                                                            src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
+                                                            sx={{ width: 22, height: 22 }}
                                                         />
-                                                    }
-                                                    label="Use institution email and contact number for this campus"
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} md={6}>
-                                                <TextField
-                                                    label="Campus Email"
-                                                    fullWidth
-                                                    value={
-                                                        location.useInstitutionContact
-                                                            ? institutionEmail
-                                                            : location.email
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleLocationChange(location.id, 'email', e.target.value)
-                                                    }
-                                                    disabled={location.useInstitutionContact}
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} md={6}>
-                                                <TextField
-                                                    label="Campus Contact Number"
-                                                    fullWidth
-                                                    value={
-                                                        location.useInstitutionContact
-                                                            ? institutionContact
-                                                            : location.contactNumber
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleLocationChange(
-                                                            location.id,
-                                                            'contactNumber',
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    disabled={location.useInstitutionContact}
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12}>
-                                                <TextField
-                                                    label="Google Maps Embed URL"
-                                                    fullWidth
-                                                    value={location.mapEmbedUrl}
-                                                    onChange={(e) =>
-                                                        handleLocationChange(
-                                                            location.id,
-                                                            'mapEmbedUrl',
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="https://www.google.com/maps/embed?..."
-                                                />
-                                            </Grid>
-                                        </Grid>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </Box>
-                    </Stack>
-                </Paper>
-
-                {/* Scholarships */}
-                <Paper sx={{ p: 3, mb: 3, breakInside: "avoid", display: "inline-block", width: "100%" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                        <Typography variant="h6">Scholarships</Typography>
-                        <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddScholarship}>
-                            Add Scholarship
-                        </Button>
-                    </Box>
-
-                    {scholarships.map((scholarship, index) => (
-                        <Card key={scholarship.id} sx={{ mb: 2, position: "relative" }}>
-                            <CardContent>
-                                <IconButton
-                                    size="small"
-                                    sx={{ position: "absolute", top: 8, right: 8 }}
-                                    onClick={() => handleRemoveScholarship(scholarship.id)}
-                                    disabled={scholarships.length === 1}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Scholarship #{index + 1}
-                                </Typography>
-
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label="Scholarship Name"
-                                            fullWidth
-                                            value={scholarship.name}
-                                            onChange={(e) => handleScholarshipChange(scholarship.id, "name", e.target.value)}
-                                            placeholder="e.g. International Student Scholarship"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label="Scholarship Link"
-                                            fullWidth
-                                            value={scholarship.link}
-                                            onChange={(e) => handleScholarshipChange(scholarship.id, "link", e.target.value)}
-                                            placeholder="Scholarship website URL"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
+                                                        <Box>
+                                                            <Typography variant="body2">{country.name}</Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {country.code}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Paper>
 
-                {/* Documents */}
-                <Paper sx={{ p: 3, mb: 3, breakInside: "avoid", display: "inline-block", width: "100%" }}>
-                    <Typography variant="h6" gutterBottom>
-                        Documents
-                    </Typography>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth sx={{ minWidth: 220 }}>
+                                        <InputLabel id="institution-type-label">Institution Type</InputLabel>
+                                        <Select
+                                            labelId="institution-type-label"
+                                            value={institutionType}
+                                            onChange={(e) => setInstitutionType(e.target.value)}
+                                            label="Institution Type"
+                                            fullWidth
+                                            MenuProps={scrollableMenuProps}
+                                            sx={{ width: "100%" }}
+                                        >
+                                            <MenuItem value="Public">Public</MenuItem>
+                                            <MenuItem value="Private">Private</MenuItem>
+                                            <MenuItem value="Community">Community</MenuItem>
+                                            <MenuItem value="Other">Other</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
 
-                    {/* Acceptable Income Sources */}
-                    <Box sx={{ mb: 3 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                            <Typography variant="subtitle1">Acceptable Income Sources</Typography>
-                            <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleAddIncomeSource}>
-                                Add
-                            </Button>
-                        </Box>
+                            {/* Website + Email + Contact + Application Fee */}
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        label="Website"
+                                        fullWidth
+                                        value={website}
+                                        onChange={(e) => setWebsite(e.target.value)}
+                                        placeholder="https://www.example.edu"
+                                    />
+                                </Grid>
 
-                        {incomeSources.map((source, index) => (
-                            <Box key={source.id} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                                <FormControl fullWidth size="small">
-                                    <InputLabel id={`income-source-label-${source.id}`}>Income Source</InputLabel>
-                                    <Select
-                                        labelId={`income-source-label-${source.id}`}
-                                        id={`income-source-${source.id}`}
-                                        value={source.name}
-                                        onChange={(e) => handleIncomeSourceChange(source.id, e.target.value)}
-                                        label="Income Source"
-                                        MenuProps={{
-                                            PaperProps: {
-                                                style: {
-                                                    maxHeight: 300
-                                                }
-                                            }
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        label="Institution Email"
+                                        fullWidth
+                                        value={institutionEmail}
+                                        onChange={(e) => setInstitutionEmail(e.target.value)}
+                                        placeholder="info@example.edu"
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        label="Institution Contact Number"
+                                        fullWidth
+                                        value={institutionContact}
+                                        onChange={(e) => setInstitutionContact(e.target.value)}
+                                        placeholder="+61 2 9701 4000"
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        label={`Application Fee (${selectedCountry?.currency ?? ""})`}
+                                        fullWidth
+                                        value={applicationFee}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, "");
+                                            setApplicationFee(value);
                                         }}
-                                    >
-                                        <MenuItem value="">None</MenuItem>
-                                        <MenuItem value="Salary from Employment">Salary from Employment</MenuItem>
-                                        <MenuItem value="Business Income">Business Income</MenuItem>
-                                        <MenuItem value="Rental Income">Rental Income</MenuItem>
-                                        <MenuItem value="Agricultural Income">Agricultural Income</MenuItem>
-                                        <MenuItem value="Pension">Pension</MenuItem>
-                                        <MenuItem value="Foreign Employment Income">Foreign Employment Income</MenuItem>
-                                        <MenuItem value="Income from Investments">Income from Investments</MenuItem>
-                                    </Select>
-                                </FormControl>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => handleRemoveIncomeSource(source.id)}
-                                    disabled={incomeSources.length === 1}
-                                    sx={{ ml: 1 }}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </Box>
-                        ))}
-                    </Box>
-
-                    {/* Acceptable Sponsors */}
-                    <Box sx={{ mb: 3 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                            <Typography variant="subtitle1">Acceptable Sponsors</Typography>
-                            <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleAddSponsor}>
-                                Add
-                            </Button>
-                        </Box>
-
-                        {sponsors.map((sponsor, index) => (
-                            <Box key={sponsor.id} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                                <FormControl fullWidth size="small">
-                                    <InputLabel id={`sponsor-label-${sponsor.id}`}>Sponsor</InputLabel>
-                                    <Select
-                                        labelId={`sponsor-label-${sponsor.id}`}
-                                        id={`sponsor-${sponsor.id}`}
-                                        value={sponsor.name}
-                                        onChange={(e) => handleSponsorChange(sponsor.id, e.target.value)}
-                                        label="Sponsor"
-                                        MenuProps={{
-                                            PaperProps: {
-                                                style: {
-                                                    maxHeight: 300
-                                                }
-                                            }
+                                        placeholder="0.00"
+                                        inputProps={{
+                                            inputMode: "decimal",
+                                            pattern: "[0-9.]*",
                                         }}
-                                    >
-                                        <MenuItem value="">None</MenuItem>
-                                        <MenuItem value="Parents">Parents</MenuItem>
-                                        <MenuItem value="Siblings">Siblings</MenuItem>
-                                        <MenuItem value="Spouse">Spouse</MenuItem>
-                                        <MenuItem value="Relatives">Relatives</MenuItem>
-                                        <MenuItem value="Employers">Employers</MenuItem>
-                                        <MenuItem value="Educational Institutions">Educational Institutions</MenuItem>
-                                    </Select>
-                                </FormControl>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => handleRemoveSponsor(sponsor.id)}
-                                    disabled={sponsors.length === 1}
-                                    sx={{ ml: 1 }}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </Box>
-                        ))}
-                    </Box>
+                                    />
+                                </Grid>
+                            </Grid>
 
-                    {/* Minimum Sponsor Count */}
-                    <Box sx={{ mb: 3 }}>
-                        <TextField
-                            label="Minimum Sponsor Count"
-                            fullWidth
-                            value={minSponsorCount}
-                            onChange={(e) => setMinSponsorCount(e.target.value)}
-                            placeholder="e.g. 1"
-                            size="small"
-                            type="number"
-                            inputProps={{ min: 0 }}
-                        />
-                    </Box>
+                            <Divider />
 
-                    {/* Minimum Income Amount Required */}
-                    <Box sx={{ mb: 3 }}>
-                        <TextField
-                            label="Minimum Income Amount Required"
-                            fullWidth
-                            value={minIncomeAmount}
-                            onChange={(e) => setMinIncomeAmount(e.target.value)}
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                            }}
-                            placeholder="0.00"
-                            size="small"
-                        />
-                    </Box>
-
-                    {/* Acceptable Banks */}
-                    <Box sx={{ mb: 3 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                            <Typography variant="subtitle1">Acceptable Banks</Typography>
-                            <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleAddBank}>
-                                Add
-                            </Button>
-                        </Box>
-
-                        {banks.map((bank, index) => (
-                            <Box key={bank.id} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                            {/* Overview */}
+                            <Box>
+                                <Typography variant="subtitle1" gutterBottom>
+                                    Overview
+                                </Typography>
                                 <TextField
+                                    label="Institution Description"
                                     fullWidth
-                                    value={bank.name}
-                                    onChange={(e) => handleBankChange(bank.id, e.target.value)}
-                                    placeholder={`Bank #${index + 1}`}
-                                    size="small"
+                                    multiline
+                                    rows={5}
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Write a concise overview of the institution, its strengths, facilities, rankings, and academic focus."
                                 />
-                                <IconButton
-                                    size="small"
-                                    onClick={() => handleRemoveBank(bank.id)}
-                                    disabled={banks.length === 1}
-                                    sx={{ ml: 1 }}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
                             </Box>
-                        ))}
-                    </Box>
 
-                    {/* Previous Visa Refusal */}
-                    <Box>
-                        <Typography variant="subtitle1" gutterBottom>
-                            Previous Visa Refusal
+                            <Divider />
+
+                            {/* Campuses */}
+                            <Box>
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        mb: 2,
+                                    }}
+                                >
+                                    <Typography variant="subtitle1">Campuses</Typography>
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddLocation}
+                                    >
+                                        {locations.length === 0 ? "Add Campus" : "Add Another Campus"}
+                                    </Button>
+                                </Box>
+
+                                {locations.map((location, index) => (
+                                    <Card key={location.id} sx={{ mb: 2, position: 'relative' }}>
+                                        <CardContent>
+                                            <IconButton
+                                                size="small"
+                                                sx={{ position: 'absolute', top: 8, right: 8 }}
+                                                onClick={() => handleRemoveLocation(location.id)}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+
+                                            <Typography variant="subtitle2" gutterBottom>
+                                                Campus #{index + 1}
+                                            </Typography>
+
+                                            <Grid container spacing={2}>
+                                                <Grid item xs={12} md={6}>
+                                                    <TextField
+                                                        label="Campus Name"
+                                                        fullWidth
+                                                        value={location.name}
+                                                        onChange={(e) =>
+                                                            handleLocationChange(location.id, 'name', e.target.value)
+                                                        }
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12} md={6}>
+                                                    <TextField
+                                                        label="City"
+                                                        fullWidth
+                                                        value={location.city}
+                                                        onChange={(e) =>
+                                                            handleLocationChange(location.id, 'city', e.target.value)
+                                                        }
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12}>
+                                                    <TextField
+                                                        label="Address"
+                                                        fullWidth
+                                                        value={location.address}
+                                                        onChange={(e) =>
+                                                            handleLocationChange(location.id, 'address', e.target.value)
+                                                        }
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={location.useInstitutionContact || false}
+                                                                onChange={(e) =>
+                                                                    handleLocationChange(
+                                                                        location.id,
+                                                                        'useInstitutionContact',
+                                                                        e.target.checked
+                                                                    )
+                                                                }
+                                                            />
+                                                        }
+                                                        label="Use institution email and contact number for this campus"
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12} md={6}>
+                                                    <TextField
+                                                        label="Campus Email"
+                                                        fullWidth
+                                                        value={
+                                                            location.useInstitutionContact
+                                                                ? institutionEmail
+                                                                : location.email
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleLocationChange(location.id, 'email', e.target.value)
+                                                        }
+                                                        disabled={location.useInstitutionContact}
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12} md={6}>
+                                                    <TextField
+                                                        label="Campus Contact Number"
+                                                        fullWidth
+                                                        value={
+                                                            location.useInstitutionContact
+                                                                ? institutionContact
+                                                                : location.contactNumber
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleLocationChange(
+                                                                location.id,
+                                                                'contactNumber',
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        disabled={location.useInstitutionContact}
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12}>
+                                                    <TextField
+                                                        label="Google Maps Embed URL"
+                                                        fullWidth
+                                                        value={location.mapEmbedUrl}
+                                                        onChange={(e) =>
+                                                            handleLocationChange(
+                                                                location.id,
+                                                                'mapEmbedUrl',
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="https://www.google.com/maps/embed?..."
+                                                    />
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </Box>
+                        </Stack>
+                    </Paper>
+
+                    {/* Entry Requirements */}
+                    <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                            Entry Requirements
                         </Typography>
-                        <RadioGroup
-                            value={previousVisaRefusal}
-                            onChange={(e) => {
-                                setPreviousVisaRefusal(e.target.value);
-                            }}
-                            row
-                        >
-                            <FormControlLabel
-                                value="yes"
-                                control={<Radio />}
-                                label="Yes"
-                                sx={{ cursor: 'pointer' }}
-                            />
-                            <FormControlLabel
-                                value="no"
-                                control={<Radio />}
-                                label="No"
-                                sx={{ cursor: 'pointer' }}
-                            />
-                        </RadioGroup>
 
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    id="level-change-checkbox"
-                                    checked={levelChangeAfterRefusal}
-                                    onChange={(e) => setLevelChangeAfterRefusal(e.target.checked)}
-                                />
-                            }
-                            label="There is a change in level of study (e.g., UG to PG) compared to the previous refusal"
-                            sx={{ cursor: 'pointer' }}
-                        />
-                    </Box>
-                </Paper>
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Undergraduate
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Grid container spacing={1.5}>
 
-                {/* Entry Requirements */}
-                <Paper sx={{ p: 3, mb: 3, breakInside: "avoid", display: "inline-block", width: "100%" }}>
-                    <Typography variant="h6" gutterBottom>
-                        Entry Requirements
-                    </Typography>
+                                        <Grid item xs={12} sm={4}>
+                                            <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                                <InputLabel>
+                                                    Score Type
+                                                </InputLabel>
 
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle1" gutterBottom>
-                            Undergraduate
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Grid container spacing={1.5}>
+                                                <Select
+                                                    value={undergraduateGPA.type}
+                                                    label="Score Type"
+                                                    MenuProps={scrollableMenuProps}
+                                                    onChange={(e) =>
+                                                        setUndergraduateGPA({
+                                                            ...undergraduateGPA,
+                                                            type: e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    <MenuItem value="GPA">
+                                                        GPA
+                                                    </MenuItem>
 
-                                    <Grid item xs={12} sm={4}>
-                                        <FormControl fullWidth size="small">
-                                            <InputLabel>
-                                                Score Type
-                                            </InputLabel>
+                                                    <MenuItem value="Percentage">
+                                                        Percentage
+                                                    </MenuItem>
 
-                                            <Select
-                                                value={undergraduateGPA.type}
-                                                label="Score Type"
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+
+                                        <Grid item xs={12} sm={8}>
+                                            <TextField
+                                                label={
+                                                    undergraduateGPA.type === "Percentage"
+                                                        ? "Percentage"
+                                                        : "GPA"
+                                                }
+                                                fullWidth
+                                                size="small"
+                                                value={undergraduateGPA.score}
                                                 onChange={(e) =>
                                                     setUndergraduateGPA({
                                                         ...undergraduateGPA,
-                                                        type: e.target.value,
+                                                        score: e.target.value,
                                                     })
                                                 }
-                                            >
-                                                <MenuItem value="GPA">
-                                                    GPA
-                                                </MenuItem>
+                                                placeholder={
+                                                    undergraduateGPA.type === "Percentage"
+                                                        ? "e.g. 75%"
+                                                        : "e.g. 3.0/4.0"
+                                                }
+                                            />
+                                        </Grid>
 
-                                                <MenuItem value="Percentage">
-                                                    Percentage
-                                                </MenuItem>
-
-                                            </Select>
-                                        </FormControl>
                                     </Grid>
-
-
-                                    <Grid item xs={12} sm={8}>
-                                        <TextField
-                                            label={
-                                                undergraduateGPA.type === "Percentage"
-                                                    ? "Percentage"
-                                                    : "GPA"
-                                            }
-                                            fullWidth
-                                            size="small"
-                                            value={undergraduateGPA.score}
-                                            onChange={(e) =>
-                                                setUndergraduateGPA({
-                                                    ...undergraduateGPA,
-                                                    score: e.target.value,
-                                                })
-                                            }
-                                            placeholder={
-                                                undergraduateGPA.type === "Percentage"
-                                                    ? "e.g. 75%"
-                                                    : "e.g. 3.0/4.0"
-                                            }
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Language Requirements
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <LanguageRequirementFields
+                                            value={undergraduateLanguageRequirement}
+                                            onChange={setUndergraduateLanguageRequirement}
                                         />
                                     </Grid>
-
                                 </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Language Requirements
-                                </Typography>
-                                <Grid container spacing={2}>
-                                    <LanguageRequirementFields
-                                        value={undergraduateLanguageRequirement}
-                                        onChange={setUndergraduateLanguageRequirement}
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Box>
+                        </Box>
 
-                    <Divider sx={{ my: 3 }} />
+                        <Divider sx={{ my: 3 }} />
 
-                    <Box>
-                        <Typography variant="subtitle1" gutterBottom>
-                            Postgraduate
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <Grid container spacing={1.5}>
+                        <Box>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Postgraduate
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Grid container spacing={1.5}>
 
-                                    <Grid item xs={12} sm={4}>
-                                        <FormControl fullWidth size="small">
-                                            <InputLabel>
-                                                Score Type
-                                            </InputLabel>
+                                        <Grid item xs={12} sm={4}>
+                                            <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                                <InputLabel>
+                                                    Score Type
+                                                </InputLabel>
 
-                                            <Select
-                                                value={postgraduateGPA.type}
-                                                label="Score Type"
+                                                <Select
+                                                    value={postgraduateGPA.type}
+                                                    label="Score Type"
+                                                    MenuProps={scrollableMenuProps}
+                                                    onChange={(e) =>
+                                                        setPostgraduateGPA({
+                                                            ...postgraduateGPA,
+                                                            type: e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    <MenuItem value="GPA">
+                                                        GPA
+                                                    </MenuItem>
+
+                                                    <MenuItem value="Percentage">
+                                                        Percentage
+                                                    </MenuItem>
+
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+
+                                        <Grid item xs={12} sm={8}>
+                                            <TextField
+                                                label={
+                                                    postgraduateGPA.type === "Percentage"
+                                                        ? "Percentage"
+                                                        : "GPA"
+                                                }
+                                                fullWidth
+                                                size="small"
+                                                value={postgraduateGPA.score}
                                                 onChange={(e) =>
                                                     setPostgraduateGPA({
                                                         ...postgraduateGPA,
-                                                        type: e.target.value,
+                                                        score: e.target.value,
                                                     })
                                                 }
-                                            >
-                                                <MenuItem value="GPA">
-                                                    GPA
-                                                </MenuItem>
+                                                placeholder={
+                                                    postgraduateGPA.type === "Percentage"
+                                                        ? "e.g. 75%"
+                                                        : "e.g. 3.0/4.0"
+                                                }
+                                            />
+                                        </Grid>
 
-                                                <MenuItem value="Percentage">
-                                                    Percentage
-                                                </MenuItem>
-
-                                            </Select>
-                                        </FormControl>
                                     </Grid>
-
-
-                                    <Grid item xs={12} sm={8}>
-                                        <TextField
-                                            label={
-                                                postgraduateGPA.type === "Percentage"
-                                                    ? "Percentage"
-                                                    : "GPA"
-                                            }
-                                            fullWidth
-                                            size="small"
-                                            value={postgraduateGPA.score}
-                                            onChange={(e) =>
-                                                setPostgraduateGPA({
-                                                    ...postgraduateGPA,
-                                                    score: e.target.value,
-                                                })
-                                            }
-                                            placeholder={
-                                                postgraduateGPA.type === "Percentage"
-                                                    ? "e.g. 75%"
-                                                    : "e.g. 3.0/4.0"
-                                            }
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Language Requirements
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <LanguageRequirementFields
+                                            value={postgraduateLanguageRequirement}
+                                            onChange={setPostgraduateLanguageRequirement}
                                         />
                                     </Grid>
-
                                 </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Language Requirements
-                                </Typography>
-                                <Grid container spacing={2}>
-                                    <LanguageRequirementFields
-                                        value={postgraduateLanguageRequirement}
-                                        onChange={setPostgraduateLanguageRequirement}
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Box>
-                </Paper>
+                        </Box>
+                    </Paper>
+                </Box>
 
-                {/* Programs */}
-                <Paper sx={{ p: 3, mb: 3, breakInside: "avoid", display: "inline-block", width: "100%" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                        <Typography variant="h6">Programs</Typography>
-                        <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddProgram}>
-                            Add Program
-                        </Button>
-                    </Box>
+                {/* Right column */}
+                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
 
-                    {programs.map((program, index) => (
-                        <Card key={program.id} sx={{ mb: 2, position: "relative" }}>
-                            <CardContent>
-                                <IconButton
-                                    size="small"
-                                    sx={{ position: "absolute", top: 8, right: 8 }}
-                                    onClick={() => handleRemoveProgram(program.id)}
-                                    disabled={programs.length === 1}
+                    {/* Programs */}
+                    <Paper sx={{ p: 3 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="h6">Programs</Typography>
+                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddProgram}>
+                                {programs.length === 0 ? "Add Program" : "Add Another Program"}
+                            </Button>
+                        </Box>
+
+                        {programs.map((program, index) => (
+                            <Card key={program.id} sx={{ mb: 2, position: "relative" }}>
+                                <CardContent>
+                                    <IconButton
+                                        size="small"
+                                        sx={{ position: "absolute", top: 8, right: 8 }}
+                                        onClick={() => handleRemoveProgram(program.id)}
+                                        disabled={programs.length === 1}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Program #{index + 1}
+                                    </Typography>
+
+                                    <Grid container spacing={2}>
+
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                label="Program Name"
+                                                fullWidth
+                                                size="small"
+                                                value={program.name}
+                                                onChange={(e) =>
+                                                    handleProgramChange(program.id, "name", e.target.value)
+                                                }
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <FormControl fullWidth size="small" sx={{ minWidth: 100 }}>
+                                                <InputLabel>Level</InputLabel>
+                                                <Select
+                                                    value={program.level}
+                                                    MenuProps={scrollableMenuProps}
+                                                    label="Level"
+                                                    onChange={(e) =>
+                                                        handleProgramChange(program.id, "level", e.target.value)
+                                                    }
+                                                >
+                                                    <MenuItem value="Certificate">Certificate</MenuItem>
+                                                    <MenuItem value="Diploma">Diploma</MenuItem>
+                                                    <MenuItem value="Bachelor">Bachelor</MenuItem>
+                                                    <MenuItem value="Master">Master</MenuItem>
+                                                    <MenuItem value="PhD">PhD</MenuItem>
+                                                    <MenuItem value="Other">Other</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                label="Field of Study"
+                                                fullWidth
+                                                size="small"
+                                                value={program.field}
+                                                onChange={(e) =>
+                                                    handleProgramChange(program.id, "field", e.target.value)
+                                                }
+                                                placeholder="e.g. Computer Science"
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                label="Duration"
+                                                fullWidth
+                                                size="small"
+                                                value={program.duration}
+                                                onChange={(e) =>
+                                                    handleProgramChange(program.id, "duration", e.target.value)
+                                                }
+                                                placeholder="e.g. 2 years"
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+                                                Tuition Fee
+                                            </Typography>
+
+                                            <Grid container spacing={2}>
+                                                <Grid item xs={12} md={8}>
+                                                    <TextField
+                                                        fullWidth
+                                                        size="small"
+                                                        placeholder={`Amount (${selectedCountry?.currency || ""})`}
+                                                        value={program.tuitionFee?.value || ""}
+                                                        onChange={(e) =>
+                                                            handleProgramChange(program.id, "tuitionFee.value", e.target.value)
+                                                        }
+                                                    />
+                                                </Grid>
+
+                                                <Grid item xs={12} md={4}>
+                                                    <FormControl fullWidth size="small">
+                                                        <InputLabel>Per</InputLabel>
+                                                        <Select
+                                                            value={program.tuitionFee?.per || "year"}
+                                                            label="Per"
+                                                            MenuProps={scrollableMenuProps}
+                                                            onChange={(e) =>
+                                                                handleProgramChange(program.id, "tuitionFee.per", e.target.value)
+                                                            }
+                                                        >
+                                                            <MenuItem value="semester">Semester</MenuItem>
+                                                            <MenuItem value="year">Year</MenuItem>
+                                                            <MenuItem value="total">Total Program</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+
+                                        {/* Campuses */}
+                                        <Grid item xs={12}>
+                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1, mt: 2 }}>
+                                                Campuses
+                                            </Typography>
+
+                                            <FormControl fullWidth size="small" sx={{ mt: 0.5 }}>
+                                                <InputLabel id={`campus-label-${program.id}`}>
+                                                    Applicable Campuses
+                                                </InputLabel>
+
+                                                <Select
+                                                    labelId={`campus-label-${program.id}`}
+                                                    multiple
+                                                    value={program.campuses || []}
+                                                    label="Applicable Campuses"
+                                                    MenuProps={scrollableMenuProps}
+                                                    renderValue={(selected) => {
+                                                        if (!selected || selected.length === 0) return '';
+
+                                                        const names = selected
+                                                            .map((id) => locations.find((loc) => loc.id === id)?.name)
+                                                            .filter(Boolean);
+
+                                                        if (names.length === 1) return names[0];
+
+                                                        return `${names[0]} +${names.length - 1}`;
+                                                    }}
+                                                    onChange={(e) => {
+                                                        handleProgramChange(program.id, 'campuses', e.target.value);
+                                                    }}
+                                                >
+                                                    <MenuItem
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+
+                                                            const allSelected =
+                                                                (program.campuses || []).length === locations.length;
+
+                                                            handleProgramChange(
+                                                                program.id,
+                                                                'campuses',
+                                                                allSelected ? [] : locations.map((loc) => loc.id)
+                                                            );
+                                                        }}
+                                                    >
+                                                        <Checkbox
+                                                            checked={
+                                                                locations.length > 0 &&
+                                                                (program.campuses || []).length === locations.length
+                                                            }
+                                                            indeterminate={
+                                                                (program.campuses || []).length > 0 &&
+                                                                (program.campuses || []).length < locations.length
+                                                            }
+                                                        />
+                                                        <ListItemText primary="Select All" />
+                                                    </MenuItem>
+
+                                                    <Divider />
+
+                                                    {locations.map((location, idx) => (
+                                                        <MenuItem key={location.id} value={location.id}>
+                                                            <Checkbox checked={(program.campuses || []).includes(location.id)} />
+                                                            <ListItemText
+                                                                primary={location.name || `Campus #${idx + 1}`}
+                                                                secondary={location.city}
+                                                            />
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <Typography variant="subtitle2" gutterBottom>
+                                                Entry Requirements
+                                            </Typography>
+                                            <Divider sx={{ my: 1 }} />
+
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={program.useInstitutionRequirements}
+                                                        onChange={(e) =>
+                                                            handleProgramChange(
+                                                                program.id,
+                                                                "useInstitutionRequirements",
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                    />
+                                                }
+                                                label="Use institution entry requirements"
+                                            />
+
+                                            {!program.useInstitutionRequirements && (
+                                                <Box sx={{ mt: 2 }}>
+                                                    {/* Undergraduate */}
+                                                    {["Certificate", "Diploma", "Bachelor"].includes(program.level) && (
+                                                        <Box>
+                                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 2 }}>
+                                                                Undergraduate Requirements
+                                                            </Typography>
+
+                                                            <Grid container spacing={2}>
+                                                                {/* Score Type */}
+                                                                <Grid item xs={12}>
+                                                                    <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                                                        <InputLabel>Score Type</InputLabel>
+                                                                        <Select
+                                                                            value={program.undergraduateRequirement.gpa.type}
+                                                                            label="Score Type"
+                                                                            MenuProps={scrollableMenuProps}
+                                                                            onChange={(e) =>
+                                                                                handleProgramChange(
+                                                                                    program.id,
+                                                                                    "undergraduateRequirement.gpa.type",
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <MenuItem value="GPA">GPA</MenuItem>
+                                                                            <MenuItem value="Percentage">Percentage</MenuItem>
+                                                                        </Select>
+                                                                    </FormControl>
+                                                                </Grid>
+
+                                                                {/* GPA / Percentage */}
+                                                                <Grid item xs={12}>
+
+                                                                    <TextField
+                                                                        fullWidth
+                                                                        size="small"
+                                                                        value={program.undergraduateRequirement.gpa.score}
+                                                                        onChange={(e) =>
+                                                                            handleProgramChange(
+                                                                                program.id,
+                                                                                "undergraduateRequirement.gpa.score",
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        placeholder={
+                                                                            program.undergraduateRequirement.gpa.type === "Percentage"
+                                                                                ? "e.g. 75%"
+                                                                                : "e.g. 3.0/4.0"
+                                                                        }
+                                                                    />
+                                                                </Grid>
+
+                                                                {/* Language Requirement */}
+                                                                <Grid item xs={12}>
+                                                                    <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                                                        Language Requirement
+                                                                    </Typography>
+                                                                    <LanguageRequirementFields
+                                                                        value={program.undergraduateRequirement.languageRequirement}
+                                                                        onChange={(updated) =>
+                                                                            handleProgramChange(
+                                                                                program.id,
+                                                                                "undergraduateRequirement.languageRequirement",
+                                                                                updated
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Box>
+                                                    )}
+
+                                                    {/* Postgraduate */}
+                                                    {["Master", "PhD"].includes(program.level) && (
+                                                        <Box sx={{ mt: 3 }}>
+                                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 2 }}>
+                                                                Postgraduate Requirements
+                                                            </Typography>
+
+                                                            <Grid container spacing={2}>
+                                                                {/* Score Type */}
+                                                                <Grid item xs={12}>
+                                                                    <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                                                        Score Type
+                                                                    </Typography>
+                                                                    <FormControl fullWidth size="small">
+                                                                        <InputLabel>Score Type</InputLabel>
+                                                                        <Select
+                                                                            value={program.postgraduateRequirement.gpa.type}
+                                                                            label="Score Type"
+                                                                            MenuProps={scrollableMenuProps}
+                                                                            onChange={(e) =>
+                                                                                handleProgramChange(
+                                                                                    program.id,
+                                                                                    "postgraduateRequirement.gpa.type",
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <MenuItem value="GPA">GPA</MenuItem>
+                                                                            <MenuItem value="Percentage">Percentage</MenuItem>
+                                                                        </Select>
+                                                                    </FormControl>
+                                                                </Grid>
+
+                                                                {/* GPA / Percentage */}
+                                                                <Grid item xs={12}>
+                                                                    <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                                                        {program.postgraduateRequirement.gpa.type === "Percentage"
+                                                                            ? "Percentage"
+                                                                            : "GPA"}
+                                                                    </Typography>
+                                                                    <TextField
+                                                                        fullWidth
+                                                                        size="small"
+                                                                        value={program.postgraduateRequirement.gpa.score}
+                                                                        onChange={(e) =>
+                                                                            handleProgramChange(
+                                                                                program.id,
+                                                                                "postgraduateRequirement.gpa.score",
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        placeholder={
+                                                                            program.postgraduateRequirement.gpa.type === "Percentage"
+                                                                                ? "e.g. 75%"
+                                                                                : "e.g. 3.0/4.0"
+                                                                        }
+                                                                    />
+                                                                </Grid>
+
+                                                                {/* Language Requirement */}
+                                                                <Grid item xs={12}>
+                                                                    <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                                                        Language Requirement
+                                                                    </Typography>
+                                                                    <LanguageRequirementFields
+                                                                        value={program.postgraduateRequirement.languageRequirement}
+                                                                        onChange={(updated) =>
+                                                                            handleProgramChange(
+                                                                                program.id,
+                                                                                "postgraduateRequirement.languageRequirement",
+                                                                                updated
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            )}
+                                        </Grid>
+
+                                        {/* ===== INTAKES & DESCRIPTION ===== */}
+                                        <Grid item xs={12}>
+                                            <Typography variant="subtitle2" gutterBottom>
+                                                Intakes & Description
+                                            </Typography>
+                                            <Divider sx={{ my: 1 }} />
+
+                                            <Box sx={{ mt: 2 }}>
+                                                {/* Intakes */}
+
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    value={program.intakes}
+                                                    onChange={(e) =>
+                                                        handleProgramChange(program.id, "intakes", e.target.value)
+                                                    }
+                                                    placeholder="e.g. February, July, November"
+                                                />
+
+                                                {/* Program Description */}
+
+                                                <TextField
+                                                    fullWidth
+                                                    multiline
+                                                    sx={{ marginTop: 2 }}
+                                                    rows={4}
+                                                    value={program.description}
+                                                    onChange={(e) =>
+                                                        handleProgramChange(program.id, "description", e.target.value)
+                                                    }
+                                                    placeholder="Brief description of the program."
+                                                />
+                                            </Box>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </Paper>
+
+                    {/* Scholarships */}
+                    <Paper sx={{ p: 3 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                            <Typography variant="h6">Scholarships</Typography>
+                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddScholarship}>
+                                {scholarships.length === 0 ? "Add Scholarship" : "Add Another Scholarship"}
+                            </Button>
+                        </Box>
+
+                        {scholarships.map((scholarship, index) => (
+                            <Card key={scholarship.id} sx={{ mb: 2, position: "relative" }}>
+                                <CardContent>
+                                    <IconButton
+                                        size="small"
+                                        sx={{ position: "absolute", top: 8, right: 8 }}
+                                        onClick={() => handleRemoveScholarship(scholarship.id)}
+                                        disabled={scholarships.length === 1}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Scholarship #{index + 1}
+                                    </Typography>
+
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} md={6}>
+                                            <TextField
+                                                label="Scholarship Name"
+                                                fullWidth
+                                                size="small"
+                                                value={scholarship.name}
+                                                onChange={(e) =>
+                                                    handleScholarshipChange(
+                                                        scholarship.id,
+                                                        "name",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="e.g. International Student Scholarship"
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12} md={6}>
+                                            <TextField
+                                                label="Scholarship Value"
+                                                fullWidth
+                                                size="small"
+                                                value={scholarship.value}
+                                                onChange={(e) =>
+                                                    handleScholarshipChange(
+                                                        scholarship.id,
+                                                        "value",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="e.g. 25% tuition waiver or AUD 5,000"
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                label="Description"
+                                                fullWidth
+                                                multiline
+                                                rows={3}
+                                                value={scholarship.description}
+                                                onChange={(e) =>
+                                                    handleScholarshipChange(
+                                                        scholarship.id,
+                                                        "description",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="Brief description of the scholarship and what it covers."
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                label="Eligibility"
+                                                fullWidth
+                                                multiline
+                                                rows={3}
+                                                value={scholarship.eligibility}
+                                                onChange={(e) =>
+                                                    handleScholarshipChange(
+                                                        scholarship.id,
+                                                        "eligibility",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="e.g. International students with a GPA of 3.0/4.0 or above."
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </Paper>
+
+                    {/* Documents */}
+                    <Paper sx={{ p: 3 }}>
+                        <Box>
+                            <Typography variant='subtitle1' sx={{ mb: 2 }}>
+                                Financial Documents </Typography>
+
+                            {/* Income Sources */}
+                            <Box sx={{ mb: 3 }}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        mb: 2,
+                                    }}
                                 >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
+                                    <Typography variant="subtitle1">Income Sources</Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddIncomeSource}
+                                    >
+                                        {incomeSources.length === 0 ? "Add Income Source" : "Add Another Income Source"}
+                                    </Button>
+                                </Box>
 
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Program #{index + 1}
-                                </Typography>
-
-                                <Grid container spacing={2} alignItems="center">
-                                    <Grid item xs={12} sm={8}>
-                                        <TextField
-                                            label="Program Name"
-                                            fullWidth
-                                            value={program.name}
-                                            onChange={(e) => handleProgramChange(program.id, "name", e.target.value)}
-                                            placeholder="e.g. Bachelor of Applied Public Health (Honours)"
-                                            size="small"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={4}>
-                                        <FormControl fullWidth size="small">
-                                            <InputLabel id={`level-label-${program.id}`}>Level</InputLabel>
+                                {incomeSources.map((source, index) => (
+                                    <Box
+                                        key={source.id}
+                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                                    >
+                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                            <InputLabel id={`income-source-label-${source.id}`}>
+                                                Income Source
+                                            </InputLabel>
                                             <Select
-                                                labelId={`level-label-${program.id}`}
-                                                value={program.level}
-                                                onChange={(e) => handleProgramChange(program.id, "level", e.target.value)}
-                                                label="Level"
+                                                labelId={`income-source-label-${source.id}`}
+                                                id={`income-source-${source.id}`}
+                                                value={source.name}
+                                                MenuProps={scrollableMenuProps}
+                                                onChange={(e) =>
+                                                    handleIncomeSourceChange(source.id, e.target.value)
+                                                }
+                                                label="Income Source"
                                                 MenuProps={{
                                                     PaperProps: {
                                                         style: {
-                                                            maxHeight: 300
-                                                        }
-                                                    }
+                                                            maxHeight: 300,
+                                                        },
+                                                    },
                                                 }}
                                             >
-                                                <MenuItem value="">Select level</MenuItem>
-                                                <MenuItem value="Undergraduate">Undergraduate</MenuItem>
-                                                <MenuItem value="Postgraduate">Postgraduate</MenuItem>
-                                                <MenuItem value="Diploma">Diploma</MenuItem>
-                                                <MenuItem value="Certificate">Certificate</MenuItem>
-                                                <MenuItem value="PhD">PhD</MenuItem>
+                                                <MenuItem value="">None</MenuItem>
+                                                <MenuItem value="Salary from Employment">
+                                                    Salary from Employment
+                                                </MenuItem>
+                                                <MenuItem value="Business Income">
+                                                    Business Income
+                                                </MenuItem>
+                                                <MenuItem value="Rental Income">
+                                                    Rental Income
+                                                </MenuItem>
+                                                <MenuItem value="Investment Income">
+                                                    Investment Income
+                                                </MenuItem>
+                                                <MenuItem value="Retirement Pension">
+                                                    Retirement Pension
+                                                </MenuItem>
+                                                <MenuItem value="Spousal Support">
+                                                    Spousal Support
+                                                </MenuItem>
+                                                <MenuItem value="Trust Fund Disbursements">
+                                                    Trust Fund Disbursements
+                                                </MenuItem>
                                             </Select>
                                         </FormControl>
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label="URL"
-                                            fullWidth
-                                            value={program.url}
-                                            onChange={(e) => handleProgramChange(program.id, "url", e.target.value)}
-                                            placeholder="Program website URL"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="Duration"
-                                            fullWidth
-                                            value={program.duration}
-                                            onChange={(e) => handleProgramChange(program.id, "duration", e.target.value)}
-                                            placeholder="e.g. 1 year"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="Intakes"
-                                            fullWidth
-                                            value={program.intakes}
-                                            onChange={(e) => handleProgramChange(program.id, "intakes", e.target.value)}
-                                            placeholder="e.g. February 2025, July 2025"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="First Year Fees"
-                                            fullWidth
-                                            value={program.firstYearFees}
-                                            onChange={(e) => handleProgramChange(program.id, "firstYearFees", e.target.value)}
-                                            InputProps={{
-                                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                            }}
-                                            placeholder="0.00"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="CRICOS Code"
-                                            fullWidth
-                                            value={program.cricosCode}
-                                            onChange={(e) => handleProgramChange(program.id, "cricosCode", e.target.value)}
-                                            placeholder="e.g. 090703A"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="Discipline"
-                                            fullWidth
-                                            value={program.discipline}
-                                            onChange={(e) => handleProgramChange(program.id, "discipline", e.target.value)}
-                                            placeholder="e.g. Public Health"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="Campuses"
-                                            fullWidth
-                                            value={program.campuses}
-                                            onChange={(e) => handleProgramChange(program.id, "campuses", e.target.value)}
-                                            placeholder="e.g. Melbourne, Sydney"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            label="Funds Required"
-                                            fullWidth
-                                            value={program.fundsRequired}
-                                            onChange={(e) => handleProgramChange(program.id, "fundsRequired", e.target.value)}
-                                            InputProps={{
-                                                startAdornment: <InputAdornment position="start">AUD</InputAdornment>,
-                                            }}
-                                            placeholder="0"
-                                            size="small"
-                                            margin="normal"
-                                        />
-                                    </Grid>
 
-                                    <Grid item xs={12}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            Language Requirements
-                                        </Typography>
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={4}>
-                                                <TextField
-                                                    label="IELTS"
-                                                    fullWidth
-                                                    value={program.ielts}
-                                                    onChange={(e) => handleProgramChange(program.id, "ielts", e.target.value)}
-                                                    placeholder="e.g. 6.5/6.0"
-                                                    size="small"
-                                                />
-                                            </Grid>
-                                            <Grid item xs={4}>
-                                                <TextField
-                                                    label="PTE"
-                                                    fullWidth
-                                                    value={program.pte}
-                                                    onChange={(e) => handleProgramChange(program.id, "pte", e.target.value)}
-                                                    placeholder="e.g. 58/50"
-                                                    size="small"
-                                                />
-                                            </Grid>
-                                            <Grid item xs={4}>
-                                                <TextField
-                                                    label="TOEFL"
-                                                    fullWidth
-                                                    value={program.toefl}
-                                                    onChange={(e) => handleProgramChange(program.id, "toefl", e.target.value)}
-                                                    placeholder="e.g. 90"
-                                                    size="small"
-                                                />
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Paper>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleRemoveIncomeSource(source.id)}
+                                            disabled={incomeSources.length === 1}
+                                            sx={{ ml: 1 }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Sponsors */}
+                            <Box sx={{ mb: 3 }}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        mb: 2,
+                                    }}
+                                >
+                                    <Typography variant="subtitle1">Sponsors</Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddSponsor}
+                                    >
+                                        {sponsors.length === 0 ? "Add Sponsor" : "Add Another Sponsor"}
+                                    </Button>
+                                </Box>
+
+                                {sponsors.map((sponsor, index) => (
+                                    <Box
+                                        key={sponsor.id}
+                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                                    >
+                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                            <InputLabel id={`sponsor-label-${sponsor.id}`}>
+                                                Sponsor
+                                            </InputLabel>
+                                            <Select
+                                                labelId={`sponsor-label-${sponsor.id}`}
+                                                id={`sponsor-${sponsor.id}`}
+                                                value={sponsor.name}
+                                                MenuProps={scrollableMenuProps}
+                                                onChange={(e) =>
+                                                    handleSponsorChange(sponsor.id, e.target.value)
+                                                }
+                                                label="Sponsor"
+                                                MenuProps={{
+                                                    PaperProps: {
+                                                        style: {
+                                                            maxHeight: 300,
+                                                        },
+                                                    },
+                                                }}
+                                            >
+                                                <MenuItem value="">None</MenuItem>
+                                                <MenuItem value="Parents">Parents</MenuItem>
+                                                <MenuItem value="Spouse">Spouse</MenuItem>
+                                                <MenuItem value="Employers">Employers</MenuItem>
+                                                <MenuItem value="Educational Institutions">
+                                                    Educational Institutions
+                                                </MenuItem>
+                                                <MenuItem value="Government Sponsors">
+                                                    Government Sponsors
+                                                </MenuItem>
+                                            </Select>
+                                        </FormControl>
+
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleRemoveSponsor(sponsor.id)}
+                                            disabled={sponsors.length === 1}
+                                            sx={{ ml: 1 }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Minimum Sponsor Count */}
+                            <Box sx={{ mb: 3 }}>
+                                <Typography variant="subtitle1">Sponsor Count</Typography>
+                                <TextField
+                                    label='Minimum Sponsor Count'
+                                    fullWidth
+                                    size='small'
+                                    type='number'
+                                    value={minSponsorCount}
+                                    onChange={(e) => setMinSponsorCount(e.target.value)}
+                                    inputProps={{ min: 0 }}
+                                />
+                            </Box>
+
+                            {/* Banks */}
+                            <Box sx={{ mb: 3 }}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        mb: 2,
+                                    }}
+                                >
+                                    <Typography variant="subtitle1">Banks</Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddBank}
+                                    >
+                                        {banks.length === 0 ? "Add Bank" : "Add Another Bank"}
+                                    </Button>
+                                </Box>
+
+                                {banks.map((bank, index) => (
+                                    <Box
+                                        key={bank.id}
+                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                                    >
+                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                            <InputLabel id={`bank-label-${bank.id}`}>Bank</InputLabel>
+                                            <Select
+                                                labelId={`bank-label-${bank.id}`}
+                                                id={`bank-${bank.id}`}
+                                                value={bank.name}
+                                                MenuProps={scrollableMenuProps}
+                                                onChange={(e) => handleBankChange(bank.id, e.target.value)}
+                                                label="Bank"
+                                                MenuProps={{
+                                                    PaperProps: {
+                                                        style: {
+                                                            maxHeight: 300,
+                                                        },
+                                                    },
+                                                }}
+                                            >
+                                                <MenuItem value="">None</MenuItem>
+                                                <MenuItem value="Chase Bank">Chase Bank</MenuItem>
+                                                <MenuItem value="Bank of America">Bank of America</MenuItem>
+                                                <MenuItem value="Wells Fargo">Wells Fargo</MenuItem>
+                                                <MenuItem value="Citibank">Citibank</MenuItem>
+                                            </Select>
+                                        </FormControl>
+
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleRemoveBank(bank.id)}
+                                            disabled={banks.length === 1}
+                                            sx={{ ml: 1 }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Previous Visa Refusal */}
+                            <Box sx={{ mb: 3 }}>
+                                <Typography variant="subtitle1">Previous Visa Refusal</Typography>
+                                <FormControl fullWidth size='small'>
+                                    <InputLabel>Previous Visa Refusal</InputLabel>
+                                    <Select
+                                        value={previousVisaRefusal}
+                                        label='Previous Visa Refusal'
+                                        MenuProps={scrollableMenuProps}
+                                        onChange={(e) => setPreviousVisaRefusal(e.target.value)}
+                                    >
+                                        <MenuItem value='Yes'>Yes</MenuItem>
+                                        <MenuItem value='No'>No</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Box>
+
+                            {/* Level Change After Refusal */}
+                            <Box>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={levelChangeAfterRefusal}
+                                            onChange={(e) =>
+                                                setLevelChangeAfterRefusal(e.target.checked)
+                                            }
+                                        />
+                                    }
+                                    label='There is a change in level of study (e.g., UG to PG) compared to the previous refusal'
+                                />
+                            </Box>
+
+
+                        </Box>
+                    </Paper>
+
+                </Box>
             </Box>
 
             {/* Action Buttons */}
