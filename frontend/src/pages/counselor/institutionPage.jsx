@@ -49,11 +49,67 @@ export default function InstitutionPage() {
         return <Loading loading={true} />;
     }
 
-    const levels = [...new Set(programs.map((p) => p.level).filter(Boolean))];
-    const fields = [...new Set(programs.map((p) => p.field).filter(Boolean))];
+    // Helper function to extract level from degree_name (e.g., "Master of Science" -> "Master")
+    const extractLevel = (degreeName) => {
+        if (!degreeName) return 'Other';
+        const lower = degreeName.toLowerCase();
+        if (lower.includes('master') || lower.includes('msc') || lower.includes('ma ') || lower.includes('mba')) return 'Master';
+        if (lower.includes('bachelor') || lower.includes('bsc') || lower.includes('ba ') || lower.includes('bba')) return 'Bachelor';
+        if (lower.includes('phd') || lower.includes('doctorate')) return 'PhD';
+        if (lower.includes('diploma') || lower.includes('certificate')) return 'Diploma';
+        return 'Other';
+    };
+
+    // Helper function to extract field from degree_name (e.g., "Master of Science in Computer Science" -> "Computer Science")
+    const extractField = (degreeName) => {
+        if (!degreeName) return 'General';
+        const lower = degreeName.toLowerCase();
+        
+        // Common patterns
+        if (lower.includes('computer') || lower.includes('computing') || lower.includes('it ')) return 'Computer Science';
+        if (lower.includes('business') || lower.includes('management') || lower.includes('mba')) return 'Business';
+        if (lower.includes('engineering')) return 'Engineering';
+        if (lower.includes('science')) return 'Science';
+        if (lower.includes('arts') || lower.includes(' art ')) return 'Arts';
+        if (lower.includes('health') || lower.includes('medicine') || lower.includes('nursing')) return 'Health';
+        if (lower.includes('education')) return 'Education';
+        if (lower.includes('law')) return 'Law';
+        
+        return 'General';
+    };
+
+    // Helper function to parse tuition fee from string array (e.g., ["€13,825 per year"] -> 13825)
+    const parseTuitionFee = (tuitionFees) => {
+        if (!tuitionFees || !Array.isArray(tuitionFees) || tuitionFees.length === 0) return 0;
+        
+        const firstFee = tuitionFees[0];
+        if (typeof firstFee !== 'string') return 0;
+        
+        // Extract numbers from string like "€13,825 per year" or "$20,000"
+        const match = firstFee.match(/[\d,]+/);
+        if (match) {
+            return parseInt(match[0].replace(/,/g, ''), 10);
+        }
+        return 0;
+    };
+
+    // Transform programs to match old structure for compatibility
+    const transformedPrograms = programs.map(program => ({
+        ...program,
+        name: program.degree_name,
+        level: extractLevel(program.degree_name),
+        field: extractField(program.degree_name),
+        tuitionFee: {
+            value: parseTuitionFee(program.tuition_fees),
+            currency: institution.country?.currency || 'USD',
+        },
+    }));
+
+    const levels = [...new Set(transformedPrograms.map((p) => p.level).filter(Boolean))];
+    const fields = [...new Set(transformedPrograms.map((p) => p.field).filter(Boolean))];
     const intakes = [
         ...new Set(
-            programs.flatMap((p) => {
+            transformedPrograms.flatMap((p) => {
                 if (Array.isArray(p.intakes)) return p.intakes;
                 if (typeof p.intakes === 'string') {
                     return p.intakes
@@ -66,7 +122,7 @@ export default function InstitutionPage() {
         ),
     ];
 
-    const filteredPrograms = programs.filter((program) => {
+    const filteredPrograms = transformedPrograms.filter((program) => {
         const matchesSearch = program.name
             ?.toLowerCase()
             .includes(searchQuery.toLowerCase());
@@ -173,7 +229,7 @@ export default function InstitutionPage() {
                 <InstitutionTabsContent
                     activeTab={tabIndex}
                     institution={institution}
-                    programs={programs}
+                    programs={transformedPrograms}
                     filteredPrograms={filteredPrograms}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}

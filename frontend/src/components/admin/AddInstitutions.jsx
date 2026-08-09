@@ -5,6 +5,12 @@ import {
     Card,
     CardContent,
     Checkbox,
+    Chip,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     Divider,
     FormControl,
     FormControlLabel,
@@ -24,7 +30,9 @@ import {
     Avatar,
     Menu,
     ListItemIcon,
-    ListItemText
+    ListItemText,
+    Alert,
+    Backdrop,
 } from "@mui/material";
 import {
     Add as AddIcon,
@@ -33,12 +41,15 @@ import {
     Upload as UploadIcon,
     Public,
     KeyboardArrowDown,
-    PhotoCamera
+    PhotoCamera,
+    Edit as EditIcon,
+    Close as CloseIcon,
 } from "@mui/icons-material";
 import { getCountries } from "../../services/countryService";
 import LanguageRequirementFields from "./LanguageRequirementFields";
 import { addInstitution } from '../../services/institutionService';
 import InstitutionPreview from './InstitutionPreview';
+import ReviewProgramsModal from './ReviewProgramsModal';
 
 
 export default function AddInstitution({ onClose }) {
@@ -132,6 +143,14 @@ export default function AddInstitution({ onClose }) {
 
     // State for programs
     const [programs, setPrograms] = useState([]);
+    const [programInputMode, setProgramInputMode] = useState('manual'); // 'manual' or 'crawl'
+    const [crawlUrl, setCrawlUrl] = useState('');
+    const [crawlStatus, setCrawlStatus] = useState(null); // null, 'checking', 'crawling', 'completed', 'failed', 'pending_review'
+    const [crawlMessage, setCrawlMessage] = useState('');
+    const [institutionId, setInstitutionId] = useState(null); // Store created institution ID
+    const [showReviewModal, setShowReviewModal] = useState(false); // Modal to review crawled programs
+    const [reviewPrograms, setReviewPrograms] = useState([]); // Programs to review
+    const [approvingPrograms, setApprovingPrograms] = useState(false);
 
     // State for scholarships
     const [scholarships, setScholarships] = useState([]);
@@ -590,7 +609,8 @@ export default function AddInstitution({ onClose }) {
                 levelChangeAfterRefusal,
             },
 
-            programs: programs.map((program) => ({
+            // Only include manual programs if in manual mode
+            programs: programInputMode === 'manual' ? programs.map((program) => ({
                 name: program.name,
                 level: program.level,
                 field: program.field,
@@ -611,7 +631,7 @@ export default function AddInstitution({ onClose }) {
                 },
                 intakes: program.intakes,
                 description: program.description,
-            })),
+            })) : [],
         };
 
         setPreviewData(payload);
@@ -634,9 +654,29 @@ export default function AddInstitution({ onClose }) {
             const data = await addInstitution(backendPayload, profilePicture.file);
 
             console.log('Institution added successfully:', data);
-            alert('Institution added successfully!');
+            
+            // Store institution ID for potential crawling
+            if (data.institution && data.institution._id) {
+                setInstitutionId(data.institution._id);
+                
+                // If in crawl mode and URL is provided, automatically trigger crawl
+                if (programInputMode === 'crawl' && crawlUrl) {
+                    setTimeout(() => {
+                        handleImportPrograms(data.institution._id);
+                    }, 500);
+                }
+            }
 
-            // Reset all form fields
+            alert('Institution added successfully!' + (programInputMode === 'crawl' && crawlUrl ? ' Starting program import...' : ''));
+
+            // Don't reset form immediately if crawling
+            if (programInputMode === 'crawl' && crawlUrl) {
+                setShowPreview(false);
+                setPreviewData(null);
+                return; // Keep form data for status display
+            }
+
+            // Reset all form fields (only if not crawling)
             setInstitutionName('');
             setInstitutionType('');
             setWebsite('');
@@ -699,6 +739,12 @@ export default function AddInstitution({ onClose }) {
             setPreviousVisaRefusal('');
             setLevelChangeAfterRefusal(false);
             
+            // Reset crawl states
+            setProgramInputMode('manual');
+            setCrawlUrl('');
+            setCrawlStatus(null);
+            setCrawlMessage('');
+            
             // Close preview
             setShowPreview(false);
             setPreviewData(null);
@@ -709,11 +755,288 @@ export default function AddInstitution({ onClose }) {
         }
     };
 
+    // Handler for importing programs via crawl
+    const handleImportPrograms = async (instId = null) => {
+        const useInstId = instId || institutionId;
+        
+        if (!crawlUrl) {
+            alert('Please enter a website URL');
+            return;
+        }
+
+        // Ensure URL has protocol
+        let validUrl = crawlUrl.trim();
+        if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+            validUrl = 'https://' + validUrl;
+        }
+
+        // If institution hasn't been created yet, need to create it first
+        if (!useInstId) {
+            alert('Please save the institution first before importing programs');
+            return;
+        }
+
+        try {
+            setCrawlStatus('checking');
+            setCrawlMessage('Checking if programs already exist...');
+
+            const token = localStorage.getItem('token');
+            const apiUrl = import.meta.env.VITE_BACKEND_URL;
+            
+            // Check crawl status first
+            const statusResponse = await fetch(
+                `${apiUrl}/institution/${useInstId}/crawl-status`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const statusData = await statusResponse.json();
+
+            // Check if programs are pending review
+            if (statusData.status === 'pending_review' && statusData.programCount > 0) {
+                setCrawlStatus('pending_review');
+                setCrawlMessage(`Programs are awaiting review (${statusData.programCount} programs). Redirecting...`);
+                setTimeout(() => {
+                    window.location.href = `/admin/institutions/${useInstId}/review-programs`;
+                }, 1500);
+                return;
+            }
+
+            // Check if programs are already completed/approved
+            if (statusData.status === 'completed' && statusData.programCount > 0) {
+                setCrawlStatus('completed');
+                setCrawlMessage(`Programs already exist and are approved (${statusData.programCount} programs found). No need to crawl.`);
+                return;
+            }
+
+            // Start crawling
+            setCrawlStatus('crawling');
+            setCrawlMessage('Crawling website... This may take several minutes. You can continue working.');
+
+            const crawlResponse = await fetch(
+                `${apiUrl}/institution/${useInstId}/crawl`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ websiteUrl: validUrl }),
+                }
+            );
+
+            const crawlData = await crawlResponse.json();
+
+            if (crawlResponse.ok) {
+                if (crawlData.shouldCrawl === false) {
+                    setCrawlStatus('completed');
+                    setCrawlMessage(`Programs already exist (${crawlData.programCount} programs). Skipped crawling.`);
+                } else {
+                    setCrawlStatus('crawling');
+                    setCrawlMessage('Crawl started successfully! Programs will be added automatically when ready.');
+                    
+                    // Poll for status every 10 seconds
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const pollResponse = await fetch(
+                                `${apiUrl}/institution/${useInstId}/crawl-status`,
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                    },
+                                }
+                            );
+                            const pollData = await pollResponse.json();
+                            
+                            if (pollData.status === 'completed') {
+                                clearInterval(pollInterval);
+                                setCrawlStatus('completed');
+                                setCrawlMessage(`✓ Crawl completed! ${pollData.programCount} programs imported successfully.`);
+                            } else if (pollData.status === 'pending_review') {
+                                clearInterval(pollInterval);
+                                setCrawlStatus('pending_review');
+                                setCrawlMessage(`✓ Crawl completed! Fetching ${pollData.programCount} programs for review...`);
+                                
+                                // Fetch the pending programs
+                                const programsResponse = await fetch(
+                                    `${apiUrl}/institution/${useInstId}/programs/pending`,
+                                    {
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`,
+                                        },
+                                    }
+                                );
+                                
+                                if (programsResponse.ok) {
+                                    const programsData = await programsResponse.json();
+                                    setReviewPrograms(programsData.programs || []);
+                                    setShowReviewModal(true);
+                                    setCrawlMessage(`✓ Ready for review: ${programsData.programs?.length || 0} programs`);
+                                } else {
+                                    setCrawlStatus('failed');
+                                    setCrawlMessage('Failed to fetch programs for review');
+                                }
+                            } else if (pollData.status === 'failed') {
+                                clearInterval(pollInterval);
+                                setCrawlStatus('failed');
+                                setCrawlMessage('Crawl failed. Please try again or add programs manually.');
+                            } else {
+                                setCrawlMessage(`Crawling in progress... (Status: ${pollData.status})`);
+                            }
+                        } catch (error) {
+                            console.error('Error polling status:', error);
+                        }
+                    }, 10000);
+
+                    // Stop polling after 30 minutes
+                    setTimeout(() => clearInterval(pollInterval), 1800000);
+                }
+            } else {
+                throw new Error(crawlData.error || 'Failed to start crawl');
+            }
+
+        } catch (error) {
+            console.error('Error importing programs:', error);
+            setCrawlStatus('failed');
+            setCrawlMessage(error.message || 'Failed to import programs. Please try again or add manually.');
+        }
+    };
+
     // Handler for editing from preview
     const handleEditFromPreview = (section) => {
         setShowPreview(false);
         // Optionally scroll to the section
         // You can add scroll logic here if needed
+    };
+
+    // Handler for approving programs from modal
+    const handleApprovePrograms = async (programs) => {
+        if (programs.length === 0) {
+            alert('No programs to approve');
+            return;
+        }
+
+        try {
+            setApprovingPrograms(true);
+            const token = localStorage.getItem('token');
+            const apiUrl = import.meta.env.VITE_BACKEND_URL;
+
+            const response = await fetch(
+                `${apiUrl}/institution/${institutionId}/programs/approve`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ programs }),
+                }
+            );
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to approve programs');
+            }
+
+            const data = await response.json();
+            alert(`✅ Successfully approved ${data.approvedCount} programs!`);
+
+            // Close modal and reset form
+            setShowReviewModal(false);
+            setReviewPrograms([]);
+            setCrawlStatus(null);
+            setCrawlMessage('');
+            
+            // Reset entire form
+            resetForm();
+
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        } finally {
+            setApprovingPrograms(false);
+        }
+    };
+
+    // Handler for rejecting programs from modal
+    const handleRejectPrograms = () => {
+        if (!confirm('Are you sure you want to reject all programs? This cannot be undone.')) {
+            return;
+        }
+
+        setShowReviewModal(false);
+        setReviewPrograms([]);
+        setCrawlStatus(null);
+        setCrawlMessage('');
+    };
+
+    // Reset form function
+    const resetForm = () => {
+        setInstitutionName('');
+        setInstitutionType('');
+        setWebsite('');
+        setInstitutionEmail('');
+        setInstitutionContact('');
+        setDescription('');
+        setApplicationFee('');
+        setSelectedCountry(null);
+        setProfilePicture({ file: null, preview: null });
+        
+        setUndergraduateGPA({ type: "", score: "" });
+        setPostgraduateGPA({ type: "", score: "" });
+        setUndergraduateLanguageRequirement([
+            {
+                id: Date.now(),
+                testType: "",
+                testName: "",
+                overall: "",
+                minimum: "",
+                hasIndividualScores: false,
+                listening: "",
+                reading: "",
+                writing: "",
+                speaking: "",
+                literacy: "",
+                comprehension: "",
+                conversation: "",
+                production: "",
+            }
+        ]);
+        setPostgraduateLanguageRequirement([
+            {
+                id: Date.now() + 1,
+                testType: "",
+                testName: "",
+                overall: "",
+                minimum: "",
+                hasIndividualScores: false,
+                listening: "",
+                reading: "",
+                writing: "",
+                speaking: "",
+                literacy: "",
+                comprehension: "",
+                conversation: "",
+                production: "",
+            }
+        ]);
+        
+        setLocations([]);
+        setPrograms([]);
+        setScholarships([]);
+        setIncomeSources([]);
+        setSponsors([]);
+        setBanks([]);
+        setMinSponsorCount('');
+        setMinIncomeAmount('');
+        setPreviousVisaRefusal('');
+        setLevelChangeAfterRefusal(false);
+        
+        setProgramInputMode('manual');
+        setCrawlUrl('');
+        setInstitutionId(null);
     };
 
 
@@ -1343,22 +1666,117 @@ export default function AddInstitution({ onClose }) {
                             <Typography variant="h6">Programs</Typography>
                         </Box>
 
-                        {programs.map((program, index) => (
-                            <Box key={program.id} sx={{ mb: 3, pb: 3, borderBottom: index < programs.length - 1 ? '1px solid' : 'none', borderColor: 'divider', position: 'relative' }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                    <Typography variant="subtitle2">
-                                        Program #{index + 1}
-                                    </Typography>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleRemoveProgram(program.id)}
-                                        disabled={programs.length === 1}
-                                    >
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                </Box>
+                        {/* Program Input Mode Toggle */}
+                        <Box sx={{ mb: 3, p: 2, bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.50', borderRadius: 1 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                                How would you like to add programs?
+                            </Typography>
+                            <RadioGroup
+                                row
+                                value={programInputMode}
+                                onChange={(e) => setProgramInputMode(e.target.value)}
+                            >
+                                <FormControlLabel 
+                                    value="manual" 
+                                    control={<Radio />} 
+                                    label="Add Manually" 
+                                />
+                                <FormControlLabel 
+                                    value="crawl" 
+                                    control={<Radio />} 
+                                    label="Import from Website (Crawl)" 
+                                />
+                            </RadioGroup>
+                        </Box>
 
-                                <Grid container spacing={2}>
+                        {/* Crawl Mode UI */}
+                        {programInputMode === 'crawl' && (
+                            <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    Import Programs from Website
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Enter the university website URL to automatically crawl and import all programs.
+                                    {!institutionId && ' Save the institution first, then you can import programs.'}
+                                </Typography>
+
+                                <Grid container spacing={2} alignItems="center">
+                                    <Grid item xs={12} md={8}>
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            label="Website URL"
+                                            value={crawlUrl}
+                                            onChange={(e) => setCrawlUrl(e.target.value)}
+                                            placeholder="www.university.edu or https://www.university.edu"
+                                            disabled={crawlStatus === 'crawling'}
+                                            helperText="Enter university website URL (https:// will be added automatically)"
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <Public />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={4}>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={() => handleImportPrograms()}
+                                            disabled={!crawlUrl || !institutionId || crawlStatus === 'crawling'}
+                                            startIcon={<UploadIcon />}
+                                        >
+                                            Import Programs
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+
+                                {/* Crawl Status Messages */}
+                                {crawlStatus && (
+                                    <Box 
+                                        sx={{ 
+                                            mt: 2, 
+                                            p: 2, 
+                                            borderRadius: 1,
+                                            bgcolor: 
+                                                crawlStatus === 'completed' ? 'success.light' :
+                                                crawlStatus === 'failed' ? 'error.light' :
+                                                'info.light',
+                                            color:
+                                                crawlStatus === 'completed' ? 'success.dark' :
+                                                crawlStatus === 'failed' ? 'error.dark' :
+                                                'info.dark',
+                                        }}
+                                    >
+                                        <Typography variant="body2">
+                                            {crawlMessage}
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+
+                        {/* Manual Mode UI */}
+                        {programInputMode === 'manual' && (
+                            <>
+                                {programs.map((program, index) => (
+                                    <Box key={program.id} sx={{ mb: 3, pb: 3, borderBottom: index < programs.length - 1 ? '1px solid' : 'none', borderColor: 'divider', position: 'relative' }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                            <Typography variant="subtitle2">
+                                                Program #{index + 1}
+                                            </Typography>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveProgram(program.id)}
+                                                disabled={programs.length === 1}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+
+                                        <Grid container spacing={2}>
 
                                         <Grid item xs={12}>
                                             <TextField
@@ -1749,6 +2167,8 @@ export default function AddInstitution({ onClose }) {
                                 {programs.length === 0 ? "Add Program" : "Add Another Program"}
                             </Button>
                         </Box>
+                            </>
+                        )}
                     </Paper>
 
                     {/* Scholarships */}
@@ -2121,6 +2541,48 @@ export default function AddInstitution({ onClose }) {
                 onConfirm={handleConfirmSubmit}
                 onCancel={() => setShowPreview(false)}
             />
+
+            {/* Review Programs Modal */}
+            <ReviewProgramsModal
+                open={showReviewModal}
+                programs={reviewPrograms}
+                onClose={() => setShowReviewModal(false)}
+                onApprove={handleApprovePrograms}
+                onReject={handleRejectPrograms}
+                approving={approvingPrograms}
+            />
+
+            {/* Full-screen Crawling Loader */}
+            <Backdrop
+                sx={{
+                    color: '#fff',
+                    zIndex: (theme) => theme.zIndex.drawer + 1000,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                }}
+                open={crawlStatus === 'crawling' || crawlStatus === 'checking'}
+            >
+                <Box sx={{ textAlign: 'center' }}>
+                    <CircularProgress size={60} thickness={4} sx={{ mb: 3 }} />
+                    <Typography variant="h5" sx={{ mb: 1, fontWeight: 500 }}>
+                        {crawlStatus === 'checking' ? 'Checking status...' : 'Crawling Programs'}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 3, color: 'rgba(255, 255, 255, 0.8)' }}>
+                        {crawlMessage || 'This may take several minutes. Please do not close this window.'}
+                    </Typography>
+                    <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        gap: 1,
+                        flexWrap: 'wrap'
+                    }}>
+                        <CircularProgress size={16} />
+                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Please wait...
+                        </Typography>
+                    </Box>
+                </Box>
+            </Backdrop>
         </Box>
     );
 }

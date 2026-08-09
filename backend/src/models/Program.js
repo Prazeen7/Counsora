@@ -1,132 +1,89 @@
 const mongoose = require("mongoose");
 
-const scholarshipSchema = new mongoose.Schema(
+// Sub-schema for entry requirements - strict format
+const entryRequirementsSchema = new mongoose.Schema(
     {
-        name: {
+        academic: {
             type: String,
-            required: true,
-            trim: true,
+            default: null,
         },
-        value: String,
-        description: String,
-        eligibility: String,
-    },
-    { _id: false }
-);
-
-const awardSchema = new mongoose.Schema(
-    {
-        title: {
+        language: {
             type: String,
-            required: true,
-            trim: true,
-        },
-        issuer: String,
-        year: Number,
-        description: String,
-    },
-    { _id: false }
-);
-
-const gpaSchema = new mongoose.Schema(
-    {
-        type: {
-            type: String,
-            enum: ["GPA", "Percentage", ""],
-            default: "",
-        },
-        score: {
-            type: String,
-            trim: true,
+            default: null,
         },
     },
     { _id: false }
 );
 
-const languageRequirementSchema = new mongoose.Schema(
-    {
-        testType: String,
-        overall: String,
-        minimum: String,
-        hasIndividualScores: Boolean,
-
-        listening: String,
-        reading: String,
-        writing: String,
-        speaking: String,
-
-        literacy: String,
-        comprehension: String,
-        conversation: String,
-        production: String,
-    },
-    { _id: false }
-);
-
-const entryRequirementSchema = new mongoose.Schema(
-    {
-        gpa: gpaSchema,
-        languageRequirement: languageRequirementSchema,
-    },
-    { _id: false }
-);
-
+// Individual program schema with strict types for consistency
 const programSchema = new mongoose.Schema(
     {
-        name: {
+        degree_name: {
             type: String,
             required: true,
             trim: true,
         },
 
-        level: {
-            type: String,
-            enum: [
-                "Certificate",
-                "Diploma",
-                "Bachelor",
-                "Master",
-                "PhD",
-                "Other",
-            ],
-            default: "Other",
+        credits: {
+            type: [String],
+            default: [],
         },
 
-        field: {
+        format: {
             type: String,
-            trim: true,
+            default: null,
+        },
+
+        scholarship: {
+            type: String,
+            default: null,
+        },
+
+        intakes: {
+            type: [String],
+            default: [],
+        },
+
+        campuses: {
+            type: [String],
+            default: [],
         },
 
         duration: {
             type: String,
+            default: null,
+        },
+
+        accreditation: {
+            type: String,
+            default: null,
+        },
+
+        entry_requirements: {
+            type: entryRequirementsSchema,
+            default: () => ({ academic: null, language: null }),
+        },
+
+        tuition_fees: {
+            type: [String],
+            default: [],
+        },
+
+        application_fees: {
+            type: String,
+            default: null,
+        },
+
+        application_deadline: {
+            type: String,
+            default: null,
+        },
+
+        url: {
+            type: String,
+            required: true,
             trim: true,
         },
-
-        tuitionFee: {
-            value: String,
-            currency: String,
-            per: {
-                type: String,
-                enum: ["semester", "year", "total"],
-                default: "year",
-            },
-        },
-
-        campuses: [
-            {
-                type: String,
-                trim: true,
-            },
-        ],
-
-        entryRequirements: {
-            undergraduate: entryRequirementSchema,
-            postgraduate: entryRequirementSchema,
-        },
-
-        intakes: [String],
-
-        scholarships: [scholarshipSchema],
 
         isActive: {
             type: Boolean,
@@ -136,6 +93,7 @@ const programSchema = new mongoose.Schema(
     { _id: true }
 );
 
+// Main schema linking programs to institution
 const institutionProgramsSchema = new mongoose.Schema(
     {
         institution: {
@@ -146,10 +104,24 @@ const institutionProgramsSchema = new mongoose.Schema(
         },
 
         programs: [programSchema],
+
+        lastCrawled: {
+            type: Date,
+            default: Date.now,
+        },
+
+        crawlStatus: {
+            type: String,
+            enum: ["pending", "in_progress", "pending_review", "completed", "failed"],
+            default: "pending",
+        },
     },
     {
         timestamps: true,
     }
 );
+
+// Index for text search on program names
+institutionProgramsSchema.index({ "programs.degree_name": "text" });
 
 module.exports = mongoose.model("Program", institutionProgramsSchema);

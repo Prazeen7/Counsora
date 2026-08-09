@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/admin/dashboard";
 import Sidebar from "./components/admin/sidebar";
 import AdminInstitutions from "./pages/admin/institutionsList";
 import AdminLayout from "./layouts/adminLayout";
+import ReviewPrograms from "./pages/admin/ReviewPrograms";
 
 function App() {
   return (
@@ -93,6 +94,7 @@ function App() {
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
+        <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>
     </Routes >
 

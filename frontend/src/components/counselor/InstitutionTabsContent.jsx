@@ -14,7 +14,9 @@ import {
     ListItemText,
     Link,
     MenuItem,
+    Button,
 } from "@mui/material";
+import { OpenInNew as OpenInNewIcon } from "@mui/icons-material";
 
 export default function InstitutionTabsContent({
     activeTab,
@@ -342,38 +344,53 @@ export default function InstitutionTabsContent({
                                         <Divider />
 
                                         {/* Duration + Tuition */}
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 2,
-                                            }}
-                                        >
-                                            <Typography variant="body2" fontWeight="medium">
-                                                {program.duration}
-                                            </Typography>
-
-                                            <Divider
-                                                orientation="vertical"
-                                                flexItem
-                                                sx={{ height: 20 }}
-                                            />
-
-                                            <Typography
-                                                variant="body2"
-                                                fontWeight="bold"
-                                                color="primary.main"
-                                            >
-                                                {program.tuitionFee?.currency} {program.tuitionFee?.value}
-                                                <Typography
-                                                    component="span"
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    sx={{ ml: 0.5 }}
-                                                >
-                                                    / {program.tuitionFee?.per}
+                                        <Box>
+                                            {/* Duration */}
+                                            {program.duration && (
+                                                <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                                    <b>Duration:</b> {program.duration}
                                                 </Typography>
-                                            </Typography>
+                                            )}
+
+                                            {/* Tuition Fees */}
+                                            {program.tuition_fees && program.tuition_fees.length > 0 ? (
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
+                                                        <b>Tuition Fees:</b>
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, ml: 1 }}>
+                                                        {program.tuition_fees.map((fee, i) => (
+                                                            <Typography
+                                                                key={i}
+                                                                variant="body2"
+                                                                color="primary.main"
+                                                                fontWeight="bold"
+                                                            >
+                                                                • {fee}
+                                                            </Typography>
+                                                        ))}
+                                                    </Box>
+                                                </Box>
+                                            ) : (
+                                                // Fallback to old format if tuition_fees doesn't exist
+                                                program.tuitionFee?.value > 0 && (
+                                                    <Typography
+                                                        variant="body2"
+                                                        fontWeight="bold"
+                                                        color="primary.main"
+                                                    >
+                                                        <b>Tuition:</b> {program.tuitionFee?.currency} {program.tuitionFee?.value}
+                                                        <Typography
+                                                            component="span"
+                                                            variant="caption"
+                                                            color="text.secondary"
+                                                            sx={{ ml: 0.5 }}
+                                                        >
+                                                            / {program.tuitionFee?.per}
+                                                        </Typography>
+                                                    </Typography>
+                                                )
+                                            )}
                                         </Box>
 
                                         <Divider />
@@ -412,49 +429,74 @@ export default function InstitutionTabsContent({
                                                 Entry Requirement
                                             </Typography>
 
-                                            {(() => {
-                                                const isUndergraduate = ["Certificate", "Diploma", "Bachelor"].includes(
-                                                    program.level
-                                                );
-
-                                                const programReq = isUndergraduate
-                                                    ? program.undergraduateRequirement
-                                                    : program.postgraduateRequirement;
-
-                                                const institutionReq = isUndergraduate
-                                                    ? institution?.entryRequirements?.undergraduate
-                                                    : institution?.entryRequirements?.postgraduate;
-
-                                                // Use program requirement if available, otherwise institution requirement
-                                                const gpaType =
-                                                    programReq?.gpa?.type || institutionReq?.gpa?.type || "GPA";
-
-                                                const gpaScore =
-                                                    programReq?.gpa?.score || institutionReq?.gpa?.score || "N/A";
-
-                                                const languageTest =
-                                                    programReq?.languageRequirement?.testType ||
-                                                    institutionReq?.languageRequirement?.testType ||
-                                                    "N/A";
-
-                                                const languageOverall =
-                                                    programReq?.languageRequirement?.overall ||
-                                                    institutionReq?.languageRequirement?.overall ||
-                                                    "";
-
-                                                return (
-                                                    <>
-                                                        <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                                            <b>Minimum {gpaType}:</b> {gpaScore}
-                                                        </Typography>
-
+                                            {program.entry_requirements ? (
+                                                <>
+                                                    {program.entry_requirements.academic && (
                                                         <Typography variant="body2" sx={{ mb: 1 }}>
-                                                            <b>Language:</b> {languageTest}
-                                                            {languageOverall ? ` ${languageOverall}` : ""}
+                                                            <b>Academic:</b> {program.entry_requirements.academic}
                                                         </Typography>
-                                                    </>
-                                                );
-                                            })()}
+                                                    )}
+
+                                                    {program.entry_requirements.language && (
+                                                        <Typography variant="body2" sx={{ mb: 1 }}>
+                                                            <b>Language:</b> {program.entry_requirements.language}
+                                                        </Typography>
+                                                    )}
+
+                                                    {!program.entry_requirements.academic && !program.entry_requirements.language && (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            No specific requirements listed
+                                                        </Typography>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                // Fallback to old logic if entry_requirements doesn't exist
+                                                <>
+                                                    {(() => {
+                                                        const isUndergraduate = ["Certificate", "Diploma", "Bachelor"].includes(
+                                                            program.level
+                                                        );
+
+                                                        const programReq = isUndergraduate
+                                                            ? program.undergraduateRequirement
+                                                            : program.postgraduateRequirement;
+
+                                                        const institutionReq = isUndergraduate
+                                                            ? institution?.entryRequirements?.undergraduate
+                                                            : institution?.entryRequirements?.postgraduate;
+
+                                                        // Use program requirement if available, otherwise institution requirement
+                                                        const gpaType =
+                                                            programReq?.gpa?.type || institutionReq?.gpa?.type || "GPA";
+
+                                                        const gpaScore =
+                                                            programReq?.gpa?.score || institutionReq?.gpa?.score || "N/A";
+
+                                                        const languageTest =
+                                                            programReq?.languageRequirement?.testType ||
+                                                            institutionReq?.languageRequirement?.testType ||
+                                                            "N/A";
+
+                                                        const languageOverall =
+                                                            programReq?.languageRequirement?.overall ||
+                                                            institutionReq?.languageRequirement?.overall ||
+                                                            "";
+
+                                                        return (
+                                                            <>
+                                                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                                                    <b>Minimum {gpaType}:</b> {gpaScore}
+                                                                </Typography>
+
+                                                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                                                    <b>Language:</b> {languageTest}
+                                                                    {languageOverall ? ` ${languageOverall}` : ""}
+                                                                </Typography>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </>
+                                            )}
                                         </Box>
 
                                         <Divider />
@@ -479,6 +521,29 @@ export default function InstitutionTabsContent({
                                                 )}
                                             </Box>
                                         </Box>
+
+                                        {/* Visit Program Button */}
+                                        {program.url && (
+                                            <>
+                                                <Divider />
+                                                <Button
+                                                    variant="contained"
+                                                    color="primary"
+                                                    fullWidth
+                                                    endIcon={<OpenInNewIcon />}
+                                                    href={program.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    sx={{
+                                                        mt: 1,
+                                                        textTransform: 'none',
+                                                        fontWeight: 'bold',
+                                                    }}
+                                                >
+                                                    Visit Program Page
+                                                </Button>
+                                            </>
+                                        )}
                                     </CardContent>
                                 </Card>
                             );
