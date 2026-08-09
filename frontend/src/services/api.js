@@ -2,13 +2,22 @@ const URL = import.meta.env.VITE_BACKEND_URL;
 
 export async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem("token");
+    
+    // Check if it's FormData
+    const isFormData = options.isFormData || options.body instanceof FormData;
+    
+    const headers = {
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(options.headers || {}),
+    };
+    
+    // Don't set Content-Type for FormData - browser will set it with boundary
+    if (!isFormData) {
+        headers["Content-Type"] = "application/json";
+    }
 
     const response = await fetch(`${URL}${endpoint}`, {
-        headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-            ...(options.headers || {}),
-        },
+        headers,
         ...options,
     });
 

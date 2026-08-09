@@ -38,6 +38,7 @@ import {
 import { getCountries } from "../../services/countryService";
 import LanguageRequirementFields from "./LanguageRequirementFields";
 import { addInstitution } from '../../services/institutionService';
+import InstitutionPreview from './InstitutionPreview';
 
 
 export default function AddInstitution({ onClose }) {
@@ -79,23 +80,24 @@ export default function AddInstitution({ onClose }) {
     const [undergraduateTOEFL, setUndergraduateTOEFL] = useState("");
     const [undergraduateDuolingo, setUndergraduateDuolingo] = useState("");
     const [undergraduateLanguageRequirement, setUndergraduateLanguageRequirement] =
-        useState({
-            testType: "",
-            overall: "",
-            minimum: "",
-            hasIndividualScores: false,
-
-            listening: "",
-            reading: "",
-            writing: "",
-            speaking: "",
-
-            // For Duolingo
-            literacy: "",
-            comprehension: "",
-            conversation: "",
-            production: "",
-        });
+        useState([
+            {
+                id: Date.now(),
+                testType: "",
+                testName: "",
+                overall: "",
+                minimum: "",
+                hasIndividualScores: false,
+                listening: "",
+                reading: "",
+                writing: "",
+                speaking: "",
+                literacy: "",
+                comprehension: "",
+                conversation: "",
+                production: "",
+            }
+        ]);
 
     const [postgraduateGPA, setPostgraduateGPA] = useState({
         type: "",
@@ -106,23 +108,24 @@ export default function AddInstitution({ onClose }) {
     const [postgraduateTOEFL, setPostgraduateTOEFL] = useState("");
     const [postgraduateDuolingo, setPostgraduateDuolingo] = useState("");
     const [postgraduateLanguageRequirement, setPostgraduateLanguageRequirement] =
-        useState({
-            testType: "",
-            overall: "",
-            minimum: "",
-            hasIndividualScores: false,
-
-            listening: "",
-            reading: "",
-            writing: "",
-            speaking: "",
-
-            // For Duolingo
-            literacy: "",
-            comprehension: "",
-            conversation: "",
-            production: "",
-        });
+        useState([
+            {
+                id: Date.now() + 1,
+                testType: "",
+                testName: "",
+                overall: "",
+                minimum: "",
+                hasIndividualScores: false,
+                listening: "",
+                reading: "",
+                writing: "",
+                speaking: "",
+                literacy: "",
+                comprehension: "",
+                conversation: "",
+                production: "",
+            }
+        ]);
 
     // State for agents
     const [agents, setAgents] = useState([]);
@@ -147,6 +150,10 @@ export default function AddInstitution({ onClose }) {
         src: [{ id: 1, name: "" }],
         info: [{ id: 1, name: "" }],
     });
+
+    // State for preview
+    const [showPreview, setShowPreview] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
 
 
     useEffect(() => {
@@ -251,38 +258,46 @@ export default function AddInstitution({ onClose }) {
 
                 undergraduateRequirement: {
                     gpa: { type: '', score: '' },
-                    languageRequirement: {
-                        testType: '',
-                        overall: '',
-                        minimum: '',
-                        hasIndividualScores: false,
-                        listening: '',
-                        reading: '',
-                        writing: '',
-                        speaking: '',
-                        literacy: '',
-                        comprehension: '',
-                        conversation: '',
-                        production: '',
-                    },
+                    languageRequirement: [
+                        {
+                            id: Date.now(),
+                            testType: '',
+                            testName: '',
+                            overall: '',
+                            minimum: '',
+                            hasIndividualScores: false,
+                            listening: '',
+                            reading: '',
+                            writing: '',
+                            speaking: '',
+                            literacy: '',
+                            comprehension: '',
+                            conversation: '',
+                            production: '',
+                        }
+                    ],
                 },
 
                 postgraduateRequirement: {
                     gpa: { type: '', score: '' },
-                    languageRequirement: {
-                        testType: '',
-                        overall: '',
-                        minimum: '',
-                        hasIndividualScores: false,
-                        listening: '',
-                        reading: '',
-                        writing: '',
-                        speaking: '',
-                        literacy: '',
-                        comprehension: '',
-                        conversation: '',
-                        production: '',
-                    },
+                    languageRequirement: [
+                        {
+                            id: Date.now() + 1,
+                            testType: '',
+                            testName: '',
+                            overall: '',
+                            minimum: '',
+                            hasIndividualScores: false,
+                            listening: '',
+                            reading: '',
+                            writing: '',
+                            speaking: '',
+                            literacy: '',
+                            comprehension: '',
+                            conversation: '',
+                            production: '',
+                        }
+                    ],
                 },
 
                 intakes: '',
@@ -490,95 +505,203 @@ export default function AddInstitution({ onClose }) {
             return;
         }
 
+        // Helper function to convert array of language requirements to single object (take first non-empty)
+        const getFirstLanguageRequirement = (requirements) => {
+            if (!Array.isArray(requirements) || requirements.length === 0) {
+                return {
+                    testType: "",
+                    overall: "",
+                    minimum: "",
+                    hasIndividualScores: false,
+                    listening: "",
+                    reading: "",
+                    writing: "",
+                    speaking: "",
+                    literacy: "",
+                    comprehension: "",
+                    conversation: "",
+                    production: "",
+                };
+            }
+            
+            // Find first requirement with testType filled or return first one
+            const validReq = requirements.find(r => r.testType) || requirements[0];
+            
+            // Remove id and testName fields as they're not in backend schema
+            const { id, testName, ...rest } = validReq;
+            return rest;
+        };
+
+        // Prepare preview data
+        const payload = {
+            name: institutionName,
+            country: selectedCountry._id,
+            countryName: selectedCountry.name,
+            currency: selectedCountry.currency,
+            type: institutionType,
+            website,
+            email: institutionEmail,
+            contactNumber: institutionContact,
+            description,
+            applicationFee: Number(applicationFee) || 0,
+
+            campuses: locations.map((location) => ({
+                name: location.name,
+                address: location.address,
+                city: location.city,
+                contactNumber: location.useInstitutionContact
+                    ? institutionContact
+                    : location.contactNumber,
+                email: location.useInstitutionContact
+                    ? institutionEmail
+                    : location.email,
+                mapEmbedUrl: location.mapEmbedUrl,
+            })),
+
+            entryRequirements: {
+                undergraduate: {
+                    gpa: undergraduateGPA,
+                    languageRequirement: getFirstLanguageRequirement(undergraduateLanguageRequirement),
+                },
+                postgraduate: {
+                    gpa: postgraduateGPA,
+                    languageRequirement: getFirstLanguageRequirement(postgraduateLanguageRequirement),
+                },
+            },
+
+            // Store all language requirements for preview display
+            undergraduateLanguageRequirementFull: undergraduateLanguageRequirement,
+            postgraduateLanguageRequirementFull: postgraduateLanguageRequirement,
+
+            scholarships: scholarships.map((scholarship) => ({
+                name: scholarship.name,
+                value: scholarship.value,
+                description: scholarship.description,
+                eligibility: scholarship.eligibility,
+            })),
+
+            documents: {
+                incomeSources: incomeSources.map((source) => source.name),
+                sponsors: sponsors.map((sponsor) => sponsor.name),
+                banks: banks.map((bank) => bank.name),
+                minSponsorCount,
+                minIncomeAmount,
+                previousVisaRefusal,
+                levelChangeAfterRefusal,
+            },
+
+            programs: programs.map((program) => ({
+                name: program.name,
+                level: program.level,
+                field: program.field,
+                duration: program.duration,
+                tuitionFee: program.tuitionFee,
+                campuses: program.campuses.map((campusId) => {
+                    const campus = locations.find((loc) => loc.id === campusId);
+                    return campus ? campus.name : '';
+                }),
+                useInstitutionRequirements: program.useInstitutionRequirements,
+                undergraduateRequirement: {
+                    gpa: program.undergraduateRequirement.gpa,
+                    languageRequirement: getFirstLanguageRequirement(program.undergraduateRequirement.languageRequirement),
+                },
+                postgraduateRequirement: {
+                    gpa: program.postgraduateRequirement.gpa,
+                    languageRequirement: getFirstLanguageRequirement(program.postgraduateRequirement.languageRequirement),
+                },
+                intakes: program.intakes,
+                description: program.description,
+            })),
+        };
+
+        setPreviewData(payload);
+        setShowPreview(true);
+    };
+
+    // Handler for confirming submission
+    const handleConfirmSubmit = async () => {
         try {
-            const payload = {
-                name: institutionName,
-                country: selectedCountry._id,
-                type: institutionType,
-                website,
-                email: institutionEmail,
-                contactNumber: institutionContact,
-                description,
-                applicationFee: Number(applicationFee) || 0,
+            // Remove preview-only fields before sending to backend
+            const { 
+                countryName, 
+                currency, 
+                undergraduateLanguageRequirementFull,
+                postgraduateLanguageRequirementFull,
+                ...backendPayload 
+            } = previewData;
 
-                campuses: locations.map((location) => ({
-                    name: location.name,
-                    address: location.address,
-                    city: location.city,
-                    contactNumber: location.useInstitutionContact
-                        ? institutionContact
-                        : location.contactNumber,
-                    email: location.useInstitutionContact
-                        ? institutionEmail
-                        : location.email,
-                    mapEmbedUrl: location.mapEmbedUrl,
-                })),
-
-                entryRequirements: {
-                    undergraduate: {
-                        gpa: undergraduateGPA,
-                        languageRequirement: undergraduateLanguageRequirement,
-                    },
-                    postgraduate: {
-                        gpa: postgraduateGPA,
-                        languageRequirement: postgraduateLanguageRequirement,
-                    },
-                },
-
-                scholarships: scholarships.map((scholarship) => ({
-                    name: scholarship.name,
-                    value: scholarship.value,
-                    description: scholarship.description,
-                    eligibility: scholarship.eligibility,
-                })),
-
-                documents: {
-                    incomeSources: incomeSources.map((source) => source.name),
-                    sponsors: sponsors.map((sponsor) => sponsor.name),
-                    banks: banks.map((bank) => bank.name),
-                    minSponsorCount,
-                    minIncomeAmount,
-                    previousVisaRefusal,
-                    levelChangeAfterRefusal,
-                },
-
-                programs: programs.map((program) => ({
-                    name: program.name,
-                    level: program.level,
-                    field: program.field,
-                    duration: program.duration,
-                    tuitionFee: program.tuitionFee,
-                    campuses: program.campuses.map((campusId) => {
-                        const campus = locations.find((loc) => loc.id === campusId);
-                        return campus ? campus.name : '';
-                    }),
-                    useInstitutionRequirements: program.useInstitutionRequirements,
-                    undergraduateRequirement: program.undergraduateRequirement,
-                    postgraduateRequirement: program.postgraduateRequirement,
-                    intakes: program.intakes,
-                    description: program.description,
-                })),
-            };
-
-            const data = await addInstitution(payload);
+            // Send institution data with logo file
+            const data = await addInstitution(backendPayload, profilePicture.file);
 
             console.log('Institution added successfully:', data);
             alert('Institution added successfully!');
 
-            // reset the form if needed
+            // Reset all form fields
             setInstitutionName('');
             setInstitutionType('');
             setWebsite('');
             setInstitutionEmail('');
             setInstitutionContact('');
             setDescription('');
+            setApplicationFee('');
             setSelectedCountry(null);
+            setProfilePicture({ file: null, preview: null });
+            
+            // Reset entry requirements
+            setUndergraduateGPA({ type: "", score: "" });
+            setPostgraduateGPA({ type: "", score: "" });
+            setUndergraduateLanguageRequirement([
+                {
+                    id: Date.now(),
+                    testType: "",
+                    testName: "",
+                    overall: "",
+                    minimum: "",
+                    hasIndividualScores: false,
+                    listening: "",
+                    reading: "",
+                    writing: "",
+                    speaking: "",
+                    literacy: "",
+                    comprehension: "",
+                    conversation: "",
+                    production: "",
+                }
+            ]);
+            setPostgraduateLanguageRequirement([
+                {
+                    id: Date.now() + 1,
+                    testType: "",
+                    testName: "",
+                    overall: "",
+                    minimum: "",
+                    hasIndividualScores: false,
+                    listening: "",
+                    reading: "",
+                    writing: "",
+                    speaking: "",
+                    literacy: "",
+                    comprehension: "",
+                    conversation: "",
+                    production: "",
+                }
+            ]);
+            
+            // Reset arrays
             setLocations([]);
             setPrograms([]);
             setScholarships([]);
             setIncomeSources([]);
             setSponsors([]);
             setBanks([]);
+            setMinSponsorCount('');
+            setMinIncomeAmount('');
+            setPreviousVisaRefusal('');
+            setLevelChangeAfterRefusal(false);
+            
+            // Close preview
+            setShowPreview(false);
+            setPreviewData(null);
 
         } catch (error) {
             console.error('Error adding institution:', error);
@@ -586,11 +709,18 @@ export default function AddInstitution({ onClose }) {
         }
     };
 
+    // Handler for editing from preview
+    const handleEditFromPreview = (section) => {
+        setShowPreview(false);
+        // Optionally scroll to the section
+        // You can add scroll logic here if needed
+    };
+
 
     const scrollableMenuProps = {
         PaperProps: {
             style: {
-                maxHeight: 240,
+                maxHeight: 300,
                 overflowY: "auto",
             },
         },
@@ -634,7 +764,25 @@ export default function AddInstitution({ onClose }) {
                 <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
 
                     {/* Basic Information */}
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ 
+                        p: 3, 
+                        maxHeight: '80vh', 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[400],
+                            borderRadius: '4px',
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[500] : theme.palette.grey[500],
+                            },
+                        },
+                    }}>
                         <Typography variant="h6" gutterBottom>
                             Basic Information
                         </Typography>
@@ -848,31 +996,23 @@ export default function AddInstitution({ onClose }) {
                                     }}
                                 >
                                     <Typography variant="subtitle1">Campuses</Typography>
-                                    <Button
-                                        variant="outlined"
-                                        startIcon={<AddIcon />}
-                                        onClick={handleAddLocation}
-                                    >
-                                        {locations.length === 0 ? "Add Campus" : "Add Another Campus"}
-                                    </Button>
                                 </Box>
 
                                 {locations.map((location, index) => (
-                                    <Card key={location.id} sx={{ mb: 2, position: 'relative' }}>
-                                        <CardContent>
+                                    <Box key={location.id} sx={{ mb: 3, pb: 3, borderBottom: index < locations.length - 1 ? '1px solid' : 'none', borderColor: 'divider', position: 'relative' }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                            <Typography variant="subtitle2">
+                                                Campus #{index + 1}
+                                            </Typography>
                                             <IconButton
                                                 size="small"
-                                                sx={{ position: 'absolute', top: 8, right: 8 }}
                                                 onClick={() => handleRemoveLocation(location.id)}
                                             >
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
+                                        </Box>
 
-                                            <Typography variant="subtitle2" gutterBottom>
-                                                Campus #{index + 1}
-                                            </Typography>
-
-                                            <Grid container spacing={2}>
+                                        <Grid container spacing={2}>
                                                 <Grid item xs={12} md={6}>
                                                     <TextField
                                                         label="Campus Name"
@@ -976,15 +1116,42 @@ export default function AddInstitution({ onClose }) {
                                                     />
                                                 </Grid>
                                             </Grid>
-                                        </CardContent>
-                                    </Card>
+                                        </Box>
                                 ))}
+
+                                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddLocation}
+                                    >
+                                        {locations.length === 0 ? "Add Campus" : "Add Another Campus"}
+                                    </Button>
+                                </Box>
                             </Box>
                         </Stack>
                     </Paper>
 
                     {/* Entry Requirements */}
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ 
+                        p: 3, 
+                        maxHeight: '80vh', 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[400],
+                            borderRadius: '4px',
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[500] : theme.palette.grey[500],
+                            },
+                        },
+                    }}>
                         <Typography variant="h6" gutterBottom>
                             Entry Requirements
                         </Typography>
@@ -1153,31 +1320,45 @@ export default function AddInstitution({ onClose }) {
                 <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
 
                     {/* Programs */}
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ 
+                        p: 3, 
+                        maxHeight: '80vh', 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[400],
+                            borderRadius: '4px',
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[500] : theme.palette.grey[500],
+                            },
+                        },
+                    }}>
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                             <Typography variant="h6">Programs</Typography>
-                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddProgram}>
-                                {programs.length === 0 ? "Add Program" : "Add Another Program"}
-                            </Button>
                         </Box>
 
                         {programs.map((program, index) => (
-                            <Card key={program.id} sx={{ mb: 2, position: "relative" }}>
-                                <CardContent>
+                            <Box key={program.id} sx={{ mb: 3, pb: 3, borderBottom: index < programs.length - 1 ? '1px solid' : 'none', borderColor: 'divider', position: 'relative' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="subtitle2">
+                                        Program #{index + 1}
+                                    </Typography>
                                     <IconButton
                                         size="small"
-                                        sx={{ position: "absolute", top: 8, right: 8 }}
                                         onClick={() => handleRemoveProgram(program.id)}
                                         disabled={programs.length === 1}
                                     >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
+                                </Box>
 
-                                    <Typography variant="subtitle2" gutterBottom>
-                                        Program #{index + 1}
-                                    </Typography>
-
-                                    <Grid container spacing={2}>
+                                <Grid container spacing={2}>
 
                                         <Grid item xs={12}>
                                             <TextField
@@ -1192,15 +1373,21 @@ export default function AddInstitution({ onClose }) {
                                         </Grid>
 
                                         <Grid item xs={12}>
-                                            <FormControl fullWidth size="small" sx={{ minWidth: 100 }}>
+                                            <FormControl fullWidth size="small" sx={{minWidth: 100}}>
                                                 <InputLabel>Level</InputLabel>
                                                 <Select
                                                     value={program.level}
-                                                    MenuProps={scrollableMenuProps}
                                                     label="Level"
                                                     onChange={(e) =>
                                                         handleProgramChange(program.id, "level", e.target.value)
                                                     }
+                                                    MenuProps={{
+                                                        PaperProps: {
+                                                            style: {
+                                                                maxHeight: 300,
+                                                            },
+                                                        },
+                                                    }}
                                                 >
                                                     <MenuItem value="Certificate">Certificate</MenuItem>
                                                     <MenuItem value="Diploma">Diploma</MenuItem>
@@ -1262,10 +1449,16 @@ export default function AddInstitution({ onClose }) {
                                                         <Select
                                                             value={program.tuitionFee?.per || "year"}
                                                             label="Per"
-                                                            MenuProps={scrollableMenuProps}
                                                             onChange={(e) =>
                                                                 handleProgramChange(program.id, "tuitionFee.per", e.target.value)
                                                             }
+                                                            MenuProps={{
+                                                                PaperProps: {
+                                                                    style: {
+                                                                        maxHeight: 300,
+                                                                    },
+                                                                },
+                                                            }}
                                                         >
                                                             <MenuItem value="semester">Semester</MenuItem>
                                                             <MenuItem value="year">Year</MenuItem>
@@ -1278,66 +1471,37 @@ export default function AddInstitution({ onClose }) {
 
                                         {/* Campuses */}
                                         <Grid item xs={12}>
-                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1, mt: 2 }}>
+                                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
                                                 Campuses
                                             </Typography>
 
-                                            <FormControl fullWidth size="small" sx={{ mt: 0.5 }}>
+                                            <FormControl fullWidth size="small" sx={{minWidth: 100}}>
                                                 <InputLabel id={`campus-label-${program.id}`}>
-                                                    Applicable Campuses
+                                                    Select Campuses
                                                 </InputLabel>
-
                                                 <Select
                                                     labelId={`campus-label-${program.id}`}
                                                     multiple
                                                     value={program.campuses || []}
-                                                    label="Applicable Campuses"
-                                                    MenuProps={scrollableMenuProps}
-                                                    renderValue={(selected) => {
-                                                        if (!selected || selected.length === 0) return '';
-
-                                                        const names = selected
-                                                            .map((id) => locations.find((loc) => loc.id === id)?.name)
-                                                            .filter(Boolean);
-
-                                                        if (names.length === 1) return names[0];
-
-                                                        return `${names[0]} +${names.length - 1}`;
-                                                    }}
                                                     onChange={(e) => {
                                                         handleProgramChange(program.id, 'campuses', e.target.value);
                                                     }}
+                                                    label="Select Campuses"
+                                                    renderValue={(selected) => {
+                                                        if (!selected || selected.length === 0) return '';
+                                                        const names = selected
+                                                            .map((id) => locations.find((loc) => loc.id === id)?.name)
+                                                            .filter(Boolean);
+                                                        return names.join(', ');
+                                                    }}
+                                                    MenuProps={{
+                                                        PaperProps: {
+                                                            style: {
+                                                                maxHeight: 300,
+                                                            },
+                                                        },
+                                                    }}
                                                 >
-                                                    <MenuItem
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-
-                                                            const allSelected =
-                                                                (program.campuses || []).length === locations.length;
-
-                                                            handleProgramChange(
-                                                                program.id,
-                                                                'campuses',
-                                                                allSelected ? [] : locations.map((loc) => loc.id)
-                                                            );
-                                                        }}
-                                                    >
-                                                        <Checkbox
-                                                            checked={
-                                                                locations.length > 0 &&
-                                                                (program.campuses || []).length === locations.length
-                                                            }
-                                                            indeterminate={
-                                                                (program.campuses || []).length > 0 &&
-                                                                (program.campuses || []).length < locations.length
-                                                            }
-                                                        />
-                                                        <ListItemText primary="Select All" />
-                                                    </MenuItem>
-
-                                                    <Divider />
-
                                                     {locations.map((location, idx) => (
                                                         <MenuItem key={location.id} value={location.id}>
                                                             <Checkbox checked={(program.campuses || []).includes(location.id)} />
@@ -1385,12 +1549,11 @@ export default function AddInstitution({ onClose }) {
                                                             <Grid container spacing={2}>
                                                                 {/* Score Type */}
                                                                 <Grid item xs={12}>
-                                                                    <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
+                                                                    <FormControl fullWidth size="small">
                                                                         <InputLabel>Score Type</InputLabel>
                                                                         <Select
                                                                             value={program.undergraduateRequirement.gpa.type}
                                                                             label="Score Type"
-                                                                            MenuProps={scrollableMenuProps}
                                                                             onChange={(e) =>
                                                                                 handleProgramChange(
                                                                                     program.id,
@@ -1398,6 +1561,13 @@ export default function AddInstitution({ onClose }) {
                                                                                     e.target.value
                                                                                 )
                                                                             }
+                                                                            MenuProps={{
+                                                                                PaperProps: {
+                                                                                    style: {
+                                                                                        maxHeight: 300,
+                                                                                    },
+                                                                                },
+                                                                            }}
                                                                         >
                                                                             <MenuItem value="GPA">GPA</MenuItem>
                                                                             <MenuItem value="Percentage">Percentage</MenuItem>
@@ -1465,7 +1635,6 @@ export default function AddInstitution({ onClose }) {
                                                                         <Select
                                                                             value={program.postgraduateRequirement.gpa.type}
                                                                             label="Score Type"
-                                                                            MenuProps={scrollableMenuProps}
                                                                             onChange={(e) =>
                                                                                 handleProgramChange(
                                                                                     program.id,
@@ -1473,6 +1642,13 @@ export default function AddInstitution({ onClose }) {
                                                                                     e.target.value
                                                                                 )
                                                                             }
+                                                                            MenuProps={{
+                                                                                PaperProps: {
+                                                                                    style: {
+                                                                                        maxHeight: 300,
+                                                                                    },
+                                                                                },
+                                                                            }}
                                                                         >
                                                                             <MenuItem value="GPA">GPA</MenuItem>
                                                                             <MenuItem value="Percentage">Percentage</MenuItem>
@@ -1565,37 +1741,56 @@ export default function AddInstitution({ onClose }) {
                                             </Box>
                                         </Grid>
                                     </Grid>
-                                </CardContent>
-                            </Card>
+                                </Box>
                         ))}
+
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddProgram}>
+                                {programs.length === 0 ? "Add Program" : "Add Another Program"}
+                            </Button>
+                        </Box>
                     </Paper>
 
                     {/* Scholarships */}
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ 
+                        p: 3, 
+                        maxHeight: '80vh', 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[400],
+                            borderRadius: '4px',
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[500] : theme.palette.grey[500],
+                            },
+                        },
+                    }}>
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                             <Typography variant="h6">Scholarships</Typography>
-                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddScholarship}>
-                                {scholarships.length === 0 ? "Add Scholarship" : "Add Another Scholarship"}
-                            </Button>
                         </Box>
 
                         {scholarships.map((scholarship, index) => (
-                            <Card key={scholarship.id} sx={{ mb: 2, position: "relative" }}>
-                                <CardContent>
+                            <Box key={scholarship.id} sx={{ mb: 3, pb: 3, borderBottom: index < scholarships.length - 1 ? '1px solid' : 'none', borderColor: 'divider', position: 'relative' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="subtitle2">
+                                        Scholarship #{index + 1}
+                                    </Typography>
                                     <IconButton
                                         size="small"
-                                        sx={{ position: "absolute", top: 8, right: 8 }}
                                         onClick={() => handleRemoveScholarship(scholarship.id)}
                                         disabled={scholarships.length === 1}
                                     >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
+                                </Box>
 
-                                    <Typography variant="subtitle2" gutterBottom>
-                                        Scholarship #{index + 1}
-                                    </Typography>
-
-                                    <Grid container spacing={2}>
+                                <Grid container spacing={2}>
                                         <Grid item xs={12} md={6}>
                                             <TextField
                                                 label="Scholarship Name"
@@ -1666,171 +1861,148 @@ export default function AddInstitution({ onClose }) {
                                             />
                                         </Grid>
                                     </Grid>
-                                </CardContent>
-                            </Card>
+                                </Box>
                         ))}
+
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddScholarship}>
+                                {scholarships.length === 0 ? "Add Scholarship" : "Add Another Scholarship"}
+                            </Button>
+                        </Box>
                     </Paper>
 
                     {/* Documents */}
-                    <Paper sx={{ p: 3 }}>
+                    <Paper sx={{ 
+                        p: 3, 
+                        maxHeight: '80vh', 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200],
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[400],
+                            borderRadius: '4px',
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[500] : theme.palette.grey[500],
+                            },
+                        },
+                    }}>
                         <Box>
                             <Typography variant='subtitle1' sx={{ mb: 2 }}>
                                 Financial Documents </Typography>
 
                             {/* Income Sources */}
                             <Box sx={{ mb: 3 }}>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        mb: 2,
-                                    }}
-                                >
-                                    <Typography variant="subtitle1">Income Sources</Typography>
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={handleAddIncomeSource}
+                                <Typography variant="subtitle1" sx={{ mb: 2 }}>Income Sources</Typography>
+                                
+                                <FormControl fullWidth size="small">
+                                    <InputLabel id="income-sources-label">Select Income Sources</InputLabel>
+                                    <Select
+                                        labelId="income-sources-label"
+                                        multiple
+                                        value={incomeSources.map(s => s.name)}
+                                        onChange={(e) => {
+                                            const values = e.target.value;
+                                            setIncomeSources(values.map((name, idx) => ({ 
+                                                id: incomeSources[idx]?.id || Date.now() + idx, 
+                                                name 
+                                            })));
+                                        }}
+                                        label="Select Income Sources"
+                                        renderValue={(selected) => selected.join(', ')}
+                                        MenuProps={{
+                                            PaperProps: {
+                                                style: {
+                                                    maxHeight: 300,
+                                                },
+                                            },
+                                        }}
                                     >
-                                        {incomeSources.length === 0 ? "Add Income Source" : "Add Another Income Source"}
-                                    </Button>
-                                </Box>
-
-                                {incomeSources.map((source, index) => (
-                                    <Box
-                                        key={source.id}
-                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                                    >
-                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
-                                            <InputLabel id={`income-source-label-${source.id}`}>
-                                                Income Source
-                                            </InputLabel>
-                                            <Select
-                                                labelId={`income-source-label-${source.id}`}
-                                                id={`income-source-${source.id}`}
-                                                value={source.name}
-                                                MenuProps={scrollableMenuProps}
-                                                onChange={(e) =>
-                                                    handleIncomeSourceChange(source.id, e.target.value)
-                                                }
-                                                label="Income Source"
-                                                MenuProps={{
-                                                    PaperProps: {
-                                                        style: {
-                                                            maxHeight: 300,
-                                                        },
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value="">None</MenuItem>
-                                                <MenuItem value="Salary from Employment">
-                                                    Salary from Employment
-                                                </MenuItem>
-                                                <MenuItem value="Business Income">
-                                                    Business Income
-                                                </MenuItem>
-                                                <MenuItem value="Rental Income">
-                                                    Rental Income
-                                                </MenuItem>
-                                                <MenuItem value="Investment Income">
-                                                    Investment Income
-                                                </MenuItem>
-                                                <MenuItem value="Retirement Pension">
-                                                    Retirement Pension
-                                                </MenuItem>
-                                                <MenuItem value="Spousal Support">
-                                                    Spousal Support
-                                                </MenuItem>
-                                                <MenuItem value="Trust Fund Disbursements">
-                                                    Trust Fund Disbursements
-                                                </MenuItem>
-                                            </Select>
-                                        </FormControl>
-
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleRemoveIncomeSource(source.id)}
-                                            disabled={incomeSources.length === 1}
-                                            sx={{ ml: 1 }}
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    </Box>
-                                ))}
+                                        <MenuItem value="Salary from Employment">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Salary from Employment")} />
+                                            <ListItemText primary="Salary from Employment" />
+                                        </MenuItem>
+                                        <MenuItem value="Business Income">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Business Income")} />
+                                            <ListItemText primary="Business Income" />
+                                        </MenuItem>
+                                        <MenuItem value="Rental Income">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Rental Income")} />
+                                            <ListItemText primary="Rental Income" />
+                                        </MenuItem>
+                                        <MenuItem value="Investment Income">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Investment Income")} />
+                                            <ListItemText primary="Investment Income" />
+                                        </MenuItem>
+                                        <MenuItem value="Retirement Pension">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Retirement Pension")} />
+                                            <ListItemText primary="Retirement Pension" />
+                                        </MenuItem>
+                                        <MenuItem value="Spousal Support">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Spousal Support")} />
+                                            <ListItemText primary="Spousal Support" />
+                                        </MenuItem>
+                                        <MenuItem value="Trust Fund Disbursements">
+                                            <Checkbox checked={incomeSources.some(s => s.name === "Trust Fund Disbursements")} />
+                                            <ListItemText primary="Trust Fund Disbursements" />
+                                        </MenuItem>
+                                    </Select>
+                                </FormControl>
                             </Box>
 
                             {/* Sponsors */}
                             <Box sx={{ mb: 3 }}>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        mb: 2,
-                                    }}
-                                >
-                                    <Typography variant="subtitle1">Sponsors</Typography>
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={handleAddSponsor}
+                                <Typography variant="subtitle1" sx={{ mb: 2 }}>Sponsors</Typography>
+                                
+                                <FormControl fullWidth size="small">
+                                    <InputLabel id="sponsors-label">Select Sponsors</InputLabel>
+                                    <Select
+                                        labelId="sponsors-label"
+                                        multiple
+                                        value={sponsors.map(s => s.name)}
+                                        onChange={(e) => {
+                                            const values = e.target.value;
+                                            setSponsors(values.map((name, idx) => ({ 
+                                                id: sponsors[idx]?.id || Date.now() + idx, 
+                                                name 
+                                            })));
+                                        }}
+                                        label="Select Sponsors"
+                                        renderValue={(selected) => selected.join(', ')}
+                                        MenuProps={{
+                                            PaperProps: {
+                                                style: {
+                                                    maxHeight: 300,
+                                                },
+                                            },
+                                        }}
                                     >
-                                        {sponsors.length === 0 ? "Add Sponsor" : "Add Another Sponsor"}
-                                    </Button>
-                                </Box>
-
-                                {sponsors.map((sponsor, index) => (
-                                    <Box
-                                        key={sponsor.id}
-                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                                    >
-                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
-                                            <InputLabel id={`sponsor-label-${sponsor.id}`}>
-                                                Sponsor
-                                            </InputLabel>
-                                            <Select
-                                                labelId={`sponsor-label-${sponsor.id}`}
-                                                id={`sponsor-${sponsor.id}`}
-                                                value={sponsor.name}
-                                                MenuProps={scrollableMenuProps}
-                                                onChange={(e) =>
-                                                    handleSponsorChange(sponsor.id, e.target.value)
-                                                }
-                                                label="Sponsor"
-                                                MenuProps={{
-                                                    PaperProps: {
-                                                        style: {
-                                                            maxHeight: 300,
-                                                        },
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value="">None</MenuItem>
-                                                <MenuItem value="Parents">Parents</MenuItem>
-                                                <MenuItem value="Spouse">Spouse</MenuItem>
-                                                <MenuItem value="Employers">Employers</MenuItem>
-                                                <MenuItem value="Educational Institutions">
-                                                    Educational Institutions
-                                                </MenuItem>
-                                                <MenuItem value="Government Sponsors">
-                                                    Government Sponsors
-                                                </MenuItem>
-                                            </Select>
-                                        </FormControl>
-
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleRemoveSponsor(sponsor.id)}
-                                            disabled={sponsors.length === 1}
-                                            sx={{ ml: 1 }}
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    </Box>
-                                ))}
+                                        <MenuItem value="Parents">
+                                            <Checkbox checked={sponsors.some(s => s.name === "Parents")} />
+                                            <ListItemText primary="Parents" />
+                                        </MenuItem>
+                                        <MenuItem value="Spouse">
+                                            <Checkbox checked={sponsors.some(s => s.name === "Spouse")} />
+                                            <ListItemText primary="Spouse" />
+                                        </MenuItem>
+                                        <MenuItem value="Employers">
+                                            <Checkbox checked={sponsors.some(s => s.name === "Employers")} />
+                                            <ListItemText primary="Employers" />
+                                        </MenuItem>
+                                        <MenuItem value="Educational Institutions">
+                                            <Checkbox checked={sponsors.some(s => s.name === "Educational Institutions")} />
+                                            <ListItemText primary="Educational Institutions" />
+                                        </MenuItem>
+                                        <MenuItem value="Government Sponsors">
+                                            <Checkbox checked={sponsors.some(s => s.name === "Government Sponsors")} />
+                                            <ListItemText primary="Government Sponsors" />
+                                        </MenuItem>
+                                    </Select>
+                                </FormControl>
                             </Box>
 
                             {/* Minimum Sponsor Count */}
@@ -1849,65 +2021,49 @@ export default function AddInstitution({ onClose }) {
 
                             {/* Banks */}
                             <Box sx={{ mb: 3 }}>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        mb: 2,
-                                    }}
-                                >
-                                    <Typography variant="subtitle1">Banks</Typography>
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={handleAddBank}
+                                <Typography variant="subtitle1" sx={{ mb: 2 }}>Banks</Typography>
+                                
+                                <FormControl fullWidth size="small">
+                                    <InputLabel id="banks-label">Select Banks</InputLabel>
+                                    <Select
+                                        labelId="banks-label"
+                                        multiple
+                                        value={banks.map(b => b.name)}
+                                        onChange={(e) => {
+                                            const values = e.target.value;
+                                            setBanks(values.map((name, idx) => ({ 
+                                                id: banks[idx]?.id || Date.now() + idx, 
+                                                name 
+                                            })));
+                                        }}
+                                        label="Select Banks"
+                                        renderValue={(selected) => selected.join(', ')}
+                                        MenuProps={{
+                                            PaperProps: {
+                                                style: {
+                                                    maxHeight: 300,
+                                                },
+                                            },
+                                        }}
                                     >
-                                        {banks.length === 0 ? "Add Bank" : "Add Another Bank"}
-                                    </Button>
-                                </Box>
-
-                                {banks.map((bank, index) => (
-                                    <Box
-                                        key={bank.id}
-                                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                                    >
-                                        <FormControl fullWidth size="small" sx={{ minWidth: 160 }}>
-                                            <InputLabel id={`bank-label-${bank.id}`}>Bank</InputLabel>
-                                            <Select
-                                                labelId={`bank-label-${bank.id}`}
-                                                id={`bank-${bank.id}`}
-                                                value={bank.name}
-                                                MenuProps={scrollableMenuProps}
-                                                onChange={(e) => handleBankChange(bank.id, e.target.value)}
-                                                label="Bank"
-                                                MenuProps={{
-                                                    PaperProps: {
-                                                        style: {
-                                                            maxHeight: 300,
-                                                        },
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value="">None</MenuItem>
-                                                <MenuItem value="Chase Bank">Chase Bank</MenuItem>
-                                                <MenuItem value="Bank of America">Bank of America</MenuItem>
-                                                <MenuItem value="Wells Fargo">Wells Fargo</MenuItem>
-                                                <MenuItem value="Citibank">Citibank</MenuItem>
-                                            </Select>
-                                        </FormControl>
-
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleRemoveBank(bank.id)}
-                                            disabled={banks.length === 1}
-                                            sx={{ ml: 1 }}
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    </Box>
-                                ))}
+                                        <MenuItem value="Chase Bank">
+                                            <Checkbox checked={banks.some(b => b.name === "Chase Bank")} />
+                                            <ListItemText primary="Chase Bank" />
+                                        </MenuItem>
+                                        <MenuItem value="Bank of America">
+                                            <Checkbox checked={banks.some(b => b.name === "Bank of America")} />
+                                            <ListItemText primary="Bank of America" />
+                                        </MenuItem>
+                                        <MenuItem value="Wells Fargo">
+                                            <Checkbox checked={banks.some(b => b.name === "Wells Fargo")} />
+                                            <ListItemText primary="Wells Fargo" />
+                                        </MenuItem>
+                                        <MenuItem value="Citibank">
+                                            <Checkbox checked={banks.some(b => b.name === "Citibank")} />
+                                            <ListItemText primary="Citibank" />
+                                        </MenuItem>
+                                    </Select>
+                                </FormControl>
                             </Box>
 
                             {/* Previous Visa Refusal */}
@@ -1951,11 +2107,20 @@ export default function AddInstitution({ onClose }) {
 
             {/* Action Buttons */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}>
-                <Button variant="outlined">Cancel</Button>
+                <Button variant="outlined" onClick={onClose}>Cancel</Button>
                 <Button variant="contained" color="primary" type="submit">
-                    Save Institution
+                    Review & Submit
                 </Button>
             </Box>
+
+            {/* Preview Dialog */}
+            <InstitutionPreview
+                open={showPreview}
+                data={previewData}
+                onEdit={handleEditFromPreview}
+                onConfirm={handleConfirmSubmit}
+                onCancel={() => setShowPreview(false)}
+            />
         </Box>
     );
 }

@@ -2,6 +2,8 @@ const Institution = require('../models/Institution');
 const Country = require('../models/Country');
 const Program = require('../models/Program');
 const mongoose = require("mongoose");
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
 
 // Get all institutions
 const getInstitutions = async (req, res) => {
@@ -87,42 +89,94 @@ const addInstitution = async (req, res) => {
     session.startTransaction();
 
     try {
-        const {
-            programs = [],
-            ...institutionData
-        } = req.body;
+        // Parse JSON fields from FormData
+        const institutionData = {};
+        
+        for (const [key, value] of Object.entries(req.body)) {
+            try {
+                // Try to parse as JSON
+                institutionData[key] = JSON.parse(value);
+            } catch {
+                // If not JSON, use as-is
+                institutionData[key] = value;
+            }
+        }
+        
+        const { programs = [], ...restInstitutionData } = institutionData;
 
         // Validate required fields
-        if (!institutionData.name || !institutionData.country) {
+        if (!restInstitutionData.name || !restInstitutionData.country) {
             return res.status(400).json({
                 error: 'Institution name and country are required',
             });
         }
 
         // Validate country
-        const country = await Country.findById(institutionData.country).session(session);
+        const country = await Country.findById(restInstitutionData.country).session(session);
         if (!country) {
             return res.status(404).json({
                 error: 'Country not found',
             });
         }
 
+        // Handle logo upload if file is provided
+        if (req.file) {
+            try {
+                console.log('Uploading file to Cloudinary...');
+                console.log('File size:', req.file.size);
+                console.log('File mimetype:', req.file.mimetype);
+
+                // Convert buffer to stream and upload
+                const result = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'institutions',
+                            resource_type: 'image',
+                        },
+                        (error, result) => {
+                            if (error) {
+                                console.error('Cloudinary upload error:', error);
+                                reject(error);
+                            } else {
+                                console.log('Cloudinary upload success:', result.secure_url);
+                                resolve(result);
+                            }
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+
+                restInstitutionData.logo = {
+                    url: result.secure_url,
+                    publicId: result.public_id,
+                };
+            } catch (uploadError) {
+                await session.abortTransaction();
+                console.error('Full upload error:', uploadError);
+                return res.status(500).json({
+                    error: 'Failed to upload logo: ' + uploadError.message,
+                });
+            }
+        }
+
         // 1. Create institution
         const institution = await Institution.create(
-            [institutionData],
+            [restInstitutionData],
             { session }
         );
 
         const createdInstitution = institution[0];
 
         // 2. Create program document linked to institution
-        await Program.create(
-            [{
-                institution: createdInstitution._id,
-                programs,
-            }],
-            { session }
-        );
+        if (programs && programs.length > 0) {
+            await Program.create(
+                [{
+                    institution: createdInstitution._id,
+                    programs,
+                }],
+                { session }
+            );
+        }
 
         await session.commitTransaction();
 
