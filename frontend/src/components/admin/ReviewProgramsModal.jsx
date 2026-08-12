@@ -15,12 +15,45 @@ import {
     Alert,
     CircularProgress,
     TextField,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel,
 } from '@mui/material';
 import {
     Close as CloseIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
 } from '@mui/icons-material';
+
+const LEVEL_OPTIONS = [
+    'Foundation',
+    'Diploma',
+    'Bachelor',
+    'Master',
+    'PhD',
+    'Doctoral',
+    'Research'
+];
+
+const FIELD_OPTIONS = [
+    'Business and Accounting',
+    'Computer Science and Information Technology',
+    'Engineering and Built Environment',
+    'Data Science and Artificial Intelligence',
+    'Science and Mathematics',
+    'Environment and Agriculture',
+    'Health and Nursing',
+    'Psychology and Social Sciences',
+    'Education and Teaching',
+    'Law and Justice',
+    'Communication and Media',
+    'Arts and Design',
+    'Hospitality and Tourism',
+    'Languages and Humanities',
+    'Research',
+    'Other'
+];
 
 export default function ReviewProgramsModal({
     open,
@@ -98,7 +131,9 @@ export default function ReviewProgramsModal({
                 </DialogTitle>
 
                 <DialogContent dividers sx={{ maxHeight: '60vh' }}>
-                    {reviewPrograms.map((program, index) => (
+                    {reviewPrograms.map((program, index) => {
+                        console.log(program);
+                        return(
                         <Card key={index} sx={{ mb: 2 }}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -125,6 +160,16 @@ export default function ReviewProgramsModal({
                                 </Box>
 
                                 <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="body2" color="text.secondary">Level:</Typography>
+                                        <Typography variant="body1">{program.level || 'N/A'}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="body2" color="text.secondary">Field:</Typography>
+                                        <Typography variant="body1">{program.field || 'N/A'}</Typography>
+                                    </Grid>
+
                                     <Grid item xs={12} md={6}>
                                         <Typography variant="body2" color="text.secondary">Duration:</Typography>
                                         <Typography variant="body1">{program.duration || 'N/A'}</Typography>
@@ -189,7 +234,7 @@ export default function ReviewProgramsModal({
                                 </Grid>
                             </CardContent>
                         </Card>
-                    ))}
+                    )})}
 
                     {reviewPrograms.length === 0 && (
                         <Alert severity="info">
@@ -241,6 +286,43 @@ export default function ReviewProgramsModal({
                             value={editProgramForm.degree_name || ''}
                             onChange={(e) => setEditProgramForm({ ...editProgramForm, degree_name: e.target.value })}
                         />
+                        
+                        <FormControl fullWidth>
+                            <InputLabel>Level</InputLabel>
+                            <Select
+                                value={editProgramForm.level || ''}
+                                label="Level"
+                                onChange={(e) => setEditProgramForm({ ...editProgramForm, level: e.target.value })}
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                {LEVEL_OPTIONS.map((level) => (
+                                    <MenuItem key={level} value={level}>
+                                        {level}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth>
+                            <InputLabel>Field</InputLabel>
+                            <Select
+                                value={editProgramForm.field || ''}
+                                label="Field"
+                                onChange={(e) => setEditProgramForm({ ...editProgramForm, field: e.target.value })}
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                {FIELD_OPTIONS.map((field) => (
+                                    <MenuItem key={field} value={field}>
+                                        {field}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
                         <TextField
                             label="Duration"
                             fullWidth

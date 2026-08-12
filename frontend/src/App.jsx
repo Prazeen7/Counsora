@@ -16,6 +16,7 @@ import Sidebar from "./components/admin/sidebar";
 import AdminInstitutions from "./pages/admin/institutionsList";
 import AdminLayout from "./layouts/adminLayout";
 import ReviewPrograms from "./pages/admin/ReviewPrograms";
+import Programs from "./pages/counselor/program";
 
 function App() {
   return (
@@ -79,6 +80,18 @@ function App() {
             <RoleProtectedRoutes allowedRoles={["counselor"]}>
               <Navbar />
               <Dashboard />
+            </RoleProtectedRoutes>
+          </>
+        }
+      />
+
+      <Route
+        path="/programs"
+        element={
+          <>
+            <RoleProtectedRoutes allowedRoles={["counselor"]}>
+              <Navbar />
+              <Programs />
             </RoleProtectedRoutes>
           </>
         }

@@ -15,8 +15,13 @@ import {
     Link,
     MenuItem,
     Button,
+    IconButton,
 } from "@mui/material";
-import { OpenInNew as OpenInNewIcon } from "@mui/icons-material";
+import { 
+    OpenInNew as OpenInNewIcon,
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+} from "@mui/icons-material";
 
 export default function InstitutionTabsContent({
     activeTab,
@@ -36,6 +41,10 @@ export default function InstitutionTabsContent({
     levels = [],
     fields = [],
     intakes = [],
+    isAdmin = false,
+    isEditMode = false,
+    onEditProgram = null,
+    onDeleteProgram = null,
 }) {
     const [selectedCampus, setSelectedCampus] = useState(
         institution?.campuses?.[0] || null
@@ -215,10 +224,27 @@ export default function InstitutionTabsContent({
 
         case 2:
             return (
-                <Paper sx={{ p: 4, borderRadius: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" gutterBottom>
-                        Programs Offered
-                    </Typography>
+                <Paper sx={{ p: 4, borderRadius: 3, position: "relative" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                        <Typography variant="h5" fontWeight="bold" gutterBottom>
+                            Programs Offered
+                        </Typography>
+                        {isAdmin && isEditMode && onEditProgram && (
+                            <Button
+                                variant="contained"
+                                startIcon={<OpenInNewIcon />}
+                                onClick={() => onEditProgram(null)}
+                                sx={{
+                                    backgroundColor: "#4f46e5",
+                                    "&:hover": {
+                                        backgroundColor: "#4338ca",
+                                    },
+                                }}
+                            >
+                                Add Program
+                            </Button>
+                        )}
+                    </Box>
 
                     <Box
                         sx={{
@@ -319,12 +345,52 @@ export default function InstitutionTabsContent({
                                     sx={{
                                         borderRadius: 3,
                                         transition: "0.2s",
+                                        position: "relative",
                                         "&:hover": {
                                             boxShadow: 4,
                                             transform: "translateY(-2px)",
                                         },
                                     }}
                                 >
+                                    {isAdmin && isEditMode && onEditProgram && onDeleteProgram && (
+                                        <Box
+                                            sx={{
+                                                position: "absolute",
+                                                top: 8,
+                                                right: 8,
+                                                display: "flex",
+                                                gap: 1,
+                                                zIndex: 10,
+                                            }}
+                                        >
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => onEditProgram(program)}
+                                                sx={{
+                                                    backgroundColor: "rgba(79, 70, 229, 0.9)",
+                                                    color: "white",
+                                                    "&:hover": {
+                                                        backgroundColor: "#4338ca",
+                                                    },
+                                                }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => onDeleteProgram(program)}
+                                                sx={{
+                                                    backgroundColor: "rgba(239, 68, 68, 0.9)",
+                                                    color: "white",
+                                                    "&:hover": {
+                                                        backgroundColor: "#dc2626",
+                                                    },
+                                                }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    )}
                                     <CardContent
                                         sx={{
                                             display: "flex",

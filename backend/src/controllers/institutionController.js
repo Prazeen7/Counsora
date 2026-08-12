@@ -616,10 +616,91 @@ const rejectCrawl = async (req, res) => {
     }
 };
 
+// Update institution
+const updateInstitution = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid institution ID" });
+        }
+
+        // Parse JSON fields from FormData
+        const updateData = {};
+        
+        for (const [key, value] of Object.entries(req.body)) {
+            try {
+                // Try to parse as JSON
+                updateData[key] = JSON.parse(value);
+            } catch {
+                // If not JSON, use as-is
+                updateData[key] = value;
+            }
+        }
+
+        // Handle logo upload if file is provided
+        if (req.file) {
+            try {
+                console.log('Uploading new logo to Cloudinary...');
+                
+                // Convert buffer to stream and upload
+                const result = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'institutions',
+                            resource_type: 'image',
+                        },
+                        (error, result) => {
+                            if (error) {
+                                console.error('Cloudinary upload error:', error);
+                                reject(error);
+                            } else {
+                                console.log('Cloudinary upload success:', result.secure_url);
+                                resolve(result);
+                            }
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+
+                updateData.logo = {
+                    url: result.secure_url,
+                    publicId: result.public_id,
+                };
+            } catch (uploadError) {
+                console.error('Upload error:', uploadError);
+                return res.status(500).json({
+                    error: 'Failed to upload logo: ' + uploadError.message,
+                });
+            }
+        }
+
+        // Update institution
+        const institution = await Institution.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: true }
+        ).populate("country", "code name currency");
+
+        if (!institution) {
+            return res.status(404).json({ error: "Institution not found" });
+        }
+
+        console.log(`✓ Institution updated: ${institution.name}`);
+
+        return res.status(200).json(institution);
+
+    } catch (error) {
+        console.error("Error updating institution:", error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getInstitutions,
     getInstitutionById,
     addInstitution,
+    updateInstitution,
     crawlAndAddPrograms,
     getCrawlStatus,
     getPendingPrograms,

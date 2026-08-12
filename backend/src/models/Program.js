@@ -1,13 +1,113 @@
 const mongoose = require("mongoose");
 
-// Sub-schema for entry requirements - strict format
-const entryRequirementsSchema = new mongoose.Schema(
+// Academic requirement schema
+const academicRequirementSchema = new mongoose.Schema(
     {
-        academic: {
+        minimum_qualification: {
+            type: String,
+            enum: ["Higher Secondary", "Diploma", "Bachelor", "Master", "Doctoral", null],
+            default: null,
+        },
+        field_requirement: {
             type: String,
             default: null,
         },
-        language: {
+        score_type: {
+            type: String,
+            enum: ["GPA", "Percentage", null],
+            default: null,
+        },
+        score: {
+            type: Number,
+            default: null,
+        },
+        scale: {
+            type: Number,
+            default: null,
+        },
+    },
+    { _id: false }
+);
+
+// Generic language score schema
+const languageScoreSchema = new mongoose.Schema(
+    {
+        overall: { type: Number, default: null },
+        listening: { type: Number, default: null },
+        reading: { type: Number, default: null },
+        writing: { type: Number, default: null },
+        speaking: { type: Number, default: null },
+    },
+    { _id: false }
+);
+
+// English language requirements
+const englishLanguageSchema = new mongoose.Schema(
+    {
+        ielts: { type: languageScoreSchema, default: () => ({}) },
+        toefl: { type: languageScoreSchema, default: () => ({}) },
+        pte: { type: languageScoreSchema, default: () => ({}) },
+        duolingo: { type: languageScoreSchema, default: () => ({}) },
+        cambridge: { type: String, default: null },
+        cefr: { type: String, default: null },
+    },
+    { _id: false }
+);
+
+// German language requirements
+const germanLanguageSchema = new mongoose.Schema(
+    {
+        cefr: { type: String, default: null },
+        testdaf: { type: languageScoreSchema, default: () => ({}) },
+        dsh: { type: languageScoreSchema, default: () => ({}) },
+    },
+    { _id: false }
+);
+
+// Language requirements schema
+const languageRequirementsSchema = new mongoose.Schema(
+    {
+        english: { type: englishLanguageSchema, default: () => ({}) },
+        german: { type: germanLanguageSchema, default: () => ({}) },
+        other_languages: {
+            type: [String],
+            default: [],
+        },
+    },
+    { _id: false }
+);
+
+// Entry requirements schema
+const entryRequirementsSchema = new mongoose.Schema(
+    {
+        academic: {
+            type: academicRequirementSchema,
+            default: () => ({}),
+        },
+        language_requirements: {
+            type: languageRequirementsSchema,
+            default: () => ({}),
+        },
+        additional_requirements: {
+            type: [String],
+            default: [],
+        },
+    },
+    { _id: false }
+);
+
+// Scholarship schema
+const scholarshipSchema = new mongoose.Schema(
+    {
+        available: {
+            type: Boolean,
+            default: false,
+        },
+        description: {
+            type: String,
+            default: null,
+        },
+        url: {
             type: String,
             default: null,
         },
@@ -15,13 +115,44 @@ const entryRequirementsSchema = new mongoose.Schema(
     { _id: false }
 );
 
-// Individual program schema with strict types for consistency
+// Individual program schema
 const programSchema = new mongoose.Schema(
     {
         degree_name: {
             type: String,
             required: true,
             trim: true,
+        },
+
+
+        level: {
+            type: String,
+            enum: ["Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null],
+            default: null,
+        },
+
+        field: {
+            type: String,
+            enum: [
+                "Allied Health",
+                "Management, Business and Accounting",
+                "Creative, Performing and Visual Arts",
+                "Creative Media, Communication and Arts",
+                "Education, Teaching and Childcare",
+                "Engineering, Built Environment and Aviation",
+                "English and Study Pathways",
+                "Information Systems and Technology",
+                "Law, Criminology and Justice",
+                "Nursing, Paramedicine and Health",
+                "Psychology, Social Work and Community Services",
+                "Safety Sciences",
+                "Science, Environment and Agriculture",
+                "Service Industries",
+                "Trades",
+                "Other",
+                null,
+            ],
+            default: null,
         },
 
         credits: {
@@ -35,8 +166,12 @@ const programSchema = new mongoose.Schema(
         },
 
         scholarship: {
-            type: String,
-            default: null,
+            type: scholarshipSchema,
+            default: () => ({
+                available: false,
+                description: null,
+                url: null,
+            }),
         },
 
         intakes: {
@@ -61,7 +196,11 @@ const programSchema = new mongoose.Schema(
 
         entry_requirements: {
             type: entryRequirementsSchema,
-            default: () => ({ academic: null, language: null }),
+            default: () => ({
+                academic: {},
+                language_requirements: {},
+                additional_requirements: [],
+            }),
         },
 
         tuition_fees: {
@@ -89,6 +228,8 @@ const programSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+
+
     },
     { _id: true }
 );
@@ -103,6 +244,7 @@ const institutionProgramsSchema = new mongoose.Schema(
             unique: true,
         },
 
+
         programs: [programSchema],
 
         lastCrawled: {
@@ -115,6 +257,8 @@ const institutionProgramsSchema = new mongoose.Schema(
             enum: ["pending", "in_progress", "pending_review", "completed", "failed"],
             default: "pending",
         },
+
+
     },
     {
         timestamps: true,

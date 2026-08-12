@@ -26,7 +26,7 @@ function normalizeEntryRequirements(value) {
     if (!value || typeof value !== 'object') {
         return { academic: null, language: null };
     }
-    
+
     return {
         academic: normalizeString(value.academic),
         language: normalizeString(value.language)
@@ -49,6 +49,8 @@ function normalizeProgramData(program) {
 
     return {
         degree_name: normalizeString(program.degree_name),
+        level: normalizeString(program.level),
+        field: normalizeString(program.field),
         credits: normalizeStringArray(program.credits),
         format: normalizeString(program.format),
         scholarship: normalizeString(program.scholarship),

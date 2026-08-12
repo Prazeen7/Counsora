@@ -79,10 +79,95 @@ export default function InstitutionList() {
                         ),
                     ];
 
+                    // Find program with minimum entry requirements
+                    const getMinimumRequirements = (programs) => {
+                        if (!programs || programs.length === 0) return { undergraduate: null, postgraduate: null };
+
+                        // Helper to extract numeric value from language requirement
+                        const parseLanguageScore = (req) => {
+                            if (!req || !req.language) return Infinity;
+                            const match = req.language.match(/(\d+\.?\d*)/);
+                            return match ? parseFloat(match[1]) : Infinity;
+                        };
+
+                        // Helper to extract GPA score
+                        const parseGPA = (req) => {
+                            if (!req || !req.academic) return Infinity;
+                            const match = req.academic.match(/(\d+\.?\d*)/);
+                            return match ? parseFloat(match[1]) : Infinity;
+                        };
+
+                        // Helper to determine program level
+                        const getProgramLevel = (program) => {
+                            const name = program.degree_name?.toLowerCase() || '';
+                            if (name.includes('master') || name.includes('msc') || name.includes('ma ') || 
+                                name.includes('mba') || name.includes('phd') || name.includes('doctorate')) {
+                                return 'postgraduate';
+                            }
+                            if (name.includes('bachelor') || name.includes('bsc') || name.includes('ba ') || 
+                                name.includes('bba') || name.includes('diploma') || name.includes('certificate')) {
+                                return 'undergraduate';
+                            }
+                            return 'other';
+                        };
+
+                        // Separate programs by level
+                        const undergradPrograms = programs.filter(p => getProgramLevel(p) === 'undergraduate');
+                        const postgradPrograms = programs.filter(p => getProgramLevel(p) === 'postgraduate');
+
+                        // Find minimum for undergraduate
+                        const undergradMin = undergradPrograms.reduce((min, program) => {
+                            if (!program.entry_requirements) return min;
+
+                            const currentGPA = parseGPA(program.entry_requirements);
+                            const currentLang = parseLanguageScore(program.entry_requirements);
+                            
+                            if (!min) return program;
+
+                            const minGPA = parseGPA(min.entry_requirements);
+                            const minLang = parseLanguageScore(min.entry_requirements);
+
+                            const currentScore = (currentGPA === Infinity ? 100 : currentGPA) + 
+                                               (currentLang === Infinity ? 100 : currentLang);
+                            const minScore = (minGPA === Infinity ? 100 : minGPA) + 
+                                           (minLang === Infinity ? 100 : minLang);
+
+                            return currentScore < minScore ? program : min;
+                        }, null);
+
+                        // Find minimum for postgraduate
+                        const postgradMin = postgradPrograms.reduce((min, program) => {
+                            if (!program.entry_requirements) return min;
+
+                            const currentGPA = parseGPA(program.entry_requirements);
+                            const currentLang = parseLanguageScore(program.entry_requirements);
+                            
+                            if (!min) return program;
+
+                            const minGPA = parseGPA(min.entry_requirements);
+                            const minLang = parseLanguageScore(min.entry_requirements);
+
+                            const currentScore = (currentGPA === Infinity ? 100 : currentGPA) + 
+                                               (currentLang === Infinity ? 100 : currentLang);
+                            const minScore = (minGPA === Infinity ? 100 : minGPA) + 
+                                           (minLang === Infinity ? 100 : minLang);
+
+                            return currentScore < minScore ? program : min;
+                        }, null);
+
+                        return {
+                            undergraduate: undergradMin?.entry_requirements || null,
+                            postgraduate: postgradMin?.entry_requirements || null,
+                        };
+                    };
+
+                    const minimumRequirements = getMinimumRequirements(programData.programs);
+
                     return {
                         ...inst,
                         programCount: programData.count,
                         intakes,
+                        minimumRequirements,
                     };
                 })
             );
@@ -297,44 +382,124 @@ export default function InstitutionList() {
                                             {/* Entry Requirements */}
                                             <Box sx={{ mb: 2 }}>
                                                 <Typography level='body-sm' fontWeight='lg' sx={{ mb: 0.75 }}>
-                                                    Entry Requirements
+                                                    Minimum Entry Requirements
                                                 </Typography>
 
-                                                <Box sx={{ mb: 1 }}>
-                                                    <Typography level='body-xs' fontWeight='lg'>
-                                                        Undergraduate
-                                                    </Typography>
-                                                    <Typography level='body-xs'>
-                                                        GPA:{' '}
-                                                        {institution.entryRequirements?.undergraduate?.gpa?.score
-                                                            ? `${institution.entryRequirements.undergraduate.gpa.score} ${institution.entryRequirements.undergraduate.gpa.type}`
-                                                            : 'N/A'}
-                                                    </Typography>
-                                                    <Typography level='body-xs'>
-                                                        {institution.entryRequirements?.undergraduate?.languageRequirement?.testType
-                                                            ? `${institution.entryRequirements.undergraduate.languageRequirement.testType} ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
-                                                            : 'Language: N/A'}
-                                                    </Typography>
-                                                </Box>
+                                                {institution.minimumRequirements?.undergraduate || institution.minimumRequirements?.postgraduate ? (
+                                                    <Box>
+                                                        <Typography level='body-xs' color='success' sx={{ mb: 1, fontStyle: 'italic' }}>
+                                                            From programs with lowest requirements
+                                                        </Typography>
 
-                                                <Divider sx={{ my: 1 }} />
+                                                        {/* Undergraduate Requirements */}
+                                                        {institution.minimumRequirements.undergraduate ? (
+                                                            <Box sx={{ mb: 1 }}>
+                                                                <Typography level='body-xs' fontWeight='lg'>
+                                                                    Undergraduate
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    <strong>Academic:</strong>{' '}
+                                                                    {institution.minimumRequirements.undergraduate.academic || 'Not specified'}
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    <strong>Language:</strong>{' '}
+                                                                    {institution.minimumRequirements.undergraduate.language || 'Not specified'}
+                                                                </Typography>
+                                                            </Box>
+                                                        ) : (
+                                                            <Box sx={{ mb: 1 }}>
+                                                                <Typography level='body-xs' fontWeight='lg'>
+                                                                    Undergraduate
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    GPA:{' '}
+                                                                    {institution.entryRequirements?.undergraduate?.gpa?.score
+                                                                        ? `${institution.entryRequirements.undergraduate.gpa.score} ${institution.entryRequirements.undergraduate.gpa.type}`
+                                                                        : 'N/A'}
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    {institution.entryRequirements?.undergraduate?.languageRequirement?.testType
+                                                                        ? `${institution.entryRequirements.undergraduate.languageRequirement.testType} ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
+                                                                        : 'Language: N/A'}
+                                                                </Typography>
+                                                            </Box>
+                                                        )}
 
-                                                <Box>
-                                                    <Typography level='body-xs' fontWeight='lg'>
-                                                        Postgraduate
-                                                    </Typography>
-                                                    <Typography level='body-xs'>
-                                                        GPA:{' '}
-                                                        {institution.entryRequirements?.postgraduate?.gpa?.score
-                                                            ? `${institution.entryRequirements.postgraduate.gpa.score} ${institution.entryRequirements.postgraduate.gpa.type}`
-                                                            : 'N/A'}
-                                                    </Typography>
-                                                    <Typography level='body-xs'>
-                                                        {institution.entryRequirements?.postgraduate?.languageRequirement?.testType
-                                                            ? `${institution.entryRequirements.postgraduate.languageRequirement.testType} ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
-                                                            : 'Language: N/A'}
-                                                    </Typography>
-                                                </Box>
+                                                        <Divider sx={{ my: 1 }} />
+
+                                                        {/* Postgraduate Requirements */}
+                                                        {institution.minimumRequirements.postgraduate ? (
+                                                            <Box>
+                                                                <Typography level='body-xs' fontWeight='lg'>
+                                                                    Postgraduate
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    <strong>Academic:</strong>{' '}
+                                                                    {institution.minimumRequirements.postgraduate.academic || 'Not specified'}
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    <strong>Language:</strong>{' '}
+                                                                    {institution.minimumRequirements.postgraduate.language || 'Not specified'}
+                                                                </Typography>
+                                                            </Box>
+                                                        ) : (
+                                                            <Box>
+                                                                <Typography level='body-xs' fontWeight='lg'>
+                                                                    Postgraduate
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    GPA:{' '}
+                                                                    {institution.entryRequirements?.postgraduate?.gpa?.score
+                                                                        ? `${institution.entryRequirements.postgraduate.gpa.score} ${institution.entryRequirements.postgraduate.gpa.type}`
+                                                                        : 'N/A'}
+                                                                </Typography>
+                                                                <Typography level='body-xs'>
+                                                                    {institution.entryRequirements?.postgraduate?.languageRequirement?.testType
+                                                                        ? `${institution.entryRequirements.postgraduate.languageRequirement.testType} ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
+                                                                        : 'Language: N/A'}
+                                                                </Typography>
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                ) : (
+                                                    <Box>
+                                                        <Box sx={{ mb: 1 }}>
+                                                            <Typography level='body-xs' fontWeight='lg'>
+                                                                Undergraduate
+                                                            </Typography>
+                                                            <Typography level='body-xs'>
+                                                                GPA:{' '}
+                                                                {institution.entryRequirements?.undergraduate?.gpa?.score
+                                                                    ? `${institution.entryRequirements.undergraduate.gpa.score} ${institution.entryRequirements.undergraduate.gpa.type}`
+                                                                    : 'N/A'}
+                                                            </Typography>
+                                                            <Typography level='body-xs'>
+                                                                {institution.entryRequirements?.undergraduate?.languageRequirement?.testType
+                                                                    ? `${institution.entryRequirements.undergraduate.languageRequirement.testType} ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
+                                                                    : 'Language: N/A'}
+                                                            </Typography>
+                                                        </Box>
+
+                                                        <Divider sx={{ my: 1 }} />
+
+                                                        <Box>
+                                                            <Typography level='body-xs' fontWeight='lg'>
+                                                                Postgraduate
+                                                            </Typography>
+                                                            <Typography level='body-xs'>
+                                                                GPA:{' '}
+                                                                {institution.entryRequirements?.postgraduate?.gpa?.score
+                                                                    ? `${institution.entryRequirements.postgraduate.gpa.score} ${institution.entryRequirements.postgraduate.gpa.type}`
+                                                                    : 'N/A'}
+                                                            </Typography>
+                                                            <Typography level='body-xs'>
+                                                                {institution.entryRequirements?.postgraduate?.languageRequirement?.testType
+                                                                    ? `${institution.entryRequirements.postgraduate.languageRequirement.testType} ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
+                                                                    : 'Language: N/A'}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                )}
                                             </Box>
 
                                             {/* Application Fee */}
