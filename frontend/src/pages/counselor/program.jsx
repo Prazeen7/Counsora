@@ -205,11 +205,53 @@ export default function Programs() {
         incomeSources: [{ incomeSourceType: "", totalIncome: null, sourceOwner: "" }],
     };
 
+    // ----- Helper to parse GPA from new schema -----
+    const parseGPAFromProgram = (entryRequirements) => {
+        if (!entryRequirements || !entryRequirements.academic) return 0;
+        const academic = entryRequirements.academic;
+        // If score is a number
+        if (typeof academic.score === 'number' && academic.score !== null) {
+            return academic.score;
+        }
+        // If score is a string, try to extract number
+        if (typeof academic.score === 'string') {
+            const match = academic.score.match(/(\d+\.?\d*)/);
+            return match ? parseFloat(match[1]) : 0;
+        }
+        return 0;
+    };
+
+    // ----- Helper to extract language score from new schema -----
+    const getLanguageScore = (entryRequirements, testType) => {
+        if (!entryRequirements || !entryRequirements.language_requirements) return null;
+        const lang = entryRequirements.language_requirements;
+        const english = lang.english || {};
+        let score = null;
+        switch (testType.toLowerCase()) {
+            case 'ielts':
+                score = english.ielts?.overall;
+                break;
+            case 'toefl':
+                score = english.toefl?.overall;
+                break;
+            case 'pte':
+                score = english.pte?.overall;
+                break;
+            case 'duolingo':
+                score = english.duolingo?.overall;
+                break;
+            default:
+                return null;
+        }
+        return (score !== undefined && score !== null) ? score : null;
+    };
+
+    // ----- Fetch programs and map to UI format -----
     const fetchData = async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
-            
+
             const response = await fetch(`${URL}/program/get`, {
                 method: "GET",
                 headers: {
@@ -223,59 +265,96 @@ export default function Programs() {
             }
 
             const data = await response.json();
-            
+
             // Map the new schema to the UI format
             const shuffledPrograms = shuffleArray(
                 data.map((program) => {
-                    // Determine level from degree_name or set default
-                    const degreeName = program.degree_name?.toLowerCase() || "";
+                    // Determine level from degree_name or level field
                     let level = "N/A";
-                    if (degreeName.includes("bachelor") || degreeName.includes("undergraduate")) {
+                    const levelField = program.level || "";
+                    if (levelField === "Bachelor" || levelField === "Diploma" || levelField === "Foundation") {
                         level = "Undergraduate";
-                    } else if (degreeName.includes("master") || degreeName.includes("phd") || degreeName.includes("postgraduate") || degreeName.includes("doctorate")) {
+                    } else if (levelField === "Master" || levelField === "PhD" || levelField === "Doctoral" || levelField === "Research") {
                         level = "Postgraduate";
+                    } else {
+                        // Fallback: search in degree_name
+                        const name = program.degree_name?.toLowerCase() || "";
+                        if (name.includes("bachelor") || name.includes("undergraduate")) {
+                            level = "Undergraduate";
+                        } else if (name.includes("master") || name.includes("phd") || name.includes("postgraduate") || name.includes("doctorate")) {
+                            level = "Postgraduate";
+                        }
                     }
 
-                    // Extract discipline from degree name (basic extraction)
-                    const discipline = program.degree_name?.split(" in ")[1]?.split(" ")[0] || 
-                                     program.degree_name?.split(" of ")[1]?.split(" ")[0] || 
-                                     "General";
+                    // Extract discipline from field or degree name
+                    const discipline = program.field ||
+                        program.degree_name?.split(" in ")[1]?.split(" ")[0] ||
+                        program.degree_name?.split(" of ")[1]?.split(" ")[0] ||
+                        "General";
 
                     // Get first campus or "Multiple Campuses"
-                    const campus = program.campuses && program.campuses.length > 0 
-                        ? program.campuses[0] 
+                    const campus = program.campuses && program.campuses.length > 0
+                        ? program.campuses[0]
                         : "N/A";
 
-                    // Get first tuition fee
-                    const fees = program.tuition_fees && program.tuition_fees.length > 0
-                        ? program.tuition_fees[0].replace(/[^\d.]/g, "")
-                        : "0";
+                    // Get first tuition fee (annual_fee_eur)
+                    let fees = "0";
+                    if (program.tuition_fees && program.tuition_fees.length > 0) {
+                        const feeObj = program.tuition_fees[0];
+                        if (feeObj.annual_fee_eur) {
+                            fees = `$${feeObj.annual_fee_eur}`;
+                        }
+                    }
+
+                    // Extract language scores
+                    const ielts = getLanguageScore(program.entry_requirements, 'ielts');
+                    const pte = getLanguageScore(program.entry_requirements, 'pte');
+                    const toefl = getLanguageScore(program.entry_requirements, 'toefl');
+                    const gpa = parseGPAFromProgram(program.entry_requirements);
+
+                    // Build institutionData from program fields (if institution data is populated)
+                    // The API might return the full institution object as `institutionData`
+                    const institutionData = program.institutionData || {
+                        // Fallback to program-level data if not populated
+                        entryRequirements: {
+                            undergraduate: { gpa: { score: gpa, type: "GPA" } },
+                            postgraduate: { gpa: { score: gpa, type: "GPA" } }
+                        },
+                        documents: {
+                            incomeSources: [],
+                            sponsors: [],
+                            minIncomeAmount: "",
+                            banks: [],
+                            previousVisaRefusal: "no"
+                        },
+                        applicationFee: { amount: program.application_fees || 0 }
+                    };
 
                     return {
-                        id: `${program.institutionId}-${program._id}`,
+                        id: `${program.institutionId || program.institution}-${program._id}`,
                         program: program.degree_name || "N/A",
                         institution: program.institutionName || "N/A",
                         level: level,
                         discipline: discipline,
                         duration: program.duration || "N/A",
                         intakes: program.intakes || [],
-                        fees: `$${fees}`,
+                        fees: fees,
                         campus: campus,
-                        ielts: program.entry_requirements?.language?.match(/IELTS[:\s]+([0-9.\/]+)/i)?.[1] || null,
-                        pte: program.entry_requirements?.language?.match(/PTE[:\s]+([0-9.\/]+)/i)?.[1] || null,
-                        toefl: program.entry_requirements?.language?.match(/TOEFL[:\s]+([0-9.\/]+)/i)?.[1] || null,
-                        gpa: parseGPA(program.entry_requirements?.academic),
-                        applicationFees: program.application_fees || program.institutionData?.applicationFee?.amount || "N/A",
-                        requiredFunds: null, // Calculate if needed
+                        ielts: ielts,
+                        pte: pte,
+                        toefl: toefl,
+                        gpa: gpa,
+                        applicationFees: program.application_fees || institutionData?.applicationFee?.amount || "N/A",
+                        requiredFunds: null, // will be calculated later
                         institutionData: {
-                            ...program.institutionData,
-                            profilePicture: program.institutionLogo?.url,
+                            ...institutionData,
+                            profilePicture: program.institutionLogo?.url || institutionData?.logo?.url,
                         },
                         url: program.url || "#",
                     };
                 })
             );
-            
+
             setInstitutions(shuffledPrograms);
             setError("");
         } catch (error) {
@@ -294,13 +373,6 @@ export default function Programs() {
         });
         fetchData();
     }, []);
-
-    // Parse GPA from string or institution entry requirements
-    const parseGPA = (academicRequirement) => {
-        if (!academicRequirement) return 0;
-        const gpaMatch = academicRequirement.match(/\d+(\.\d+)?/);
-        return gpaMatch ? parseFloat(gpaMatch[0]) : 0;
-    };
 
     // Calculate total required funds for a program
     const calculateTotalRequiredFunds = (program) => {
@@ -339,10 +411,10 @@ export default function Programs() {
             (tabValue === 1 && program.level === "Undergraduate") || // Undergraduate
             (tabValue === 2 && program.level === "Postgraduate"); // Postgraduate
 
-        // GPA Filter Logic - use institution's entry requirements
+        // GPA Filter Logic - use institution's entry requirements (or program's as fallback)
         const matchesGPA = () => {
             if (appliedFilters.gpa <= 0) return true;
-            
+
             // Get GPA from institution's entry requirements based on program level
             let institutionGPA = 0;
             if (program.level === "Undergraduate" && program.institutionData?.entryRequirements?.undergraduate?.gpa) {
@@ -352,10 +424,10 @@ export default function Programs() {
                 const gpaData = program.institutionData.entryRequirements.postgraduate.gpa;
                 institutionGPA = parseFloat(gpaData.score) || 0;
             }
-            
+
             // If no GPA requirement, allow all
             if (institutionGPA === 0) return true;
-            
+
             // Check if user's GPA meets requirement
             return appliedFilters.gpa >= institutionGPA;
         };
@@ -390,11 +462,10 @@ export default function Programs() {
 
             // Handle different test formats
             if (['IELTS', 'PTE'].includes(englishTest.toUpperCase())) {
-                // Split the score into parts (e.g., "6.5/6.0" → 6.5)
-                const parts = rawScore.split('/');
-                parsedScore = parseFloat(parts[0].trim()); // Take the first part (overall score)
+                // If rawScore is a number already, use it; otherwise try to parse
+                parsedScore = typeof rawScore === 'number' ? rawScore : parseFloat(rawScore);
             } else if (englishTest.toUpperCase() === 'TOEFL') {
-                parsedScore = parseFloat(rawScore); // TOEFL is typically a single number
+                parsedScore = typeof rawScore === 'number' ? rawScore : parseFloat(rawScore);
             }
 
             // Exclude programs with non-numeric scores
@@ -718,20 +789,20 @@ export default function Programs() {
 
     return (
         <ThemeProvider theme={theme}>
-            <Box sx={{ bgcolor: "background.default", minHeight: "100vh", py: 4}}>
+            <Box sx={{ bgcolor: "background.default", minHeight: "100vh", py: 4 }}>
                 <Container maxWidth="xl">
                     <Stack spacing={4}>
 
                         {/* Header */}
-                        <Box sx={{textAlign: "center"}}>
-                        <Stack spacing={1} alignItems="center" textAlign="center">
-                            <Typography variant="h1" textAlign="center" fontSize="2rem">
-                                Discover Your Perfect Program
-                            </Typography>
-                            <Typography variant="body1" color="text.secondary" textAlign="center" fontSize="0.875rem">
-                                Browse through thousands of programs from top institutions
-                            </Typography>
-                        </Stack>
+                        <Box sx={{ textAlign: "center" }}>
+                            <Stack spacing={1} alignItems="center" textAlign="center">
+                                <Typography variant="h1" textAlign="center" fontSize="2rem">
+                                    Discover Your Perfect Program
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" textAlign="center" fontSize="0.875rem">
+                                    Browse through thousands of programs from top institutions
+                                </Typography>
+                            </Stack>
                         </Box>
 
                         {/* Search and Filter Section */}
@@ -788,7 +859,7 @@ export default function Programs() {
                         </Box>
 
                         {/* Discipline Chips */}
-                        <Stack direction="row" spacing={1} sx={{ mt: 0 }} flexWrap="wrap">
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
                             {uniqueDisciplines.map((discipline) => (
                                 <Chip
                                     key={discipline}
@@ -802,7 +873,7 @@ export default function Programs() {
                                     }
                                 />
                             ))}
-                        </Stack>
+                        </Box>
 
                         {/* Program Level Tabs */}
                         <Box ref={programTabsRef} sx={{ borderBottom: 1, borderColor: "divider" }}>

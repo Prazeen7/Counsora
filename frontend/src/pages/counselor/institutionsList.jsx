@@ -5,7 +5,6 @@ import { useCountry } from "../../context/CountryContext";
 import { getInstitutions } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
 
-
 // MUI imports
 import {
     Box,
@@ -46,6 +45,146 @@ export default function InstitutionList() {
 
     const URL = import.meta.env.VITE_BACKEND_URL;
 
+    // ----- Helper functions for the new Program schema -----
+
+    // Extract numeric GPA/percentage from academic requirement object
+    const parseGPA = (entryReq) => {
+        if (!entryReq || !entryReq.academic) return Infinity;
+        const academic = entryReq.academic;
+        // If score is a number directly
+        if (typeof academic.score === 'number' && academic.score !== null) {
+            return academic.score;
+        }
+        // If score is a string like "3.0" or "85%"
+        if (typeof academic.score === 'string') {
+            const match = academic.score.match(/(\d+\.?\d*)/);
+            return match ? parseFloat(match[1]) : Infinity;
+        }
+        return Infinity;
+    };
+
+    // Extract the lowest overall language score from language_requirements
+    const parseLanguageScore = (entryReq) => {
+        if (!entryReq || !entryReq.language_requirements) return Infinity;
+        const lang = entryReq.language_requirements;
+        // Check common English tests – take the first available overall
+        const tests = [
+            lang.english?.ielts?.overall,
+            lang.english?.toefl?.overall,
+            lang.english?.pte?.overall,
+            lang.english?.duolingo?.overall,
+            // German tests if needed (optional)
+            // lang.german?.testdaf?.overall,
+            // lang.german?.dsh?.overall,
+        ];
+        const scores = tests
+            .filter(v => v !== undefined && v !== null)
+            .map(Number)
+            .filter(v => !isNaN(v));
+        if (scores.length === 0) return Infinity;
+        // Return the minimum (or you could pick the first)
+        return Math.min(...scores);
+    };
+
+    // Format academic requirement for display
+    const formatAcademic = (entryReq) => {
+        if (!entryReq || !entryReq.academic) return 'Not specified';
+        const academic = entryReq.academic;
+        let scoreStr = academic.score !== null && academic.score !== undefined
+            ? academic.score
+            : '';
+        const type = academic.score_type || '';
+        if (type && scoreStr) {
+            return `${scoreStr} ${type}`;
+        }
+        return scoreStr || 'Not specified';
+    };
+
+    // Format language requirement for display (take first available English test)
+    const formatLanguage = (entryReq) => {
+        if (!entryReq || !entryReq.language_requirements) return 'Not specified';
+        const lang = entryReq.language_requirements;
+        // English tests
+        const tests = [
+            { name: 'IELTS', score: lang.english?.ielts?.overall },
+            { name: 'TOEFL', score: lang.english?.toefl?.overall },
+            { name: 'PTE', score: lang.english?.pte?.overall },
+            { name: 'Duolingo', score: lang.english?.duolingo?.overall },
+        ];
+        const available = tests.find(t => t.score !== undefined && t.score !== null);
+        if (available) {
+            return `${available.name} ${available.score}`;
+        }
+        // Check if any other language fields exist (e.g., German)
+        if (lang.german?.cefr) {
+            return `German CEFR ${lang.german.cefr}`;
+        }
+        return 'Not specified';
+    };
+
+    // Determine program level based on degree name
+    const getProgramLevel = (program) => {
+        const name = program.degree_name?.toLowerCase() || '';
+        if (name.includes('master') || name.includes('msc') || name.includes('ma ') ||
+            name.includes('mba') || name.includes('phd') || name.includes('doctorate')) {
+            return 'postgraduate';
+        }
+        if (name.includes('bachelor') || name.includes('bsc') || name.includes('ba ') ||
+            name.includes('bba') || name.includes('diploma') || name.includes('certificate')) {
+            return 'undergraduate';
+        }
+        return 'other';
+    };
+
+    // Find the program with the minimum entry requirements for each level
+    const getMinimumRequirements = (programs) => {
+        if (!programs || programs.length === 0) {
+            return { undergraduate: null, postgraduate: null };
+        }
+
+        const undergradPrograms = programs.filter(p => getProgramLevel(p) === 'undergraduate');
+        const postgradPrograms = programs.filter(p => getProgramLevel(p) === 'postgraduate');
+
+        // Helper to find minimum among an array of programs
+        const findMin = (progList) => {
+            return progList.reduce((min, program) => {
+                if (!program.entry_requirements) return min;
+                const currentGPA = parseGPA(program.entry_requirements);
+                const currentLang = parseLanguageScore(program.entry_requirements);
+                if (!min) return program;
+
+                const minGPA = parseGPA(min.entry_requirements);
+                const minLang = parseLanguageScore(min.entry_requirements);
+
+                // Combine scores (treat missing as 100 so they are never the minimum)
+                const currentScore = (currentGPA === Infinity ? 100 : currentGPA) +
+                                     (currentLang === Infinity ? 100 : currentLang);
+                const minScore = (minGPA === Infinity ? 100 : minGPA) +
+                                 (minLang === Infinity ? 100 : minLang);
+
+                return currentScore < minScore ? program : min;
+            }, null);
+        };
+
+        const undergradMin = findMin(undergradPrograms);
+        const postgradMin = findMin(postgradPrograms);
+
+        // Return formatted strings for each level
+        return {
+            undergraduate: undergradMin ? {
+                academic: formatAcademic(undergradMin.entry_requirements),
+                language: formatLanguage(undergradMin.entry_requirements),
+                // Keep raw if needed, but we won't use it
+            } : null,
+            postgraduate: postgradMin ? {
+                academic: formatAcademic(postgradMin.entry_requirements),
+                language: formatLanguage(postgradMin.entry_requirements),
+            } : null,
+        };
+    };
+
+    // ----- Fetch institutions -----
+
     const fetchInstitution = async (query, location, page) => {
         try {
             setLoading(true);
@@ -63,6 +202,7 @@ export default function InstitutionList() {
                 jsonResponse.institutions.map(async (inst) => {
                     const programData = await getProgramsByInstitution(inst._id);
 
+                    // Collect unique intakes
                     const intakes = [
                         ...new Set(
                             (programData.programs || [])
@@ -78,88 +218,6 @@ export default function InstitutionList() {
                                 })
                         ),
                     ];
-
-                    // Find program with minimum entry requirements
-                    const getMinimumRequirements = (programs) => {
-                        if (!programs || programs.length === 0) return { undergraduate: null, postgraduate: null };
-
-                        // Helper to extract numeric value from language requirement
-                        const parseLanguageScore = (req) => {
-                            if (!req || !req.language) return Infinity;
-                            const match = req.language.match(/(\d+\.?\d*)/);
-                            return match ? parseFloat(match[1]) : Infinity;
-                        };
-
-                        // Helper to extract GPA score
-                        const parseGPA = (req) => {
-                            if (!req || !req.academic) return Infinity;
-                            const match = req.academic.match(/(\d+\.?\d*)/);
-                            return match ? parseFloat(match[1]) : Infinity;
-                        };
-
-                        // Helper to determine program level
-                        const getProgramLevel = (program) => {
-                            const name = program.degree_name?.toLowerCase() || '';
-                            if (name.includes('master') || name.includes('msc') || name.includes('ma ') || 
-                                name.includes('mba') || name.includes('phd') || name.includes('doctorate')) {
-                                return 'postgraduate';
-                            }
-                            if (name.includes('bachelor') || name.includes('bsc') || name.includes('ba ') || 
-                                name.includes('bba') || name.includes('diploma') || name.includes('certificate')) {
-                                return 'undergraduate';
-                            }
-                            return 'other';
-                        };
-
-                        // Separate programs by level
-                        const undergradPrograms = programs.filter(p => getProgramLevel(p) === 'undergraduate');
-                        const postgradPrograms = programs.filter(p => getProgramLevel(p) === 'postgraduate');
-
-                        // Find minimum for undergraduate
-                        const undergradMin = undergradPrograms.reduce((min, program) => {
-                            if (!program.entry_requirements) return min;
-
-                            const currentGPA = parseGPA(program.entry_requirements);
-                            const currentLang = parseLanguageScore(program.entry_requirements);
-                            
-                            if (!min) return program;
-
-                            const minGPA = parseGPA(min.entry_requirements);
-                            const minLang = parseLanguageScore(min.entry_requirements);
-
-                            const currentScore = (currentGPA === Infinity ? 100 : currentGPA) + 
-                                               (currentLang === Infinity ? 100 : currentLang);
-                            const minScore = (minGPA === Infinity ? 100 : minGPA) + 
-                                           (minLang === Infinity ? 100 : minLang);
-
-                            return currentScore < minScore ? program : min;
-                        }, null);
-
-                        // Find minimum for postgraduate
-                        const postgradMin = postgradPrograms.reduce((min, program) => {
-                            if (!program.entry_requirements) return min;
-
-                            const currentGPA = parseGPA(program.entry_requirements);
-                            const currentLang = parseLanguageScore(program.entry_requirements);
-                            
-                            if (!min) return program;
-
-                            const minGPA = parseGPA(min.entry_requirements);
-                            const minLang = parseLanguageScore(min.entry_requirements);
-
-                            const currentScore = (currentGPA === Infinity ? 100 : currentGPA) + 
-                                               (currentLang === Infinity ? 100 : currentLang);
-                            const minScore = (minGPA === Infinity ? 100 : minGPA) + 
-                                           (minLang === Infinity ? 100 : minLang);
-
-                            return currentScore < minScore ? program : min;
-                        }, null);
-
-                        return {
-                            undergraduate: undergradMin?.entry_requirements || null,
-                            postgraduate: postgradMin?.entry_requirements || null,
-                        };
-                    };
 
                     const minimumRequirements = getMinimumRequirements(programData.programs);
 
@@ -549,6 +607,4 @@ export default function InstitutionList() {
             </Box>
         </>
     )
-
 }
-
