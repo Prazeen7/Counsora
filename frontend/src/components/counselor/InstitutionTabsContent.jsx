@@ -17,11 +17,12 @@ import {
     Button,
     IconButton,
 } from "@mui/material";
-import { 
+import {
     OpenInNew as OpenInNewIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
 } from "@mui/icons-material";
+import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 
 export default function InstitutionTabsContent({
     activeTab,
@@ -132,6 +133,7 @@ export default function InstitutionTabsContent({
             );
 
         case 1:
+            const displayCampuses = getDisplayCampuses(institution, programs);
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -154,9 +156,9 @@ export default function InstitutionTabsContent({
                             }}
                         >
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                {institution?.campuses?.map((campus, index) => (
+                                {displayCampuses.map((campus, index) => (
                                     <Chip
-                                        key={index}
+                                        key={`${campus.name}-${index}`}
                                         label={campus.name}
                                         clickable
                                         color={
@@ -432,7 +434,10 @@ export default function InstitutionTabsContent({
                                                                 color="primary.main"
                                                                 fontWeight="bold"
                                                             >
-                                                                • {fee}
+                                                                • {fee?.credits || "N/A"}
+                                                                {fee?.annual_fee_eur != null
+                                                                    ? ` - ${fee.annual_fee_eur.toLocaleString()} EUR`
+                                                                    : ""}
                                                             </Typography>
                                                         ))}
                                                     </Box>
@@ -498,15 +503,74 @@ export default function InstitutionTabsContent({
                                             {program.entry_requirements ? (
                                                 <>
                                                     {program.entry_requirements.academic && (
-                                                        <Typography variant="body2" sx={{ mb: 1 }}>
-                                                            <b>Academic:</b> {program.entry_requirements.academic}
-                                                        </Typography>
+                                                        <Box sx={{ mb: 1 }}>
+                                                            <Typography variant="body2">
+                                                                <b>Academic:</b>{" "}
+                                                                {program.entry_requirements.academic.minimum_qualification || "N/A"}
+                                                            </Typography>
+
+                                                            {program.entry_requirements.academic.field_requirement && (
+                                                                <Typography variant="body2">
+                                                                    <b>Field:</b>{" "}
+                                                                    {program.entry_requirements.academic.field_requirement}
+                                                                </Typography>
+                                                            )}
+
+                                                            {program.entry_requirements.academic.score != null && (
+                                                                <Typography variant="body2">
+                                                                    <b>
+                                                                        {program.entry_requirements.academic.score_type || "Score"}:
+                                                                    </b>{" "}
+                                                                    {program.entry_requirements.academic.score}
+                                                                    {program.entry_requirements.academic.scale
+                                                                        ? ` / ${program.entry_requirements.academic.scale}`
+                                                                        : ""}
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
                                                     )}
 
-                                                    {program.entry_requirements.language && (
-                                                        <Typography variant="body2" sx={{ mb: 1 }}>
-                                                            <b>Language:</b> {program.entry_requirements.language}
-                                                        </Typography>
+                                                    {program.entry_requirements.language_requirements && (
+                                                        <Box sx={{ mb: 1 }}>
+                                                            <Typography variant="body2" fontWeight="bold">
+                                                                Language Requirements:
+                                                            </Typography>
+
+                                                            {program.entry_requirements.language_requirements.english?.ielts?.overall != null && (
+                                                                <Typography variant="body2">
+                                                                    IELTS:{" "}
+                                                                    {program.entry_requirements.language_requirements.english.ielts.overall}
+                                                                </Typography>
+                                                            )}
+
+                                                            {program.entry_requirements.language_requirements.english?.toefl?.overall != null && (
+                                                                <Typography variant="body2">
+                                                                    TOEFL:{" "}
+                                                                    {program.entry_requirements.language_requirements.english.toefl.overall}
+                                                                </Typography>
+                                                            )}
+
+                                                            {program.entry_requirements.language_requirements.english?.pte?.overall != null && (
+                                                                <Typography variant="body2">
+                                                                    PTE:{" "}
+                                                                    {program.entry_requirements.language_requirements.english.pte.overall}
+                                                                </Typography>
+                                                            )}
+
+                                                            {program.entry_requirements.language_requirements.english?.duolingo?.overall != null && (
+                                                                <Typography variant="body2">
+                                                                    Duolingo:{" "}
+                                                                    {program.entry_requirements.language_requirements.english.duolingo.overall}
+                                                                </Typography>
+                                                            )}
+
+                                                            {program.entry_requirements.language_requirements.german?.cefr && (
+                                                                <Typography variant="body2">
+                                                                    German CEFR:{" "}
+                                                                    {program.entry_requirements.language_requirements.german.cefr}
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
                                                     )}
 
                                                     {!program.entry_requirements.academic && !program.entry_requirements.language && (

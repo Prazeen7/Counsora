@@ -115,6 +115,21 @@ const scholarshipSchema = new mongoose.Schema(
     { _id: false }
 );
 
+// Tuition Fee schema
+const tuitionFeeSchema = new mongoose.Schema(
+    {
+        credits: {
+            type: String,
+            default: null,
+        },
+        annual_fee_eur: {
+            type: Number,
+            default: null,
+        },
+    },
+    { _id: false }
+);
+
 // Individual program schema
 const programSchema = new mongoose.Schema(
     {
@@ -204,7 +219,7 @@ const programSchema = new mongoose.Schema(
         },
 
         tuition_fees: {
-            type: [String],
+            type: [tuitionFeeSchema],
             default: [],
         },
 

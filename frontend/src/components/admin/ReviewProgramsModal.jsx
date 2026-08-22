@@ -37,22 +37,22 @@ const LEVEL_OPTIONS = [
 ];
 
 const FIELD_OPTIONS = [
-    'Business and Accounting',
-    'Computer Science and Information Technology',
-    'Engineering and Built Environment',
-    'Data Science and Artificial Intelligence',
-    'Science and Mathematics',
-    'Environment and Agriculture',
-    'Health and Nursing',
-    'Psychology and Social Sciences',
-    'Education and Teaching',
-    'Law and Justice',
-    'Communication and Media',
-    'Arts and Design',
-    'Hospitality and Tourism',
-    'Languages and Humanities',
-    'Research',
-    'Other'
+    "Allied Health",
+    "Management, Business and Accounting",
+    "Creative, Performing and Visual Arts",
+    "Creative Media, Communication and Arts",
+    "Education, Teaching and Childcare",
+    "Engineering, Built Environment and Aviation",
+    "English and Study Pathways",
+    "Information Systems and Technology",
+    "Law, Criminology and Justice",
+    "Nursing, Paramedicine and Health",
+    "Psychology, Social Work and Community Services",
+    "Safety Sciences",
+    "Science, Environment and Agriculture",
+    "Service Industries",
+    "Trades",
+    "Other",
 ];
 
 export default function ReviewProgramsModal({
@@ -109,8 +109,8 @@ export default function ReviewProgramsModal({
     return (
         <>
             {/* Main Review Modal */}
-            <Dialog 
-                open={open} 
+            <Dialog
+                open={open}
                 onClose={handleClose}
                 maxWidth="lg"
                 fullWidth
@@ -132,109 +132,123 @@ export default function ReviewProgramsModal({
 
                 <DialogContent dividers sx={{ maxHeight: '60vh' }}>
                     {reviewPrograms.map((program, index) => {
-                        console.log(program);
-                        return(
-                        <Card key={index} sx={{ mb: 2 }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                                    <Typography variant="h6">
-                                        {program.degree_name}
-                                    </Typography>
-                                    <Box>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleEditProgram(index)}
-                                            disabled={editingProgramIndex !== null || approving}
-                                        >
-                                            <EditIcon />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            color="error"
-                                            onClick={() => handleDeleteProgram(index)}
-                                            disabled={editingProgramIndex !== null || approving}
-                                        >
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </Box>
-                                </Box>
-
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} md={6}>
-                                        <Typography variant="body2" color="text.secondary">Level:</Typography>
-                                        <Typography variant="body1">{program.level || 'N/A'}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={12} md={6}>
-                                        <Typography variant="body2" color="text.secondary">Field:</Typography>
-                                        <Typography variant="body1">{program.field || 'N/A'}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={12} md={6}>
-                                        <Typography variant="body2" color="text.secondary">Duration:</Typography>
-                                        <Typography variant="body1">{program.duration || 'N/A'}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={12} md={6}>
-                                        <Typography variant="body2" color="text.secondary">Format:</Typography>
-                                        <Typography variant="body1">{program.format || 'N/A'}</Typography>
-                                    </Grid>
-
-                                    {program.credits && program.credits.length > 0 && (
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary">Credits:</Typography>
-                                            <Typography variant="body1">{program.credits.join(', ')}</Typography>
-                                        </Grid>
-                                    )}
-
-                                    {program.tuition_fees && program.tuition_fees.length > 0 && (
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary">Tuition:</Typography>
-                                            <Typography variant="body1">{program.tuition_fees.join(', ')}</Typography>
-                                        </Grid>
-                                    )}
-
-                                    {program.intakes && program.intakes.length > 0 && (
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>Intakes:</Typography>
-                                            <Box>
-                                                {program.intakes.map((intake, i) => (
-                                                    <Chip key={i} label={intake} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                                                ))}
-                                            </Box>
-                                        </Grid>
-                                    )}
-
-                                    {program.campuses && program.campuses.length > 0 && (
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>Campuses:</Typography>
-                                            <Box>
-                                                {program.campuses.map((campus, i) => (
-                                                    <Chip key={i} label={campus} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                                                ))}
-                                            </Box>
-                                        </Grid>
-                                    )}
-
-                                    {program.url && (
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>Program URL:</Typography>
-                                            <Button
-                                                variant="outlined"
+                        return (
+                            <Card key={index} sx={{ mb: 2 }}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                        <Typography variant="h6">
+                                            {program.degree_name}
+                                        </Typography>
+                                        <Box>
+                                            <IconButton
                                                 size="small"
-                                                href={program.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                sx={{ textTransform: 'none' }}
+                                                onClick={() => handleEditProgram(index)}
+                                                disabled={editingProgramIndex !== null || approving}
                                             >
-                                                View Program Page →
-                                            </Button>
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => handleDeleteProgram(index)}
+                                                disabled={editingProgramIndex !== null || approving}
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Box>
+                                    </Box>
+
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="body2" color="text.secondary">Level:</Typography>
+                                            <Typography variant="body1">{program.level || 'N/A'}</Typography>
                                         </Grid>
-                                    )}
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    )})}
+
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="body2" color="text.secondary">Field:</Typography>
+                                            <Typography variant="body1">{program.field || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="body2" color="text.secondary">Duration:</Typography>
+                                            <Typography variant="body1">{program.duration || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="body2" color="text.secondary">Format:</Typography>
+                                            <Typography variant="body1">{program.format || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        {program.credits && program.credits.length > 0 && (
+                                            <Grid item xs={12} md={6}>
+                                                <Typography variant="body2" color="text.secondary">Credits:</Typography>
+                                                <Typography variant="body1">{program.credits.join(', ')}</Typography>
+                                            </Grid>
+                                        )}
+
+                                        {program.tuition_fees && program.tuition_fees.length > 0 && (
+                                            <Grid item xs={12} md={6}>
+                                                <Typography variant="body2" color="text.secondary">Tuition:</Typography>
+                                                {program.tuition_fees && program.tuition_fees.length > 0 && (
+                                                    <Grid item xs={12} md={6}>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Tuition:
+                                                        </Typography>
+
+                                                        {program.tuition_fees.map((fee, i) => (
+                                                            <Typography variant="body1" key={i}>
+                                                                {fee.credits && `${fee.credits}: `}
+                                                                {fee.annual_fee_eur != null &&
+                                                                    `€${fee.annual_fee_eur.toLocaleString()} per year`}
+                                                            </Typography>
+                                                        ))}
+                                                    </Grid>
+                                                )}
+                                            </Grid>
+                                        )}
+
+                                        {program.intakes && program.intakes.length > 0 && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2" color="text.secondary" gutterBottom>Intakes:</Typography>
+                                                <Box>
+                                                    {program.intakes.map((intake, i) => (
+                                                        <Chip key={i} label={intake} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                                                    ))}
+                                                </Box>
+                                            </Grid>
+                                        )}
+
+                                        {program.campuses && program.campuses.length > 0 && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2" color="text.secondary" gutterBottom>Campuses:</Typography>
+                                                <Box>
+                                                    {program.campuses.map((campus, i) => (
+                                                        <Chip key={i} label={campus} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                                                    ))}
+                                                </Box>
+                                            </Grid>
+                                        )}
+
+                                        {program.url && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2" color="text.secondary" gutterBottom>Program URL:</Typography>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    href={program.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    sx={{ textTransform: 'none' }}
+                                                >
+                                                    View Program Page →
+                                                </Button>
+                                            </Grid>
+                                        )}
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
 
                     {reviewPrograms.length === 0 && (
                         <Alert severity="info">
@@ -271,10 +285,10 @@ export default function ReviewProgramsModal({
             </Dialog>
 
             {/* Edit Program Dialog */}
-            <Dialog 
-                open={editingProgramIndex !== null} 
-                onClose={() => !approving && setEditingProgramIndex(null)} 
-                maxWidth="md" 
+            <Dialog
+                open={editingProgramIndex !== null}
+                onClose={() => !approving && setEditingProgramIndex(null)}
+                maxWidth="md"
                 fullWidth
             >
                 <DialogTitle>Edit Program</DialogTitle>
@@ -286,7 +300,7 @@ export default function ReviewProgramsModal({
                             value={editProgramForm.degree_name || ''}
                             onChange={(e) => setEditProgramForm({ ...editProgramForm, degree_name: e.target.value })}
                         />
-                        
+
                         <FormControl fullWidth>
                             <InputLabel>Level</InputLabel>
                             <Select
@@ -339,30 +353,56 @@ export default function ReviewProgramsModal({
                             label="Credits (comma-separated)"
                             fullWidth
                             value={editProgramForm.credits?.join(', ') || ''}
-                            onChange={(e) => setEditProgramForm({ 
-                                ...editProgramForm, 
-                                credits: e.target.value.split(',').map(s => s.trim()).filter(Boolean) 
+                            onChange={(e) => setEditProgramForm({
+                                ...editProgramForm,
+                                credits: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                             })}
                         />
                         <TextField
-                            label="Tuition Fees (comma-separated)"
+                            label="Tuition Fees"
                             fullWidth
-                            value={editProgramForm.tuition_fees?.join(', ') || ''}
-                            onChange={(e) => setEditProgramForm({ 
-                                ...editProgramForm, 
-                                tuition_fees: e.target.value.split(',').map(s => s.trim()).filter(Boolean) 
-                            })}
+                            value={
+                                editProgramForm.tuition_fees
+                                    ?.map(
+                                        fee =>
+                                            `${fee.credits || ''}: ${fee.annual_fee_eur ?? ''}`
+                                    )
+                                    .join(', ') || ''
+                            }
+                            onChange={(e) => {
+                                const tuitionFees = e.target.value
+                                    .split(',')
+                                    .map(item => item.trim())
+                                    .filter(Boolean)
+                                    .map(item => {
+                                        const [credits, fee] = item.split(':');
+
+                                        const parsedFee = Number(fee?.trim());
+
+                                        return {
+                                            credits: credits?.trim() || null,
+                                            annual_fee_eur: fee?.trim() && !Number.isNaN(parsedFee)
+                                                ? parsedFee
+                                                : null,
+                                        };
+                                    });
+
+                                setEditProgramForm({
+                                    ...editProgramForm,
+                                    tuition_fees: tuitionFees,
+                                });
+                            }}
                         />
                         <TextField
                             label="Intakes (comma-separated)"
                             fullWidth
                             value={editProgramForm.intakes?.join(', ') || ''}
-                            onChange={(e) => setEditProgramForm({ 
-                                ...editProgramForm, 
-                                intakes: e.target.value.split(',').map(s => s.trim()).filter(Boolean) 
+                            onChange={(e) => setEditProgramForm({
+                                ...editProgramForm,
+                                intakes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                             })}
                         />
-                        
+
                         {/* Program URL - Read-only with clickable link */}
                         {editProgramForm.url && (
                             <Box sx={{ mt: 1 }}>

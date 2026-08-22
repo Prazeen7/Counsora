@@ -351,10 +351,44 @@ export default function ReviewPrograms() {
                             onChange={(e) => setEditForm({ ...editForm, credits: e.target.value.split(',').map(s => s.trim()) })}
                         />
                         <TextField
-                            label="Tuition Fees (comma-separated)"
+                            label="Tuition Fees (one per line)"
                             fullWidth
-                            value={editForm.tuition_fees?.join(', ') || ''}
-                            onChange={(e) => setEditForm({ ...editForm, tuition_fees: e.target.value.split(',').map(s => s.trim()) })}
+                            multiline
+                            rows={3}
+                            value={
+                                Array.isArray(editProgramForm?.tuition_fees)
+                                    ? editProgramForm.tuition_fees
+                                        .map(fee =>
+                                            `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`
+                                        )
+                                        .join('\n')
+                                    : ''
+                            }
+                            onChange={(e) => {
+                                const tuitionFees = e.target.value
+                                    .split('\n')
+                                    .map(line => line.trim())
+                                    .filter(Boolean)
+                                    .map(line => {
+                                        const [credits, fee] = line.split(':');
+
+                                        const parsedFee = Number(fee?.trim());
+
+                                        return {
+                                            credits: credits?.trim() || null,
+                                            annual_fee_eur:
+                                                fee?.trim() && !Number.isNaN(parsedFee)
+                                                    ? parsedFee
+                                                    : null
+                                        };
+                                    });
+
+                                setEditProgramForm({
+                                    ...editProgramForm,
+                                    tuition_fees: tuitionFees
+                                });
+                            }}
+                            placeholder="120 ECTS: 23520"
                         />
                         <TextField
                             label="Intakes (comma-separated)"

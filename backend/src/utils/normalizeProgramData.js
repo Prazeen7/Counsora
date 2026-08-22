@@ -2,49 +2,205 @@
  * Normalize program data from crawler to ensure consistent schema
  */
 
+// ---------- Basic helpers ----------
+
 function normalizeString(value) {
     if (value === null || value === undefined) return null;
-    if (typeof value === 'string') return value.trim() || null;
-    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === "string") return value.trim() || null;
     return String(value);
 }
 
 function normalizeStringArray(value) {
     if (!value) return [];
+
     if (Array.isArray(value)) {
-        return value.map(item => {
-            if (typeof item === 'string') return item.trim();
-            if (typeof item === 'object') return JSON.stringify(item);
-            return String(item);
-        }).filter(Boolean);
+        return value
+            .map((item) => normalizeString(item))
+            .filter(Boolean);
     }
-    if (typeof value === 'string') return [value.trim()].filter(Boolean);
-    return [];
+
+    const normalized = normalizeString(value);
+    return normalized ? [normalized] : [];
 }
 
-function normalizeEntryRequirements(value) {
-    if (!value || typeof value !== 'object') {
-        return { academic: null, language: null };
+function normalizeNumber(value) {
+    if (value === null || value === undefined || value === "") return null;
+
+    const num = Number(value);
+    return Number.isNaN(num) ? null : num;
+}
+
+// ---------- Academic requirements ----------
+
+function normalizeAcademicRequirement(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            minimum_qualification: null,
+            field_requirement: null,
+            score_type: null,
+            score: null,
+            scale: null,
+        };
     }
 
     return {
-        academic: normalizeString(value.academic),
-        language: normalizeString(value.language)
+        minimum_qualification: normalizeString(value.minimum_qualification),
+        field_requirement: normalizeString(value.field_requirement),
+        score_type: normalizeString(value.score_type),
+        score: normalizeNumber(value.score),
+        scale: normalizeNumber(value.scale),
     };
 }
 
+// ---------- Language requirements ----------
+
+function normalizeLanguageScore(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            overall: null,
+            listening: null,
+            reading: null,
+            writing: null,
+            speaking: null,
+        };
+    }
+
+    return {
+        overall: normalizeNumber(value.overall),
+        listening: normalizeNumber(value.listening),
+        reading: normalizeNumber(value.reading),
+        writing: normalizeNumber(value.writing),
+        speaking: normalizeNumber(value.speaking),
+    };
+}
+
+function normalizeEnglishLanguage(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            ielts: {},
+            toefl: {},
+            pte: {},
+            duolingo: {},
+            cambridge: null,
+            cefr: null,
+        };
+    }
+
+    return {
+        ielts: normalizeLanguageScore(value.ielts),
+        toefl: normalizeLanguageScore(value.toefl),
+        pte: normalizeLanguageScore(value.pte),
+        duolingo: normalizeLanguageScore(value.duolingo),
+        cambridge: normalizeString(value.cambridge),
+        cefr: normalizeString(value.cefr),
+    };
+}
+
+function normalizeGermanLanguage(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            cefr: null,
+            testdaf: {},
+            dsh: {},
+        };
+    }
+
+    return {
+        cefr: normalizeString(value.cefr),
+        testdaf: normalizeLanguageScore(value.testdaf),
+        dsh: normalizeLanguageScore(value.dsh),
+    };
+}
+
+function normalizeLanguageRequirements(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            english: {},
+            german: {},
+            other_languages: [],
+        };
+    }
+
+    return {
+        english: normalizeEnglishLanguage(value.english),
+        german: normalizeGermanLanguage(value.german),
+        other_languages: normalizeStringArray(value.other_languages),
+    };
+}
+
+// ---------- Entry requirements ----------
+
+function normalizeEntryRequirements(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            academic: {},
+            language_requirements: {},
+            additional_requirements: [],
+        };
+    }
+
+    return {
+        academic: normalizeAcademicRequirement(value.academic),
+        language_requirements: normalizeLanguageRequirements(value.language_requirements),
+        additional_requirements: normalizeStringArray(value.additional_requirements),
+    };
+}
+
+// ---------- Scholarship ----------
+
+function normalizeScholarship(value) {
+    if (!value || typeof value !== "object") {
+        return {
+            available: false,
+            description: null,
+            url: null,
+        };
+    }
+
+    return {
+        available: value.available === true,
+        description: normalizeString(value.description),
+        url: normalizeString(value.url),
+    };
+}
+
+// ---------- Tuition Fee ----------
+function normalizeTuitionFee(value) {
+    if (!value || typeof value !== "object") {
+        return null;
+    }
+
+    return {
+        credits: normalizeString(value.credits),
+        annual_fee_eur: normalizeNumber(value.annual_fee_eur),
+    };
+}
+
+function normalizeTuitionFees(value) {
+    if (!value) return [];
+
+    if (!Array.isArray(value)) {
+        value = [value];
+    }
+
+    return value
+        .map(normalizeTuitionFee)
+        .filter(Boolean);
+}
+
+// ---------- Program ----------
+
 function normalizeProgramData(program) {
-    // Ensure required fields exist
-    if (!program || typeof program !== 'object') {
-        throw new Error('Invalid program data: not an object');
+    if (!program || typeof program !== "object") {
+        throw new Error("Invalid program data: not an object");
     }
 
     if (!program.degree_name) {
-        throw new Error('Invalid program data: missing degree_name');
+        throw new Error("Invalid program data: missing degree_name");
     }
 
     if (!program.url) {
-        throw new Error('Invalid program data: missing url');
+        throw new Error("Invalid program data: missing url");
     }
 
     return {
@@ -53,23 +209,31 @@ function normalizeProgramData(program) {
         field: normalizeString(program.field),
         credits: normalizeStringArray(program.credits),
         format: normalizeString(program.format),
-        scholarship: normalizeString(program.scholarship),
+
+        scholarship: normalizeScholarship(program.scholarship),
+
         intakes: normalizeStringArray(program.intakes),
         campuses: normalizeStringArray(program.campuses),
         duration: normalizeString(program.duration),
         accreditation: normalizeString(program.accreditation),
+
         entry_requirements: normalizeEntryRequirements(program.entry_requirements),
-        tuition_fees: normalizeStringArray(program.tuition_fees),
+
+        tuition_fees: normalizeTuitionFees(program.tuition_fees),
         application_fees: normalizeString(program.application_fees),
         application_deadline: normalizeString(program.application_deadline),
+
         url: normalizeString(program.url),
-        isActive: program.isActive !== false // default to true
+
+        isActive: program.isActive !== false,
     };
 }
 
+// ---------- Programs array ----------
+
 function normalizeProgramsArray(programs) {
     if (!Array.isArray(programs)) {
-        throw new Error('Programs data must be an array');
+        throw new Error("Programs data must be an array");
     }
 
     const normalized = [];
@@ -79,11 +243,15 @@ function normalizeProgramsArray(programs) {
         try {
             normalized.push(normalizeProgramData(program));
         } catch (error) {
-            console.error(`Error normalizing program at index ${index}:`, error.message);
+            console.error(
+                `Error normalizing program at index ${index}:`,
+                error.message
+            );
+
             errors.push({
                 index,
                 error: error.message,
-                program: program?.degree_name || 'unknown'
+                program: program?.degree_name || "unknown",
             });
         }
     });
@@ -96,5 +264,5 @@ module.exports = {
     normalizeProgramsArray,
     normalizeString,
     normalizeStringArray,
-    normalizeEntryRequirements
+    normalizeEntryRequirements,
 };

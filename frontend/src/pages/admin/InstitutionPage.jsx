@@ -48,6 +48,7 @@ import Loading from "../../components/Loading";
 import InstitutionTabsContent from "../../components/counselor/InstitutionTabsContent";
 import { getInstitutionById } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
+import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 
 const AdminFab = styled(Fab)(({ theme }) => ({
     position: "fixed",
@@ -76,7 +77,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const [selectedField, setSelectedField] = useState("all");
     const [selectedIntake, setSelectedIntake] = useState("all");
     const [selectedTuition, setSelectedTuition] = useState("all");
-    
+
     // Edit mode states
     const [editMode, setEditMode] = useState(false);
     const [editedInstitution, setEditedInstitution] = useState(null);
@@ -104,7 +105,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             try {
                 // Only fetch if not using props mode or if institution prop changed
                 let institutionData = institutionProp;
-                
+
                 if (!institutionProp && institutionId) {
                     institutionData = await getInstitutionById(institutionId);
                     setInstitution(institutionData);
@@ -120,7 +121,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         };
 
         window.scrollTo({ top: 0, behavior: "smooth" });
-        
+
         if (institutionId) {
             fetchData();
         }
@@ -145,7 +146,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const extractField = (degreeName) => {
         if (!degreeName) return 'General';
         const lower = degreeName.toLowerCase();
-        
+
         if (lower.includes('computer') || lower.includes('computing') || lower.includes('it ')) return 'Computer Science';
         if (lower.includes('business') || lower.includes('management') || lower.includes('mba')) return 'Business';
         if (lower.includes('engineering')) return 'Engineering';
@@ -154,22 +155,23 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         if (lower.includes('health') || lower.includes('medicine') || lower.includes('nursing')) return 'Health';
         if (lower.includes('education')) return 'Education';
         if (lower.includes('law')) return 'Law';
-        
+
         return 'General';
     };
 
-    // Helper function to parse tuition fee from string array
+    // Helper function to parse tuition fee
     const parseTuitionFee = (tuitionFees) => {
-        if (!tuitionFees || !Array.isArray(tuitionFees) || tuitionFees.length === 0) return 0;
-        
-        const firstFee = tuitionFees[0];
-        if (typeof firstFee !== 'string') return 0;
-        
-        const match = firstFee.match(/[\d,]+/);
-        if (match) {
-            return parseInt(match[0].replace(/,/g, ''), 10);
+        if (!Array.isArray(tuitionFees) || tuitionFees.length === 0) {
+            return 0;
         }
-        return 0;
+
+        const firstFee = tuitionFees[0];
+
+        if (!firstFee || typeof firstFee !== 'object') {
+            return 0;
+        }
+
+        return Number(firstFee.annual_fee_eur) || 0;
     };
 
     // Transform programs to match old structure for compatibility
@@ -290,7 +292,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             };
 
             const formData = new FormData();
-            
+
             Object.keys(toSave).forEach(key => {
                 if (key === 'logo' && typeof toSave[key] === 'object') {
                     return;
@@ -320,7 +322,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
             const data = await response.json();
             console.log('Institution updated:', data);
-            
+
             setInstitution(data);
             setEditedInstitution(JSON.parse(JSON.stringify(data)));
             setPendingDeletions({
@@ -390,14 +392,14 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             location
                 ? { ...location }
                 : {
-                      name: "",
-                      city: "",
-                      country: "",
-                      address: "",
-                      contactNumber: "",
-                      email: "",
-                      mapEmbedUrl: "",
-                  }
+                    name: "",
+                    city: "",
+                    country: "",
+                    address: "",
+                    contactNumber: "",
+                    email: "",
+                    mapEmbedUrl: "",
+                }
         );
         setDialogType("location");
         setOpenDialog(true);
@@ -436,10 +438,10 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             scholarship
                 ? { ...scholarship }
                 : {
-                      name: "",
-                      amount: "",
-                      description: "",
-                  }
+                    name: "",
+                    amount: "",
+                    description: "",
+                }
         );
         setDialogType("scholarship");
         setOpenDialog(true);
@@ -471,9 +473,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         }));
         setSnackbar({
             open: true,
-            message: `Scholarship "${editingScholarship.name}" ${
-                editingScholarship._id ? "updated" : "added"
-            }. Save changes to confirm.`,
+            message: `Scholarship "${editingScholarship.name}" ${editingScholarship._id ? "updated" : "added"
+                }. Save changes to confirm.`,
             severity: "success",
         });
         setOpenDialog(false);
@@ -485,17 +486,17 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             program
                 ? { ...program }
                 : {
-                      degree_name: "",
-                      duration: "",
-                      intakes: [],
-                      tuition_fees: [],
-                      campuses: [],
-                      url: "",
-                      entry_requirements: {
-                          academic: "",
-                          language: "",
-                      },
-                  }
+                    degree_name: "",
+                    duration: "",
+                    intakes: [],
+                    tuition_fees: [],
+                    campuses: [],
+                    url: "",
+                    entry_requirements: {
+                        academic: "",
+                        language: "",
+                    },
+                }
         );
         setDialogType("program");
         setOpenDialog(true);
@@ -539,9 +540,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
                 const updatedProgram = await response.json();
                 console.log('Updated program:', updatedProgram);
-                
+
                 // Update local state
-                setPrograms(prevPrograms => 
+                setPrograms(prevPrograms =>
                     prevPrograms.map(p => p._id === updatedProgram._id ? updatedProgram : p)
                 );
 
@@ -577,7 +578,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
                 const newProgram = await response.json();
                 console.log('Created program:', newProgram);
-                
+
                 // Add to local state
                 setPrograms(prevPrograms => [...prevPrograms, newProgram]);
 
@@ -721,19 +722,21 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         { icon: <DeleteIcon />, name: 'Delete Institution', onClick: handleDeleteInstitution },
     ];
 
+    const displayCampuses = getDisplayCampuses(institution, programs);
+
     return (
         <Box sx={{ minHeight: "100vh", backgroundColor: "background.default", pb: 10 }}>
             <Container sx={{ py: 4 }}>
                 {/* Header with Back Button */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <IconButton 
-                        onClick={onClose || (() => navigate('/admin/institutions'))} 
+                    <IconButton
+                        onClick={onClose || (() => navigate('/admin/institutions'))}
                         sx={{ mr: 1 }}
                         disabled={saving}
                     >
                         <ArrowBackIcon />
                     </IconButton>
-                    
+
                     <Box sx={{ position: "relative" }}>
                         <Avatar
                             src={editMode ? editedInstitution?.logo?.url : institution.logo?.url}
@@ -783,8 +786,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         </Typography>
 
                         <Typography variant='body2' color='text.secondary'>
-                            {institution.campuses?.length || 0} campus
-                            {institution.campuses?.length === 1 ? '' : 'es'} • {programs.length} programs
+                            {displayCampuses.length} campuses
+                            • {programs.length} programs
                         </Typography>
 
                         {institution.applicationFee > 0 && (
@@ -858,360 +861,360 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         {(tabIndex === 0 || tabIndex === 1 || tabIndex === 4 || tabIndex === 5 || tabIndex === 6 || tabIndex === 7) ? (
                             // Tabs with custom edit UI
                             <Paper sx={{ p: 3, mb: 3 }}>
-                        {tabIndex === 0 && (
-                            // Overview Tab
-                            <Box>
-                                <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
-                                    Edit Institution Overview
-                                </Typography>
-                                
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                    <TextField
-                                        label="Institution Name"
-                                        fullWidth
-                                        value={editedInstitution?.name || ''}
-                                        onChange={(e) => handleInputChange('name', e.target.value)}
-                                    />
-                                    
-                                    <TextField
-                                        label="Institution Type"
-                                        fullWidth
-                                        select
-                                        value={editedInstitution?.type || ''}
-                                        onChange={(e) => handleInputChange('type', e.target.value)}
-                                        SelectProps={{ native: true }}
-                                    >
-                                        <option value="">Select Type</option>
-                                        <option value="Public">Public</option>
-                                        <option value="Private">Private</option>
-                                        <option value="Community">Community</option>
-                                        <option value="Other">Other</option>
-                                    </TextField>
-                                    
-                                    <TextField
-                                        label="Website"
-                                        fullWidth
-                                        value={editedInstitution?.website || ''}
-                                        onChange={(e) => handleInputChange('website', e.target.value)}
-                                    />
-                                    
-                                    <TextField
-                                        label="Email"
-                                        fullWidth
-                                        value={editedInstitution?.email || ''}
-                                        onChange={(e) => handleInputChange('email', e.target.value)}
-                                    />
-                                    
-                                    <TextField
-                                        label="Contact Number"
-                                        fullWidth
-                                        value={editedInstitution?.contactNumber || ''}
-                                        onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                                    />
-                                    
-                                    <TextField
-                                        label="Application Fee (Amount)"
-                                        fullWidth
-                                        type="number"
-                                        value={editedInstitution?.applicationFee || ''}
-                                        onChange={(e) => handleInputChange('applicationFee', Number(e.target.value))}
-                                    />
-                                    
-                                    <TextField
-                                        label="Description"
-                                        fullWidth
-                                        multiline
-                                        rows={6}
-                                        value={editedInstitution?.description || ''}
-                                        onChange={(e) => handleInputChange('description', e.target.value)}
-                                    />
+                                {tabIndex === 0 && (
+                                    // Overview Tab
+                                    <Box>
+                                        <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
+                                            Edit Institution Overview
+                                        </Typography>
 
-                                    <Divider sx={{ my: 2 }} />
-                                    
-                                    <Typography variant="subtitle1" fontWeight="bold">
-                                        Awards & Recognition
-                                    </Typography>
-                                    
-                                    <Button
-                                        variant="outlined"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => {
-                                            const newAward = {
-                                                _id: `temp_${Date.now()}`,
-                                                title: "",
-                                                issuer: "",
-                                                year: "",
-                                                description: "",
-                                            };
-                                            setEditedInstitution(prev => ({
-                                                ...prev,
-                                                awards: [...(prev.awards || []), newAward]
-                                            }));
-                                        }}
-                                    >
-                                        Add Award
-                                    </Button>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                            <TextField
+                                                label="Institution Name"
+                                                fullWidth
+                                                value={editedInstitution?.name || ''}
+                                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                            />
 
-                                    {editedInstitution?.awards?.map((award, index) => (
-                                        <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
-                                            <IconButton
-                                                size="small"
-                                                sx={{ position: 'absolute', top: 5, right: 5 }}
+                                            <TextField
+                                                label="Institution Type"
+                                                fullWidth
+                                                select
+                                                value={editedInstitution?.type || ''}
+                                                onChange={(e) => handleInputChange('type', e.target.value)}
+                                                SelectProps={{ native: true }}
+                                            >
+                                                <option value="">Select Type</option>
+                                                <option value="Public">Public</option>
+                                                <option value="Private">Private</option>
+                                                <option value="Community">Community</option>
+                                                <option value="Other">Other</option>
+                                            </TextField>
+
+                                            <TextField
+                                                label="Website"
+                                                fullWidth
+                                                value={editedInstitution?.website || ''}
+                                                onChange={(e) => handleInputChange('website', e.target.value)}
+                                            />
+
+                                            <TextField
+                                                label="Email"
+                                                fullWidth
+                                                value={editedInstitution?.email || ''}
+                                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                            />
+
+                                            <TextField
+                                                label="Contact Number"
+                                                fullWidth
+                                                value={editedInstitution?.contactNumber || ''}
+                                                onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                                            />
+
+                                            <TextField
+                                                label="Application Fee (Amount)"
+                                                fullWidth
+                                                type="number"
+                                                value={editedInstitution?.applicationFee || ''}
+                                                onChange={(e) => handleInputChange('applicationFee', Number(e.target.value))}
+                                            />
+
+                                            <TextField
+                                                label="Description"
+                                                fullWidth
+                                                multiline
+                                                rows={6}
+                                                value={editedInstitution?.description || ''}
+                                                onChange={(e) => handleInputChange('description', e.target.value)}
+                                            />
+
+                                            <Divider sx={{ my: 2 }} />
+
+                                            <Typography variant="subtitle1" fontWeight="bold">
+                                                Awards & Recognition
+                                            </Typography>
+
+                                            <Button
+                                                variant="outlined"
+                                                startIcon={<AddIcon />}
                                                 onClick={() => {
+                                                    const newAward = {
+                                                        _id: `temp_${Date.now()}`,
+                                                        title: "",
+                                                        issuer: "",
+                                                        year: "",
+                                                        description: "",
+                                                    };
                                                     setEditedInstitution(prev => ({
                                                         ...prev,
-                                                        awards: prev.awards.filter((_, i) => i !== index)
+                                                        awards: [...(prev.awards || []), newAward]
                                                     }));
                                                 }}
                                             >
-                                                <DeleteIcon fontSize="small" color="error" />
-                                            </IconButton>
-                                            
-                                            <Grid container spacing={2}>
-                                                <Grid item xs={12}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Award Title"
-                                                        value={award.title || ''}
-                                                        onChange={(e) => {
-                                                            const newAwards = [...editedInstitution.awards];
-                                                            newAwards[index].title = e.target.value;
-                                                            setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
+                                                Add Award
+                                            </Button>
+
+                                            {editedInstitution?.awards?.map((award, index) => (
+                                                <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{ position: 'absolute', top: 5, right: 5 }}
+                                                        onClick={() => {
+                                                            setEditedInstitution(prev => ({
+                                                                ...prev,
+                                                                awards: prev.awards.filter((_, i) => i !== index)
+                                                            }));
                                                         }}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} sm={6}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Issuer"
-                                                        value={award.issuer || ''}
-                                                        onChange={(e) => {
-                                                            const newAwards = [...editedInstitution.awards];
-                                                            newAwards[index].issuer = e.target.value;
-                                                            setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
-                                                        }}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} sm={6}>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Year"
-                                                        value={award.year || ''}
-                                                        onChange={(e) => {
-                                                            const newAwards = [...editedInstitution.awards];
-                                                            newAwards[index].year = e.target.value;
-                                                            setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
-                                                        }}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12}>
-                                                    <TextField
-                                                        fullWidth
-                                                        multiline
-                                                        rows={2}
-                                                        label="Description"
-                                                        value={award.description || ''}
-                                                        onChange={(e) => {
-                                                            const newAwards = [...editedInstitution.awards];
-                                                            newAwards[index].description = e.target.value;
-                                                            setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
-                                                        }}
-                                                    />
-                                                </Grid>
-                                            </Grid>
+                                                    >
+                                                        <DeleteIcon fontSize="small" color="error" />
+                                                    </IconButton>
+
+                                                    <Grid container spacing={2}>
+                                                        <Grid item xs={12}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Award Title"
+                                                                value={award.title || ''}
+                                                                onChange={(e) => {
+                                                                    const newAwards = [...editedInstitution.awards];
+                                                                    newAwards[index].title = e.target.value;
+                                                                    setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
+                                                                }}
+                                                            />
+                                                        </Grid>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Issuer"
+                                                                value={award.issuer || ''}
+                                                                onChange={(e) => {
+                                                                    const newAwards = [...editedInstitution.awards];
+                                                                    newAwards[index].issuer = e.target.value;
+                                                                    setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
+                                                                }}
+                                                            />
+                                                        </Grid>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Year"
+                                                                value={award.year || ''}
+                                                                onChange={(e) => {
+                                                                    const newAwards = [...editedInstitution.awards];
+                                                                    newAwards[index].year = e.target.value;
+                                                                    setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
+                                                                }}
+                                                            />
+                                                        </Grid>
+                                                        <Grid item xs={12}>
+                                                            <TextField
+                                                                fullWidth
+                                                                multiline
+                                                                rows={2}
+                                                                label="Description"
+                                                                value={award.description || ''}
+                                                                onChange={(e) => {
+                                                                    const newAwards = [...editedInstitution.awards];
+                                                                    newAwards[index].description = e.target.value;
+                                                                    setEditedInstitution(prev => ({ ...prev, awards: newAwards }));
+                                                                }}
+                                                            />
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
+                                            ))}
                                         </Box>
-                                    ))}
-                                </Box>
-                            </Box>
-                        )}
+                                    </Box>
+                                )}
 
-                        {tabIndex === 1 && (
-                            // Locations Tab
-                            <Box>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
-                                        Campuses
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => openLocationDialog()}
-                                        sx={{ backgroundColor: "#4f46e5" }}
-                                    >
-                                        Add Campus
-                                    </Button>
-                                </Box>
-                                <Grid container spacing={3}>
-                                    {editedInstitution?.campuses?.map((location, index) => (
-                                        <Grid item xs={12} sm={6} md={4} key={index}>
-                                            <Card
-                                                sx={{
-                                                    borderRadius: 2,
-                                                    boxShadow: 3,
-                                                    position: "relative",
-                                                    opacity: location.markedForDeletion ? 0.6 : 1,
-                                                    border: location.markedForDeletion ? "2px dashed red" : "none",
-                                                }}
+                                {tabIndex === 1 && (
+                                    // Locations Tab
+                                    <Box>
+                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
+                                                Campuses
+                                            </Typography>
+                                            <Button
+                                                variant="contained"
+                                                startIcon={<AddIcon />}
+                                                onClick={() => openLocationDialog()}
+                                                sx={{ backgroundColor: "#4f46e5" }}
                                             >
-                                                {location.markedForDeletion && (
-                                                    <Box
+                                                Add Campus
+                                            </Button>
+                                        </Box>
+                                        <Grid container spacing={3}>
+                                            {editedInstitution?.campuses?.map((location, index) => (
+                                                <Grid item xs={12} sm={6} md={4} key={index}>
+                                                    <Card
                                                         sx={{
-                                                            position: "absolute",
-                                                            top: 0,
-                                                            left: 0,
-                                                            right: 0,
-                                                            bottom: 0,
-                                                            backgroundColor: "rgba(255,0,0,0.1)",
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            zIndex: 1,
+                                                            borderRadius: 2,
+                                                            boxShadow: 3,
+                                                            position: "relative",
+                                                            opacity: location.markedForDeletion ? 0.6 : 1,
+                                                            border: location.markedForDeletion ? "2px dashed red" : "none",
                                                         }}
                                                     >
-                                                        <Typography variant="body2" color="error">
-                                                            Marked for deletion
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                                {!location.markedForDeletion && (
-                                                    <Box sx={{ position: "absolute", top: 5, right: 5, display: "flex", gap: 1 }}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => openLocationDialog(location)}
-                                                            sx={{ backgroundColor: "rgba(79, 70, 229, 0.1)" }}
-                                                        >
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => deleteItem("locations", location._id)}
-                                                            sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
-                                                        >
-                                                            <DeleteIcon fontSize="small" color="error" />
-                                                        </IconButton>
-                                                    </Box>
-                                                )}
-                                                <CardContent sx={{ p: 2 }}>
-                                                    <Typography variant="body1" sx={{ fontWeight: "medium", textAlign: "center" }}>
-                                                        {location.name}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
-                                                        {location.city}, {location.country}
-                                                    </Typography>
-                                                    {location.address && (
-                                                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
-                                                            {location.address}
-                                                        </Typography>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
+                                                        {location.markedForDeletion && (
+                                                            <Box
+                                                                sx={{
+                                                                    position: "absolute",
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    right: 0,
+                                                                    bottom: 0,
+                                                                    backgroundColor: "rgba(255,0,0,0.1)",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    zIndex: 1,
+                                                                }}
+                                                            >
+                                                                <Typography variant="body2" color="error">
+                                                                    Marked for deletion
+                                                                </Typography>
+                                                            </Box>
+                                                        )}
+                                                        {!location.markedForDeletion && (
+                                                            <Box sx={{ position: "absolute", top: 5, right: 5, display: "flex", gap: 1 }}>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => openLocationDialog(location)}
+                                                                    sx={{ backgroundColor: "rgba(79, 70, 229, 0.1)" }}
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => deleteItem("locations", location._id)}
+                                                                    sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
+                                                                >
+                                                                    <DeleteIcon fontSize="small" color="error" />
+                                                                </IconButton>
+                                                            </Box>
+                                                        )}
+                                                        <CardContent sx={{ p: 2 }}>
+                                                            <Typography variant="body1" sx={{ fontWeight: "medium", textAlign: "center" }}>
+                                                                {location.name}
+                                                            </Typography>
+                                                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+                                                                {location.city}, {location.country}
+                                                            </Typography>
+                                                            {location.address && (
+                                                                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
+                                                                    {location.address}
+                                                                </Typography>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                </Grid>
+                                            ))}
                                         </Grid>
-                                    ))}
-                                </Grid>
-                            </Box>
-                        )}
+                                    </Box>
+                                )}
 
-                        {tabIndex === 4 && (
-                            // Scholarships Tab
-                            <Box>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
-                                        Scholarships
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => openScholarshipDialog()}
-                                        sx={{ backgroundColor: "#4f46e5" }}
-                                    >
-                                        Add Scholarship
-                                    </Button>
-                                </Box>
-                                <Grid container spacing={3}>
-                                    {editedInstitution?.scholarships?.map((scholarship, index) => (
-                                        <Grid item xs={12} sm={6} md={4} key={index}>
-                                            <Card
-                                                sx={{
-                                                    minHeight: 100,
-                                                    minWidth: 200,
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    justifyContent: "space-between",
-                                                    borderRadius: 2,
-                                                    boxShadow: 3,
-                                                    position: "relative",
-                                                    opacity: scholarship.markedForDeletion ? 0.6 : 1,
-                                                    border: scholarship.markedForDeletion ? "2px dashed red" : "none",
-                                                }}
+                                {tabIndex === 4 && (
+                                    // Scholarships Tab
+                                    <Box>
+                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
+                                                Scholarships
+                                            </Typography>
+                                            <Button
+                                                variant="contained"
+                                                startIcon={<AddIcon />}
+                                                onClick={() => openScholarshipDialog()}
+                                                sx={{ backgroundColor: "#4f46e5" }}
                                             >
-                                                {scholarship.markedForDeletion && (
-                                                    <Box
+                                                Add Scholarship
+                                            </Button>
+                                        </Box>
+                                        <Grid container spacing={3}>
+                                            {editedInstitution?.scholarships?.map((scholarship, index) => (
+                                                <Grid item xs={12} sm={6} md={4} key={index}>
+                                                    <Card
                                                         sx={{
-                                                            position: "absolute",
-                                                            top: 0,
-                                                            left: 0,
-                                                            right: 0,
-                                                            bottom: 0,
-                                                            backgroundColor: "rgba(255,0,0,0.1)",
+                                                            minHeight: 100,
+                                                            minWidth: 200,
                                                             display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            zIndex: 1,
+                                                            flexDirection: "column",
+                                                            justifyContent: "space-between",
+                                                            borderRadius: 2,
+                                                            boxShadow: 3,
+                                                            position: "relative",
+                                                            opacity: scholarship.markedForDeletion ? 0.6 : 1,
+                                                            border: scholarship.markedForDeletion ? "2px dashed red" : "none",
                                                         }}
                                                     >
-                                                        <Typography variant="body2" color="error">
-                                                            Marked for deletion
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                                {!scholarship.markedForDeletion && (
-                                                    <Box sx={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 1, zIndex: 2 }}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => openScholarshipDialog(scholarship)}
-                                                            sx={{ backgroundColor: "rgba(79, 70, 229, 0.1)" }}
-                                                        >
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => deleteItem("scholarships", scholarship._id)}
-                                                            sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
-                                                        >
-                                                            <DeleteIcon fontSize="small" color="error" />
-                                                        </IconButton>
-                                                    </Box>
-                                                )}
-                                                <CardContent sx={{ p: 2, flexGrow: 1, pt: 4 }}>
-                                                    <Typography
-                                                        variant="body1"
-                                                        sx={{
-                                                            fontWeight: "medium",
-                                                            textAlign: "center",
-                                                            wordBreak: "break-word",
-                                                        }}
-                                                    >
-                                                        {scholarship.name}
-                                                    </Typography>
-                                                    {scholarship.amount && (
-                                                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
-                                                            Amount: {scholarship.amount}
-                                                        </Typography>
-                                                    )}
-                                                    {scholarship.description && (
-                                                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
-                                                            {scholarship.description}
-                                                        </Typography>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
+                                                        {scholarship.markedForDeletion && (
+                                                            <Box
+                                                                sx={{
+                                                                    position: "absolute",
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    right: 0,
+                                                                    bottom: 0,
+                                                                    backgroundColor: "rgba(255,0,0,0.1)",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    zIndex: 1,
+                                                                }}
+                                                            >
+                                                                <Typography variant="body2" color="error">
+                                                                    Marked for deletion
+                                                                </Typography>
+                                                            </Box>
+                                                        )}
+                                                        {!scholarship.markedForDeletion && (
+                                                            <Box sx={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 1, zIndex: 2 }}>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => openScholarshipDialog(scholarship)}
+                                                                    sx={{ backgroundColor: "rgba(79, 70, 229, 0.1)" }}
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => deleteItem("scholarships", scholarship._id)}
+                                                                    sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
+                                                                >
+                                                                    <DeleteIcon fontSize="small" color="error" />
+                                                                </IconButton>
+                                                            </Box>
+                                                        )}
+                                                        <CardContent sx={{ p: 2, flexGrow: 1, pt: 4 }}>
+                                                            <Typography
+                                                                variant="body1"
+                                                                sx={{
+                                                                    fontWeight: "medium",
+                                                                    textAlign: "center",
+                                                                    wordBreak: "break-word",
+                                                                }}
+                                                            >
+                                                                {scholarship.name}
+                                                            </Typography>
+                                                            {scholarship.amount && (
+                                                                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
+                                                                    Amount: {scholarship.amount}
+                                                                </Typography>
+                                                            )}
+                                                            {scholarship.description && (
+                                                                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
+                                                                    {scholarship.description}
+                                                                </Typography>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                </Grid>
+                                            ))}
                                         </Grid>
-                                    ))}
-                                </Grid>
-                            </Box>
-                        )}
+                                    </Box>
+                                )}
 
-                        {tabIndex === 5 && (
+                                {tabIndex === 5 && (
                                     // Entry Requirements Tab
                                     <Box>
                                         <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
@@ -1225,7 +1228,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                                                         Undergraduate Requirements
                                                     </Typography>
-                                                    
+
                                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                                                         <TextField
                                                             label="GPA Type"
@@ -1247,7 +1250,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="GPA Score"
                                                             fullWidth
@@ -1268,7 +1271,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="Language Test Type"
                                                             fullWidth
@@ -1289,7 +1292,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="Overall Score"
                                                             fullWidth
@@ -1320,7 +1323,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                                                         Postgraduate Requirements
                                                     </Typography>
-                                                    
+
                                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                                                         <TextField
                                                             label="GPA Type"
@@ -1342,7 +1345,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="GPA Score"
                                                             fullWidth
@@ -1363,7 +1366,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="Language Test Type"
                                                             fullWidth
@@ -1384,7 +1387,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                                 }));
                                                             }}
                                                         />
-                                                        
+
                                                         <TextField
                                                             label="Overall Score"
                                                             fullWidth
@@ -1899,85 +1902,113 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 Fill in the program details below. All fields with multiple values should be comma-separated or one per line as indicated.
                             </Typography>
                             <Grid container spacing={2} sx={{ mt: 1 }}>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Program Name / Degree Name"
-                                    value={editingProgram?.degree_name || ""}
-                                    onChange={(e) => handleProgramChange("degree_name", e.target.value)}
-                                />
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Program Name / Degree Name"
+                                        value={editingProgram?.degree_name || ""}
+                                        onChange={(e) => handleProgramChange("degree_name", e.target.value)}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Duration"
+                                        value={editingProgram?.duration || ""}
+                                        onChange={(e) => handleProgramChange("duration", e.target.value)}
+                                        placeholder="e.g., 2 years, 18 months"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Program URL"
+                                        value={editingProgram?.url || ""}
+                                        onChange={(e) => handleProgramChange("url", e.target.value)}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Intakes (comma-separated)"
+                                        value={Array.isArray(editingProgram?.intakes) ? editingProgram.intakes.join(', ') : ''}
+                                        onChange={(e) => handleProgramChange("intakes", e.target.value.split(',').map(i => i.trim()).filter(Boolean))}
+                                        placeholder="e.g., January, September"
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={3}
+                                        label="Tuition Fees (one per line)"
+                                        value={
+                                            Array.isArray(editingProgram?.tuition_fees)
+                                                ? editingProgram.tuition_fees
+                                                    .map(fee =>
+                                                        `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`
+                                                    )
+                                                    .join('\n')
+                                                : ''
+                                        }
+                                        onChange={(e) => {
+                                            const tuitionFees = e.target.value
+                                                .split('\n')
+                                                .map(line => line.trim())
+                                                .filter(Boolean)
+                                                .map(line => {
+                                                    const [credits, fee] = line.split(':');
+
+                                                    const parsedFee = Number(fee?.trim());
+
+                                                    return {
+                                                        credits: credits?.trim() || null,
+                                                        annual_fee_eur:
+                                                            fee?.trim() && !Number.isNaN(parsedFee)
+                                                                ? parsedFee
+                                                                : null
+                                                    };
+                                                });
+
+                                            handleProgramChange("tuition_fees", tuitionFees);
+                                        }}
+                                        placeholder="e.g. 120 ECTS: 23520"
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Campuses (comma-separated)"
+                                        value={Array.isArray(editingProgram?.campuses) ? editingProgram.campuses.join(', ') : ''}
+                                        onChange={(e) => handleProgramChange("campuses", e.target.value.split(',').map(c => c.trim()).filter(Boolean))}
+                                        placeholder="e.g., Main Campus, Downtown Campus"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Academic Requirements"
+                                        value={editingProgram?.entry_requirements?.academic || ""}
+                                        onChange={(e) => handleProgramChange("entry_requirements", {
+                                            ...editingProgram?.entry_requirements,
+                                            academic: e.target.value
+                                        })}
+                                        placeholder="e.g., Bachelor's degree"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Language Requirements"
+                                        value={editingProgram?.entry_requirements?.language || ""}
+                                        onChange={(e) => handleProgramChange("entry_requirements", {
+                                            ...editingProgram?.entry_requirements,
+                                            language: e.target.value
+                                        })}
+                                        placeholder="e.g., IELTS 6.5"
+                                    />
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Duration"
-                                    value={editingProgram?.duration || ""}
-                                    onChange={(e) => handleProgramChange("duration", e.target.value)}
-                                    placeholder="e.g., 2 years, 18 months"
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Program URL"
-                                    value={editingProgram?.url || ""}
-                                    onChange={(e) => handleProgramChange("url", e.target.value)}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Intakes (comma-separated)"
-                                    value={Array.isArray(editingProgram?.intakes) ? editingProgram.intakes.join(', ') : ''}
-                                    onChange={(e) => handleProgramChange("intakes", e.target.value.split(',').map(i => i.trim()).filter(Boolean))}
-                                    placeholder="e.g., January, September"
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    label="Tuition Fees (one per line)"
-                                    value={Array.isArray(editingProgram?.tuition_fees) ? editingProgram.tuition_fees.join('\n') : ''}
-                                    onChange={(e) => handleProgramChange("tuition_fees", e.target.value.split('\n').filter(Boolean))}
-                                    placeholder="e.g., EUR 12,000 per year"
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Campuses (comma-separated)"
-                                    value={Array.isArray(editingProgram?.campuses) ? editingProgram.campuses.join(', ') : ''}
-                                    onChange={(e) => handleProgramChange("campuses", e.target.value.split(',').map(c => c.trim()).filter(Boolean))}
-                                    placeholder="e.g., Main Campus, Downtown Campus"
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Academic Requirements"
-                                    value={editingProgram?.entry_requirements?.academic || ""}
-                                    onChange={(e) => handleProgramChange("entry_requirements", {
-                                        ...editingProgram?.entry_requirements,
-                                        academic: e.target.value
-                                    })}
-                                    placeholder="e.g., Bachelor's degree"
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Language Requirements"
-                                    value={editingProgram?.entry_requirements?.language || ""}
-                                    onChange={(e) => handleProgramChange("entry_requirements", {
-                                        ...editingProgram?.entry_requirements,
-                                        language: e.target.value
-                                    })}
-                                    placeholder="e.g., IELTS 6.5"
-                                />
-                            </Grid>
-                        </Grid>
                         </Box>
                     )}
                 </DialogContent>
@@ -1999,8 +2030,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             </Dialog>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog 
-                open={confirmDeleteDialog} 
+            <Dialog
+                open={confirmDeleteDialog}
                 onClose={() => {
                     setConfirmDeleteDialog(false);
                     setProgramToDelete(null);
@@ -2016,7 +2047,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button 
+                    <Button
                         onClick={() => {
                             setConfirmDeleteDialog(false);
                             setProgramToDelete(null);
@@ -2024,9 +2055,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     >
                         Cancel
                     </Button>
-                    <Button 
-                        onClick={handleDeleteProgram} 
-                        color="error" 
+                    <Button
+                        onClick={handleDeleteProgram}
+                        color="error"
                         variant="contained"
                         disabled={programSaving}
                     >
