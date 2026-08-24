@@ -184,7 +184,7 @@ export default function Programs() {
     const [sortAnchorEl, setSortAnchorEl] = useState(null);
     const isSortMenuOpen = Boolean(sortAnchorEl);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(6);
+    const [itemsPerPage] = useState(12);
     const [institutions, setInstitutions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");

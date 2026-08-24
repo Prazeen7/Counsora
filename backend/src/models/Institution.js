@@ -42,7 +42,7 @@ const gpaSchema = new mongoose.Schema(
     {
         type: {
             type: String,
-            enum: ["GPA", "Percentage", ""],
+            enum: ["GPA", "Percentage", "Qualification", ""],
             default: "",
         },
         score: {
@@ -76,7 +76,7 @@ const languageRequirementSchema = new mongoose.Schema(
 const entryRequirementSchema = new mongoose.Schema(
     {
         gpa: gpaSchema,
-        languageRequirement: languageRequirementSchema,
+        languageRequirement: [languageRequirementSchema],
     },
     { _id: false }
 );
@@ -195,6 +195,17 @@ const institutionSchema = new mongoose.Schema(
         isActive: {
             type: Boolean,
             default: true,
+        },
+
+        crawlStatus: {
+            type: String,
+            enum: ["pending", "in_progress", "pending_review", "completed", "failed"],
+            default: "pending",
+        },
+
+        lastCrawled: {
+            type: Date,
+            default: null,
         },
     },
     {

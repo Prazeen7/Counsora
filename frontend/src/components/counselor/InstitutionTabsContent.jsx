@@ -248,6 +248,7 @@ export default function InstitutionTabsContent({
                         )}
                     </Box>
 
+                    {/* Filter fields – unchanged */}
                     <Box
                         sx={{
                             display: "grid",
@@ -267,7 +268,6 @@ export default function InstitutionTabsContent({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-
                         <TextField
                             select
                             fullWidth
@@ -282,7 +282,6 @@ export default function InstitutionTabsContent({
                                 </MenuItem>
                             ))}
                         </TextField>
-
                         <TextField
                             select
                             fullWidth
@@ -297,7 +296,6 @@ export default function InstitutionTabsContent({
                                 </MenuItem>
                             ))}
                         </TextField>
-
                         <TextField
                             select
                             fullWidth
@@ -312,7 +310,6 @@ export default function InstitutionTabsContent({
                                 </MenuItem>
                             ))}
                         </TextField>
-
                         <TextField
                             select
                             fullWidth
@@ -339,7 +336,14 @@ export default function InstitutionTabsContent({
                         }}
                     >
                         {filteredPrograms?.map((program, index) => {
-                            const isBachelor = program.level === "Bachelor";
+                            // Determine level key for institution fallback
+                            const levelKey =
+                                program.level === "Bachelor" || program.level === "Diploma"
+                                    ? "undergraduate"
+                                    : "postgraduate";
+                            const instEntry = institution?.entryRequirements?.[levelKey] || {};
+                            const instGPA = instEntry?.gpa;
+                            const instLang = instEntry?.languageRequirement || [];
 
                             return (
                                 <Card
@@ -357,7 +361,7 @@ export default function InstitutionTabsContent({
                                         },
                                     }}
                                 >
-                                    {/* Admin Actions */}
+                                    {/* Admin Actions – unchanged */}
                                     {isAdmin && isEditMode && onEditProgram && onDeleteProgram && (
                                         <Box
                                             sx={{
@@ -382,7 +386,6 @@ export default function InstitutionTabsContent({
                                             >
                                                 <EditIcon fontSize="small" />
                                             </IconButton>
-
                                             <IconButton
                                                 size="small"
                                                 onClick={() => onDeleteProgram(program)}
@@ -408,7 +411,7 @@ export default function InstitutionTabsContent({
                                             flex: 1,
                                         }}
                                     >
-                                        {/* ================= PROGRAM TITLE ================= */}
+                                        {/* Program Title – unchanged */}
                                         <Box sx={{ pr: isAdmin && isEditMode ? 8 : 0 }}>
                                             <Typography
                                                 variant="h6"
@@ -423,7 +426,6 @@ export default function InstitutionTabsContent({
                                             >
                                                 {program.degree_name || program.name}
                                             </Typography>
-
                                             {program.field && (
                                                 <Typography
                                                     variant="body2"
@@ -443,7 +445,7 @@ export default function InstitutionTabsContent({
 
                                         <Divider />
 
-                                        {/* ================= DURATION + TUITION ================= */}
+                                        {/* Duration + Tuition – unchanged */}
                                         {(program.duration || program.tuition_fees?.length > 0) && (
                                             <Box
                                                 sx={{
@@ -455,7 +457,6 @@ export default function InstitutionTabsContent({
                                                     gap: 2,
                                                 }}
                                             >
-                                                {/* Duration */}
                                                 {program.duration && (
                                                     <Box>
                                                         <Typography
@@ -466,14 +467,11 @@ export default function InstitutionTabsContent({
                                                         >
                                                             Duration
                                                         </Typography>
-
                                                         <Typography variant="body2" fontWeight="medium">
                                                             {program.duration}
                                                         </Typography>
                                                     </Box>
                                                 )}
-
-                                                {/* Tuition */}
                                                 {program.tuition_fees?.length > 0 && (
                                                     <Box>
                                                         <Typography
@@ -484,7 +482,6 @@ export default function InstitutionTabsContent({
                                                         >
                                                             Tuition Fees
                                                         </Typography>
-
                                                         <Box
                                                             sx={{
                                                                 display: "flex",
@@ -510,7 +507,7 @@ export default function InstitutionTabsContent({
                                             </Box>
                                         )}
 
-                                        {/* ================= INTAKES ================= */}
+                                        {/* Intakes – unchanged */}
                                         {program.intakes?.length > 0 && (
                                             <Box>
                                                 <Typography
@@ -521,7 +518,6 @@ export default function InstitutionTabsContent({
                                                 >
                                                     Intakes
                                                 </Typography>
-
                                                 <Box
                                                     sx={{
                                                         display: "flex",
@@ -530,53 +526,52 @@ export default function InstitutionTabsContent({
                                                     }}
                                                 >
                                                     {program.intakes.map((intake, i) => (
-                                                        <Chip
-                                                            key={i}
-                                                            label={intake}
-                                                            size="small"
-                                                            variant="outlined"
-                                                        />
+                                                        <Chip key={i} label={intake} size="small" variant="outlined" />
                                                     ))}
                                                 </Box>
                                             </Box>
                                         )}
 
-                                        {/* ================= ENTRY REQUIREMENTS ================= */}
+                                        {/* ==================== ENTRY REQUIREMENTS (with fallback) ==================== */}
                                         {(() => {
-                                            const academic = program.entry_requirements?.academic;
-                                            const language =
-                                                program.entry_requirements?.language_requirements;
+                                            // Extract program-specific requirements
+                                            const progAcademic = program.entry_requirements?.academic;
+                                            const progLang = program.entry_requirements?.language_requirements;
 
-                                            const hasAcademic =
-                                                academic?.minimum_qualification ||
-                                                academic?.field_requirement ||
-                                                academic?.score != null;
+                                            // Check if program has its own requirements
+                                            const hasProgAcademic =
+                                                progAcademic?.minimum_qualification ||
+                                                progAcademic?.field_requirement ||
+                                                progAcademic?.score != null;
+                                            const hasProgLang =
+                                                progLang?.english?.ielts?.overall != null ||
+                                                progLang?.english?.toefl?.overall != null ||
+                                                progLang?.english?.pte?.overall != null ||
+                                                progLang?.english?.duolingo?.overall != null ||
+                                                progLang?.english?.cambridge ||
+                                                progLang?.english?.cefr ||
+                                                progLang?.german?.cefr ||
+                                                progLang?.german?.testdaf?.overall != null ||
+                                                progLang?.german?.dsh?.overall != null;
 
-                                            const english = language?.english;
-                                            const german = language?.german;
+                                            // Institution fallback availability
+                                            const hasInstGPA = instGPA?.score != null;
+                                            const hasInstLang = instLang.length > 0;
 
-                                            const hasLanguage =
-                                                english?.ielts?.overall != null ||
-                                                english?.toefl?.overall != null ||
-                                                english?.pte?.overall != null ||
-                                                english?.duolingo?.overall != null ||
-                                                english?.cambridge ||
-                                                english?.cefr ||
-                                                german?.cefr ||
-                                                german?.testdaf?.overall != null ||
-                                                german?.dsh?.overall != null;
-
+                                            // Overall flags
+                                            const showAcademic = hasProgAcademic || hasInstGPA;
+                                            const showLanguage = hasProgLang || hasInstLang;
                                             const hasAdditional =
                                                 program.entry_requirements?.additional_requirements?.length > 0;
 
-                                            if (!hasAcademic && !hasLanguage && !hasAdditional) {
+                                            // If nothing to show, skip entirely
+                                            if (!showAcademic && !showLanguage && !hasAdditional) {
                                                 return null;
                                             }
 
                                             return (
                                                 <>
                                                     <Divider />
-
                                                     <Box>
                                                         <Typography
                                                             variant="caption"
@@ -588,39 +583,41 @@ export default function InstitutionTabsContent({
                                                             Entry Requirements
                                                         </Typography>
 
-                                                        {/* Academic */}
-                                                        {hasAcademic && (
+                                                        {/* Academic Requirements */}
+                                                        {showAcademic && (
                                                             <Box sx={{ mb: 0.75 }}>
-                                                                {academic.minimum_qualification && (
+                                                                {hasProgAcademic ? (
+                                                                    // Program-specific academic (full details)
+                                                                    <>
+                                                                        {progAcademic.minimum_qualification && (
+                                                                            <Typography variant="body2">
+                                                                                <b>Academic:</b> {progAcademic.minimum_qualification}
+                                                                            </Typography>
+                                                                        )}
+                                                                        {progAcademic.field_requirement && (
+                                                                            <Typography variant="body2">
+                                                                                <b>Field:</b> {progAcademic.field_requirement}
+                                                                            </Typography>
+                                                                        )}
+                                                                        {progAcademic.score != null && (
+                                                                            <Typography variant="body2">
+                                                                                <b>{progAcademic.score_type || "Score"}:</b>{" "}
+                                                                                {progAcademic.score}
+                                                                                {progAcademic.scale ? ` / ${progAcademic.scale}` : ""}
+                                                                            </Typography>
+                                                                        )}
+                                                                    </>
+                                                                ) : hasInstGPA ? (
+                                                                    // Institution fallback for academic (GPA/Percentage/Qualification)
                                                                     <Typography variant="body2">
-                                                                        <b>Academic:</b>{" "}
-                                                                        {academic.minimum_qualification}
+                                                                        <b>Minimum {instGPA.type || "GPA"}:</b> {instGPA.score}
                                                                     </Typography>
-                                                                )}
-
-                                                                {academic.field_requirement && (
-                                                                    <Typography variant="body2">
-                                                                        <b>Field:</b>{" "}
-                                                                        {academic.field_requirement}
-                                                                    </Typography>
-                                                                )}
-
-                                                                {academic.score != null && (
-                                                                    <Typography variant="body2">
-                                                                        <b>
-                                                                            {academic.score_type || "Score"}:
-                                                                        </b>{" "}
-                                                                        {academic.score}
-                                                                        {academic.scale
-                                                                            ? ` / ${academic.scale}`
-                                                                            : ""}
-                                                                    </Typography>
-                                                                )}
+                                                                ) : null}
                                                             </Box>
                                                         )}
 
                                                         {/* Language Requirements */}
-                                                        {hasLanguage && (
+                                                        {showLanguage && (
                                                             <Box sx={{ mt: 0.75 }}>
                                                                 <Typography
                                                                     variant="body2"
@@ -630,98 +627,108 @@ export default function InstitutionTabsContent({
                                                                     Language:
                                                                 </Typography>
 
-                                                                <Box
-                                                                    sx={{
-                                                                        display: "flex",
-                                                                        flexWrap: "wrap",
-                                                                        gap: 0.5,
-                                                                    }}
-                                                                >
-                                                                    {english?.ielts?.overall != null && (
-                                                                        <Chip
-                                                                            label={`IELTS ${english.ielts.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {english?.toefl?.overall != null && (
-                                                                        <Chip
-                                                                            label={`TOEFL ${english.toefl.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {english?.pte?.overall != null && (
-                                                                        <Chip
-                                                                            label={`PTE ${english.pte.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {english?.duolingo?.overall != null && (
-                                                                        <Chip
-                                                                            label={`Duolingo ${english.duolingo.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {english?.cambridge && (
-                                                                        <Chip
-                                                                            label={`Cambridge ${english.cambridge}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {english?.cefr && (
-                                                                        <Chip
-                                                                            label={`English CEFR ${english.cefr}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {german?.cefr && (
-                                                                        <Chip
-                                                                            label={`German CEFR ${german.cefr}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {german?.testdaf?.overall != null && (
-                                                                        <Chip
-                                                                            label={`TestDaF ${german.testdaf.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-
-                                                                    {german?.dsh?.overall != null && (
-                                                                        <Chip
-                                                                            label={`DSH ${german.dsh.overall}`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                        />
-                                                                    )}
-                                                                </Box>
+                                                                {hasProgLang ? (
+                                                                    // Program-specific language (existing chip logic)
+                                                                    <Box
+                                                                        sx={{
+                                                                            display: "flex",
+                                                                            flexWrap: "wrap",
+                                                                            gap: 0.5,
+                                                                        }}
+                                                                    >
+                                                                        {progLang?.english?.ielts?.overall != null && (
+                                                                            <Chip
+                                                                                label={`IELTS ${progLang.english.ielts.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.english?.toefl?.overall != null && (
+                                                                            <Chip
+                                                                                label={`TOEFL ${progLang.english.toefl.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.english?.pte?.overall != null && (
+                                                                            <Chip
+                                                                                label={`PTE ${progLang.english.pte.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.english?.duolingo?.overall != null && (
+                                                                            <Chip
+                                                                                label={`Duolingo ${progLang.english.duolingo.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.english?.cambridge && (
+                                                                            <Chip
+                                                                                label={`Cambridge ${progLang.english.cambridge}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.english?.cefr && (
+                                                                            <Chip
+                                                                                label={`English CEFR ${progLang.english.cefr}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.german?.cefr && (
+                                                                            <Chip
+                                                                                label={`German CEFR ${progLang.german.cefr}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.german?.testdaf?.overall != null && (
+                                                                            <Chip
+                                                                                label={`TestDaF ${progLang.german.testdaf.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                        {progLang?.german?.dsh?.overall != null && (
+                                                                            <Chip
+                                                                                label={`DSH ${progLang.german.dsh.overall}`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        )}
+                                                                    </Box>
+                                                                ) : hasInstLang ? (
+                                                                    // Institution fallback – display array of language tests
+                                                                    <Box
+                                                                        sx={{
+                                                                            display: "flex",
+                                                                            flexWrap: "wrap",
+                                                                            gap: 0.5,
+                                                                        }}
+                                                                    >
+                                                                        {instLang.map((test, idx) => (
+                                                                            <Chip
+                                                                                key={idx}
+                                                                                label={`${test.testType || test.testName || "Test"}${test.overall ? ` ${test.overall}` : ""
+                                                                                    }`}
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                            />
+                                                                        ))}
+                                                                    </Box>
+                                                                ) : null}
                                                             </Box>
                                                         )}
 
-                                                        {/* Additional Requirements */}
+                                                        {/* Additional Requirements – unchanged */}
                                                         {hasAdditional && (
                                                             <Box sx={{ mt: 0.75 }}>
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    fontWeight="medium"
-                                                                >
+                                                                <Typography variant="body2" fontWeight="medium">
                                                                     Additional:
                                                                 </Typography>
-
                                                                 <Box
                                                                     sx={{
                                                                         display: "flex",
@@ -740,12 +747,10 @@ export default function InstitutionTabsContent({
                                                                                 variant="outlined"
                                                                             />
                                                                         ))}
-
-                                                                    {program.entry_requirements
-                                                                        .additional_requirements.length > 3 && (
+                                                                    {program.entry_requirements.additional_requirements.length >
+                                                                        3 && (
                                                                             <Chip
-                                                                                label={`+${program.entry_requirements
-                                                                                    .additional_requirements
+                                                                                label={`+${program.entry_requirements.additional_requirements
                                                                                     .length - 3
                                                                                     } more`}
                                                                                 size="small"
@@ -761,7 +766,7 @@ export default function InstitutionTabsContent({
                                             );
                                         })()}
 
-                                        {/* ================= CAMPUSES ================= */}
+                                        {/* Campuses – unchanged */}
                                         {program.campuses?.length > 0 && (
                                             <Box>
                                                 <Typography
@@ -772,7 +777,6 @@ export default function InstitutionTabsContent({
                                                 >
                                                     Campuses
                                                 </Typography>
-
                                                 <Box
                                                     sx={{
                                                         display: "flex",
@@ -781,13 +785,8 @@ export default function InstitutionTabsContent({
                                                     }}
                                                 >
                                                     {program.campuses.slice(0, 4).map((campus, i) => (
-                                                        <Chip
-                                                            key={i}
-                                                            label={campus}
-                                                            size="small"
-                                                        />
+                                                        <Chip key={i} label={campus} size="small" />
                                                     ))}
-
                                                     {program.campuses.length > 4 && (
                                                         <Chip
                                                             label={`+${program.campuses.length - 4}`}
@@ -799,7 +798,7 @@ export default function InstitutionTabsContent({
                                             </Box>
                                         )}
 
-                                        {/* ================= BUTTON ================= */}
+                                        {/* Program URL button – unchanged */}
                                         {program.url && (
                                             <Box sx={{ mt: "auto", pt: 1 }}>
                                                 <Button
@@ -997,12 +996,10 @@ export default function InstitutionTabsContent({
                             gap: 3,
                         }}
                     >
+                        {/* Undergraduate */}
                         <Card sx={{ borderRadius: 3 }}>
                             <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">
-                                    Undergraduate
-                                </Typography>
-
+                                <Typography variant="h6" fontWeight="bold">Undergraduate</Typography>
                                 <Divider />
 
                                 <Box>
@@ -1016,24 +1013,30 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Language Requirement
+                                        Language Requirements
                                     </Typography>
-                                    <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.undergraduate?.languageRequirement?.testType || "N/A"}
-                                        {institution?.entryRequirements?.undergraduate?.languageRequirement?.overall
-                                            ? ` ${institution.entryRequirements.undergraduate.languageRequirement.overall}`
-                                            : ""}
-                                    </Typography>
+                                    {institution?.entryRequirements?.undergraduate?.languageRequirement?.length > 0 ? (
+                                        institution.entryRequirements.undergraduate.languageRequirement.map((test, idx) => (
+                                            <Typography key={idx} variant="body2" fontWeight="medium">
+                                                {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
+                                                {test.hasIndividualScores && (
+                                                    <span style={{ fontSize: '0.8rem', color: 'gray', marginLeft: 8 }}>
+                                                        (indiv: {test.listening || ''} {test.reading || ''} {test.writing || ''} {test.speaking || ''})
+                                                    </span>
+                                                )}
+                                            </Typography>
+                                        ))
+                                    ) : (
+                                        <Typography variant="body2">N/A</Typography>
+                                    )}
                                 </Box>
                             </CardContent>
                         </Card>
 
+                        {/* Postgraduate */}
                         <Card sx={{ borderRadius: 3 }}>
                             <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">
-                                    Postgraduate
-                                </Typography>
-
+                                <Typography variant="h6" fontWeight="bold">Postgraduate</Typography>
                                 <Divider />
 
                                 <Box>
@@ -1047,14 +1050,22 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Language Requirement
+                                        Language Requirements
                                     </Typography>
-                                    <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.postgraduate?.languageRequirement?.testType || "N/A"}
-                                        {institution?.entryRequirements?.postgraduate?.languageRequirement?.overall
-                                            ? ` ${institution.entryRequirements.postgraduate.languageRequirement.overall}`
-                                            : ""}
-                                    </Typography>
+                                    {institution?.entryRequirements?.postgraduate?.languageRequirement?.length > 0 ? (
+                                        institution.entryRequirements.postgraduate.languageRequirement.map((test, idx) => (
+                                            <Typography key={idx} variant="body2" fontWeight="medium">
+                                                {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
+                                                {test.hasIndividualScores && (
+                                                    <span style={{ fontSize: '0.8rem', color: 'gray', marginLeft: 8 }}>
+                                                        (indiv: {test.listening || ''} {test.reading || ''} {test.writing || ''} {test.speaking || ''})
+                                                    </span>
+                                                )}
+                                            </Typography>
+                                        ))
+                                    ) : (
+                                        <Typography variant="body2">N/A</Typography>
+                                    )}
                                 </Box>
                             </CardContent>
                         </Card>

@@ -29,6 +29,10 @@ import {
     Snackbar,
     Alert,
     Divider,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
     FormControlLabel,
     Checkbox,
 } from "@mui/material";
@@ -49,6 +53,7 @@ import InstitutionTabsContent from "../../components/counselor/InstitutionTabsCo
 import { getInstitutionById } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
+import LanguageRequirementFields from "../../components/admin/LanguageRequirementFields";
 
 const AdminFab = styled(Fab)(({ theme }) => ({
     position: "fixed",
@@ -484,18 +489,47 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const openProgramDialog = (program = null) => {
         setEditingProgram(
             program
-                ? { ...program }
+                ? { ...program }  // This already copies everything
                 : {
                     degree_name: "",
-                    duration: "",
+                    level: "",
+                    credits: [],
+                    format: "",
+                    scholarship: { available: false, description: "", url: "" },
                     intakes: [],
-                    tuition_fees: [],
                     campuses: [],
-                    url: "",
+                    duration: "",
+                    accreditation: "",
                     entry_requirements: {
-                        academic: "",
-                        language: "",
+                        academic: {
+                            minimum_qualification: "",
+                            field_requirement: "",
+                            score_type: "",
+                            score: "",
+                            scale: ""
+                        },
+                        language_requirements: {
+                            english: {
+                                ielts: { overall: "", listening: "", reading: "", writing: "", speaking: "" },
+                                toefl: { overall: "", listening: "", reading: "", writing: "", speaking: "" },
+                                pte: { overall: "", listening: "", reading: "", writing: "", speaking: "" },
+                                duolingo: { overall: "", listening: "", reading: "", writing: "", speaking: "" },
+                                cambridge: "",
+                                cefr: ""
+                            },
+                            german: {
+                                cefr: "",
+                                testdaf: { overall: "", listening: "", reading: "", writing: "", speaking: "" },
+                                dsh: { overall: "", listening: "", reading: "", writing: "", speaking: "" }
+                            },
+                            other_languages: []
+                        },
+                        additional_requirements: []
                     },
+                    tuition_fees: [],
+                    application_fees: "",
+                    application_deadline: "",
+                    url: ""
                 }
         );
         setDialogType("program");
@@ -1217,200 +1251,369 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 {tabIndex === 5 && (
                                     // Entry Requirements Tab
                                     <Box>
-                                        <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
+                                        <Typography
+                                            variant="h6"
+                                            gutterBottom
+                                            sx={{
+                                                color: "primary.main",
+                                                fontWeight: "bold",
+                                                mb: 3
+                                            }}
+                                        >
                                             Edit Entry Requirements
                                         </Typography>
 
                                         <Grid container spacing={3}>
+
                                             {/* Undergraduate Requirements */}
                                             <Grid item xs={12} md={6}>
-                                                <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                                <Paper
+                                                    sx={{
+                                                        p: 3,
+                                                        border: "1px solid #e0e0e0"
+                                                    }}
+                                                >
+                                                    <Typography
+                                                        variant="subtitle1"
+                                                        fontWeight="bold"
+                                                        gutterBottom
+                                                    >
                                                         Undergraduate Requirements
                                                     </Typography>
 
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                                                        <TextField
-                                                            label="GPA Type"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.undergraduate?.gpa?.type || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        undergraduate: {
-                                                                            ...prev.entryRequirements?.undergraduate,
-                                                                            gpa: {
-                                                                                ...prev.entryRequirements?.undergraduate?.gpa,
-                                                                                type: e.target.value
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: 2,
+                                                            mt: 2
+                                                        }}
+                                                    >
+                                                        {/* Score Type + Score */}
+                                                        <Grid container spacing={2}>
 
-                                                        <TextField
-                                                            label="GPA Score"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.undergraduate?.gpa?.score || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        undergraduate: {
-                                                                            ...prev.entryRequirements?.undergraduate,
-                                                                            gpa: {
-                                                                                ...prev.entryRequirements?.undergraduate?.gpa,
-                                                                                score: e.target.value
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                            {/* Score Type */}
+                                                            <Grid item xs={12} sm={4}>
+                                                                <FormControl fullWidth>
+                                                                    <InputLabel>Score Type</InputLabel>
 
-                                                        <TextField
-                                                            label="Language Test Type"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.undergraduate?.languageRequirement?.testType || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        undergraduate: {
-                                                                            ...prev.entryRequirements?.undergraduate,
-                                                                            languageRequirement: {
-                                                                                ...prev.entryRequirements?.undergraduate?.languageRequirement,
-                                                                                testType: e.target.value
-                                                                            }
+                                                                    <Select
+                                                                        value={
+                                                                            editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.undergraduate
+                                                                                ?.gpa
+                                                                                ?.type || ""
                                                                         }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                                        label="Score Type"
+                                                                        onChange={(e) => {
+                                                                            const type = e.target.value;
 
-                                                        <TextField
-                                                            label="Overall Score"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.undergraduate?.languageRequirement?.overall || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        undergraduate: {
-                                                                            ...prev.entryRequirements?.undergraduate,
-                                                                            languageRequirement: {
-                                                                                ...prev.entryRequirements?.undergraduate?.languageRequirement,
-                                                                                overall: e.target.value
+                                                                            const score =
+                                                                                type === "Qualification"
+                                                                                    ? "University entrance qualification"
+                                                                                    : "";
+
+                                                                            setEditedInstitution(prev => ({
+                                                                                ...prev,
+                                                                                entryRequirements: {
+                                                                                    ...prev.entryRequirements,
+                                                                                    undergraduate: {
+                                                                                        ...prev.entryRequirements?.undergraduate,
+                                                                                        gpa: {
+                                                                                            ...prev.entryRequirements?.undergraduate?.gpa,
+                                                                                            type,
+                                                                                            score
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }));
+                                                                        }}
+                                                                    >
+                                                                        <MenuItem value="GPA">
+                                                                            GPA
+                                                                        </MenuItem>
+
+                                                                        <MenuItem value="Percentage">
+                                                                            Percentage
+                                                                        </MenuItem>
+
+                                                                        <MenuItem value="Qualification">
+                                                                            Qualification
+                                                                        </MenuItem>
+                                                                    </Select>
+                                                                </FormControl>
+                                                            </Grid>
+
+                                                            {/* Score */}
+                                                            <Grid item xs={12} sm={8}>
+                                                                <TextField
+                                                                    label={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.undergraduate
+                                                                            ?.gpa
+                                                                            ?.type === "Percentage"
+                                                                            ? "Percentage"
+                                                                            : editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.undergraduate
+                                                                                ?.gpa
+                                                                                ?.type === "Qualification"
+                                                                                ? "Qualification"
+                                                                                : "GPA"
+                                                                    }
+                                                                    fullWidth
+                                                                    value={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.undergraduate
+                                                                            ?.gpa
+                                                                            ?.score || ""
+                                                                    }
+                                                                    onChange={(e) => {
+                                                                        setEditedInstitution(prev => ({
+                                                                            ...prev,
+                                                                            entryRequirements: {
+                                                                                ...prev.entryRequirements,
+                                                                                undergraduate: {
+                                                                                    ...prev.entryRequirements?.undergraduate,
+                                                                                    gpa: {
+                                                                                        ...prev.entryRequirements?.undergraduate?.gpa,
+                                                                                        score: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                    placeholder={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.undergraduate
+                                                                            ?.gpa
+                                                                            ?.type === "Percentage"
+                                                                            ? "e.g. 75%"
+                                                                            : editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.undergraduate
+                                                                                ?.gpa
+                                                                                ?.type === "Qualification"
+                                                                                ? "University entrance qualification"
+                                                                                : "e.g. 3.0/4.0"
+                                                                    }
+                                                                />
+                                                            </Grid>
+                                                        </Grid>
+
+                                                        {/* Language Requirements */}
+                                                        <Box>
+                                                            <Typography
+                                                                variant="subtitle2"
+                                                                gutterBottom
+                                                            >
+                                                                Language Requirements
+                                                            </Typography>
+
+                                                            <LanguageRequirementFields
+                                                                value={
+                                                                    editedInstitution
+                                                                        ?.entryRequirements
+                                                                        ?.undergraduate
+                                                                        ?.languageRequirement || {}
+                                                                }
+                                                                onChange={(value) => {
+                                                                    setEditedInstitution(prev => ({
+                                                                        ...prev,
+                                                                        entryRequirements: {
+                                                                            ...prev.entryRequirements,
+                                                                            undergraduate: {
+                                                                                ...prev.entryRequirements?.undergraduate,
+                                                                                languageRequirement: value
                                                                             }
                                                                         }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                                    }));
+                                                                }}
+                                                            />
+                                                        </Box>
                                                     </Box>
                                                 </Paper>
                                             </Grid>
+
 
                                             {/* Postgraduate Requirements */}
                                             <Grid item xs={12} md={6}>
-                                                <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                                                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                                <Paper
+                                                    sx={{
+                                                        p: 3,
+                                                        border: "1px solid #e0e0e0"
+                                                    }}
+                                                >
+                                                    <Typography
+                                                        variant="subtitle1"
+                                                        fontWeight="bold"
+                                                        gutterBottom
+                                                    >
                                                         Postgraduate Requirements
                                                     </Typography>
 
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                                                        <TextField
-                                                            label="GPA Type"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.postgraduate?.gpa?.type || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        postgraduate: {
-                                                                            ...prev.entryRequirements?.postgraduate,
-                                                                            gpa: {
-                                                                                ...prev.entryRequirements?.postgraduate?.gpa,
-                                                                                type: e.target.value
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: 2,
+                                                            mt: 2
+                                                        }}
+                                                    >
+                                                        {/* Score Type + Score */}
+                                                        <Grid container spacing={2}>
 
-                                                        <TextField
-                                                            label="GPA Score"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.postgraduate?.gpa?.score || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        postgraduate: {
-                                                                            ...prev.entryRequirements?.postgraduate,
-                                                                            gpa: {
-                                                                                ...prev.entryRequirements?.postgraduate?.gpa,
-                                                                                score: e.target.value
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                            {/* Score Type */}
+                                                            <Grid item xs={12} sm={4}>
+                                                                <FormControl fullWidth>
+                                                                    <InputLabel>Score Type</InputLabel>
 
-                                                        <TextField
-                                                            label="Language Test Type"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.postgraduate?.languageRequirement?.testType || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        postgraduate: {
-                                                                            ...prev.entryRequirements?.postgraduate,
-                                                                            languageRequirement: {
-                                                                                ...prev.entryRequirements?.postgraduate?.languageRequirement,
-                                                                                testType: e.target.value
-                                                                            }
+                                                                    <Select
+                                                                        value={
+                                                                            editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.postgraduate
+                                                                                ?.gpa
+                                                                                ?.type || ""
                                                                         }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                                        label="Score Type"
+                                                                        onChange={(e) => {
+                                                                            const type = e.target.value;
 
-                                                        <TextField
-                                                            label="Overall Score"
-                                                            fullWidth
-                                                            value={editedInstitution?.entryRequirements?.postgraduate?.languageRequirement?.overall || ''}
-                                                            onChange={(e) => {
-                                                                setEditedInstitution(prev => ({
-                                                                    ...prev,
-                                                                    entryRequirements: {
-                                                                        ...prev.entryRequirements,
-                                                                        postgraduate: {
-                                                                            ...prev.entryRequirements?.postgraduate,
-                                                                            languageRequirement: {
-                                                                                ...prev.entryRequirements?.postgraduate?.languageRequirement,
-                                                                                overall: e.target.value
+                                                                            const score =
+                                                                                type === "Qualification"
+                                                                                    ? "Bachelor's degree"
+                                                                                    : "";
+
+                                                                            setEditedInstitution(prev => ({
+                                                                                ...prev,
+                                                                                entryRequirements: {
+                                                                                    ...prev.entryRequirements,
+                                                                                    postgraduate: {
+                                                                                        ...prev.entryRequirements?.postgraduate,
+                                                                                        gpa: {
+                                                                                            ...prev.entryRequirements?.postgraduate?.gpa,
+                                                                                            type,
+                                                                                            score
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }));
+                                                                        }}
+                                                                    >
+                                                                        <MenuItem value="GPA">
+                                                                            GPA
+                                                                        </MenuItem>
+
+                                                                        <MenuItem value="Percentage">
+                                                                            Percentage
+                                                                        </MenuItem>
+
+                                                                        <MenuItem value="Qualification">
+                                                                            Qualification
+                                                                        </MenuItem>
+                                                                    </Select>
+                                                                </FormControl>
+                                                            </Grid>
+
+                                                            {/* Score */}
+                                                            <Grid item xs={12} sm={8}>
+                                                                <TextField
+                                                                    label={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.postgraduate
+                                                                            ?.gpa
+                                                                            ?.type === "Percentage"
+                                                                            ? "Percentage"
+                                                                            : editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.postgraduate
+                                                                                ?.gpa
+                                                                                ?.type === "Qualification"
+                                                                                ? "Qualification"
+                                                                                : "GPA"
+                                                                    }
+                                                                    fullWidth
+                                                                    value={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.postgraduate
+                                                                            ?.gpa
+                                                                            ?.score || ""
+                                                                    }
+                                                                    onChange={(e) => {
+                                                                        setEditedInstitution(prev => ({
+                                                                            ...prev,
+                                                                            entryRequirements: {
+                                                                                ...prev.entryRequirements,
+                                                                                postgraduate: {
+                                                                                    ...prev.entryRequirements?.postgraduate,
+                                                                                    gpa: {
+                                                                                        ...prev.entryRequirements?.postgraduate?.gpa,
+                                                                                        score: e.target.value
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                    placeholder={
+                                                                        editedInstitution
+                                                                            ?.entryRequirements
+                                                                            ?.postgraduate
+                                                                            ?.gpa
+                                                                            ?.type === "Percentage"
+                                                                            ? "e.g. 75%"
+                                                                            : editedInstitution
+                                                                                ?.entryRequirements
+                                                                                ?.postgraduate
+                                                                                ?.gpa
+                                                                                ?.type === "Qualification"
+                                                                                ? "Bachelor's degree"
+                                                                                : "e.g. 3.0/4.0"
+                                                                    }
+                                                                />
+                                                            </Grid>
+                                                        </Grid>
+
+                                                        {/* Language Requirements */}
+                                                        <Box>
+                                                            <Typography
+                                                                variant="subtitle2"
+                                                                gutterBottom
+                                                            >
+                                                                Language Requirements
+                                                            </Typography>
+
+                                                            <LanguageRequirementFields
+                                                                value={
+                                                                    editedInstitution
+                                                                        ?.entryRequirements
+                                                                        ?.postgraduate
+                                                                        ?.languageRequirement || {}
+                                                                }
+                                                                onChange={(value) => {
+                                                                    setEditedInstitution(prev => ({
+                                                                        ...prev,
+                                                                        entryRequirements: {
+                                                                            ...prev.entryRequirements,
+                                                                            postgraduate: {
+                                                                                ...prev.entryRequirements?.postgraduate,
+                                                                                languageRequirement: value
                                                                             }
                                                                         }
-                                                                    }
-                                                                }));
-                                                            }}
-                                                        />
+                                                                    }));
+                                                                }}
+                                                            />
+                                                        </Box>
                                                     </Box>
                                                 </Paper>
                                             </Grid>
+
                                         </Grid>
                                     </Box>
                                 )}
@@ -1899,9 +2102,10 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     {dialogType === "program" && (
                         <Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Fill in the program details below. All fields with multiple values should be comma-separated or one per line as indicated.
+                                Fill in all program details. For arrays, use comma‑separated values or one per line as indicated.
                             </Typography>
                             <Grid container spacing={2} sx={{ mt: 1 }}>
+                                {/* Basic Info */}
                                 <Grid item xs={12}>
                                     <TextField
                                         fullWidth
@@ -1913,13 +2117,105 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
-                                        label="Duration"
-                                        value={editingProgram?.duration || ""}
-                                        onChange={(e) => handleProgramChange("duration", e.target.value)}
-                                        placeholder="e.g., 2 years, 18 months"
+                                        label="Level (e.g., Master, Bachelor)"
+                                        value={editingProgram?.level || ""}
+                                        onChange={(e) => handleProgramChange("level", e.target.value)}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Duration (years)"
+                                        value={editingProgram?.duration || ""}
+                                        onChange={(e) => handleProgramChange("duration", e.target.value)}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Credits (comma-separated)"
+                                        value={Array.isArray(editingProgram?.credits) ? editingProgram.credits.join(", ") : ""}
+                                        onChange={(e) => handleProgramChange("credits", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                                        placeholder="e.g., 120 ECTS, 60 ECTS"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Format (e.g., Full-time, Part-time)"
+                                        value={editingProgram?.format || ""}
+                                        onChange={(e) => handleProgramChange("format", e.target.value)}
+                                    />
+                                </Grid>
+
+                                {/* Scholarship */}
+                                <Grid item xs={12}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={editingProgram?.scholarship?.available || false}
+                                                onChange={(e) =>
+                                                    handleProgramChange("scholarship", {
+                                                        ...editingProgram?.scholarship,
+                                                        available: e.target.checked
+                                                    })
+                                                }
+                                            />
+                                        }
+                                        label="Scholarship Available"
+                                    />
+                                    {editingProgram?.scholarship?.available && (
+                                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Scholarship Description"
+                                                    value={editingProgram?.scholarship?.description || ""}
+                                                    onChange={(e) =>
+                                                        handleProgramChange("scholarship", {
+                                                            ...editingProgram?.scholarship,
+                                                            description: e.target.value
+                                                        })
+                                                    }
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Scholarship URL"
+                                                    value={editingProgram?.scholarship?.url || ""}
+                                                    onChange={(e) =>
+                                                        handleProgramChange("scholarship", {
+                                                            ...editingProgram?.scholarship,
+                                                            url: e.target.value
+                                                        })
+                                                    }
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    )}
+                                </Grid>
+
+                                {/* Intakes, Campuses, URL */}
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Intakes (comma-separated)"
+                                        value={Array.isArray(editingProgram?.intakes) ? editingProgram.intakes.join(", ") : ""}
+                                        onChange={(e) => handleProgramChange("intakes", e.target.value.split(",").map(i => i.trim()).filter(Boolean))}
+                                        placeholder="e.g., October, January"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Campuses (comma-separated)"
+                                        value={Array.isArray(editingProgram?.campuses) ? editingProgram.campuses.join(", ") : ""}
+                                        onChange={(e) => handleProgramChange("campuses", e.target.value.split(",").map(c => c.trim()).filter(Boolean))}
+                                        placeholder="e.g., Bad Homburg, Berlin"
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
                                     <TextField
                                         fullWidth
                                         label="Program URL"
@@ -1927,27 +2223,18 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                         onChange={(e) => handleProgramChange("url", e.target.value)}
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Intakes (comma-separated)"
-                                        value={Array.isArray(editingProgram?.intakes) ? editingProgram.intakes.join(', ') : ''}
-                                        onChange={(e) => handleProgramChange("intakes", e.target.value.split(',').map(i => i.trim()).filter(Boolean))}
-                                        placeholder="e.g., January, September"
-                                    />
-                                </Grid>
+
+                                {/* Tuition Fees (same as before) */}
                                 <Grid item xs={12}>
                                     <TextField
                                         fullWidth
                                         multiline
                                         rows={3}
-                                        label="Tuition Fees (one per line)"
+                                        label="Tuition Fees (one per line: credits: amount)"
                                         value={
                                             Array.isArray(editingProgram?.tuition_fees)
                                                 ? editingProgram.tuition_fees
-                                                    .map(fee =>
-                                                        `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`
-                                                    )
+                                                    .map(fee => `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`)
                                                     .join('\n')
                                                 : ''
                                         }
@@ -1958,54 +2245,262 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                                 .filter(Boolean)
                                                 .map(line => {
                                                     const [credits, fee] = line.split(':');
-
                                                     const parsedFee = Number(fee?.trim());
-
                                                     return {
                                                         credits: credits?.trim() || null,
-                                                        annual_fee_eur:
-                                                            fee?.trim() && !Number.isNaN(parsedFee)
-                                                                ? parsedFee
-                                                                : null
+                                                        annual_fee_eur: fee?.trim() && !Number.isNaN(parsedFee) ? parsedFee : null
                                                     };
                                                 });
-
                                             handleProgramChange("tuition_fees", tuitionFees);
                                         }}
                                         placeholder="e.g. 120 ECTS: 23520"
                                     />
                                 </Grid>
+
+                                {/* Application Fees & Deadline, Accreditation */}
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Application Fees"
+                                        value={editingProgram?.application_fees || ""}
+                                        onChange={(e) => handleProgramChange("application_fees", e.target.value)}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Application Deadline"
+                                        type="date"
+                                        InputLabelProps={{ shrink: true }}
+                                        value={editingProgram?.application_deadline || ""}
+                                        onChange={(e) => handleProgramChange("application_deadline", e.target.value)}
+                                    />
+                                </Grid>
                                 <Grid item xs={12}>
                                     <TextField
                                         fullWidth
-                                        label="Campuses (comma-separated)"
-                                        value={Array.isArray(editingProgram?.campuses) ? editingProgram.campuses.join(', ') : ''}
-                                        onChange={(e) => handleProgramChange("campuses", e.target.value.split(',').map(c => c.trim()).filter(Boolean))}
-                                        placeholder="e.g., Main Campus, Downtown Campus"
+                                        label="Accreditation"
+                                        value={editingProgram?.accreditation || ""}
+                                        onChange={(e) => handleProgramChange("accreditation", e.target.value)}
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Academic Requirements"
-                                        value={editingProgram?.entry_requirements?.academic || ""}
-                                        onChange={(e) => handleProgramChange("entry_requirements", {
-                                            ...editingProgram?.entry_requirements,
-                                            academic: e.target.value
-                                        })}
-                                        placeholder="e.g., Bachelor's degree"
-                                    />
+
+                                {/* Entry Requirements - Academic */}
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" gutterBottom>Academic Requirements</Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Minimum Qualification"
+                                                value={editingProgram?.entry_requirements?.academic?.minimum_qualification || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        academic: {
+                                                            ...editingProgram?.entry_requirements?.academic,
+                                                            minimum_qualification: e.target.value
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Field Requirement"
+                                                value={editingProgram?.entry_requirements?.academic?.field_requirement || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        academic: {
+                                                            ...editingProgram?.entry_requirements?.academic,
+                                                            field_requirement: e.target.value
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="Score Type (e.g., GPA, Percentage)"
+                                                value={editingProgram?.entry_requirements?.academic?.score_type || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        academic: {
+                                                            ...editingProgram?.entry_requirements?.academic,
+                                                            score_type: e.target.value
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="Score"
+                                                value={editingProgram?.entry_requirements?.academic?.score || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        academic: {
+                                                            ...editingProgram?.entry_requirements?.academic,
+                                                            score: e.target.value
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="Scale (e.g., 4.0, 100)"
+                                                value={editingProgram?.entry_requirements?.academic?.scale || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        academic: {
+                                                            ...editingProgram?.entry_requirements?.academic,
+                                                            scale: e.target.value
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+
+                                {/* Entry Requirements - Language */}
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" gutterBottom>Language Requirements</Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="German CEFR Level (e.g., B1)"
+                                                value={editingProgram?.entry_requirements?.language_requirements?.german?.cefr || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        language_requirements: {
+                                                            ...editingProgram?.entry_requirements?.language_requirements,
+                                                            german: {
+                                                                ...editingProgram?.entry_requirements?.language_requirements?.german,
+                                                                cefr: e.target.value
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="English IELTS Overall"
+                                                value={editingProgram?.entry_requirements?.language_requirements?.english?.ielts?.overall || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        language_requirements: {
+                                                            ...editingProgram?.entry_requirements?.language_requirements,
+                                                            english: {
+                                                                ...editingProgram?.entry_requirements?.language_requirements?.english,
+                                                                ielts: {
+                                                                    ...editingProgram?.entry_requirements?.language_requirements?.english?.ielts,
+                                                                    overall: e.target.value
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="TOEFL Overall"
+                                                value={editingProgram?.entry_requirements?.language_requirements?.english?.toefl?.overall || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        language_requirements: {
+                                                            ...editingProgram?.entry_requirements?.language_requirements,
+                                                            english: {
+                                                                ...editingProgram?.entry_requirements?.language_requirements?.english,
+                                                                toefl: {
+                                                                    ...editingProgram?.entry_requirements?.language_requirements?.english?.toefl,
+                                                                    overall: e.target.value
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="PTE Overall"
+                                                value={editingProgram?.entry_requirements?.language_requirements?.english?.pte?.overall || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        language_requirements: {
+                                                            ...editingProgram?.entry_requirements?.language_requirements,
+                                                            english: {
+                                                                ...editingProgram?.entry_requirements?.language_requirements?.english,
+                                                                pte: {
+                                                                    ...editingProgram?.entry_requirements?.language_requirements?.english?.pte,
+                                                                    overall: e.target.value
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Duolingo Overall"
+                                                value={editingProgram?.entry_requirements?.language_requirements?.english?.duolingo?.overall || ""}
+                                                onChange={(e) =>
+                                                    handleProgramChange("entry_requirements", {
+                                                        ...editingProgram?.entry_requirements,
+                                                        language_requirements: {
+                                                            ...editingProgram?.entry_requirements?.language_requirements,
+                                                            english: {
+                                                                ...editingProgram?.entry_requirements?.language_requirements?.english,
+                                                                duolingo: {
+                                                                    ...editingProgram?.entry_requirements?.language_requirements?.english?.duolingo,
+                                                                    overall: e.target.value
+                                                                }
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                    {/* Additional requirements */}
                                     <TextField
                                         fullWidth
-                                        label="Language Requirements"
-                                        value={editingProgram?.entry_requirements?.language || ""}
-                                        onChange={(e) => handleProgramChange("entry_requirements", {
-                                            ...editingProgram?.entry_requirements,
-                                            language: e.target.value
-                                        })}
-                                        placeholder="e.g., IELTS 6.5"
+                                        multiline
+                                        rows={2}
+                                        label="Additional Requirements (one per line)"
+                                        value={Array.isArray(editingProgram?.entry_requirements?.additional_requirements)
+                                            ? editingProgram.entry_requirements.additional_requirements.join("\n")
+                                            : ""}
+                                        onChange={(e) =>
+                                            handleProgramChange("entry_requirements", {
+                                                ...editingProgram?.entry_requirements,
+                                                additional_requirements: e.target.value.split("\n").filter(line => line.trim())
+                                            })
+                                        }
+                                        placeholder="e.g., Motivation letter\nCV\nProof of work experience"
+                                        sx={{ mt: 2 }}
                                     />
                                 </Grid>
                             </Grid>
