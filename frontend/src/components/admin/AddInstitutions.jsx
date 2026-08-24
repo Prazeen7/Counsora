@@ -1041,10 +1041,43 @@ export default function AddInstitution({ onClose }) {
 
 
     const scrollableMenuProps = {
+        disableAutoFocusItem: true,
+        autoFocus: false,
+        getContentAnchorEl: null,
+        anchorOrigin: {
+            vertical: "bottom",
+            horizontal: "left",
+        },
+        transformOrigin: {
+            vertical: "top",
+            horizontal: "left",
+        },
         PaperProps: {
             style: {
-                maxHeight: 300,
+                maxHeight: 220,
                 overflowY: "auto",
+            },
+            sx: {
+                maxHeight: "220px !important",
+                overflowY: "auto !important",
+                mt: 0.5,
+                boxShadow: "0px 8px 24px rgba(0,0,0,0.15)",
+                "& .MuiMenuItem-root": {
+                    py: 0.75,
+                    fontSize: "0.875rem",
+                },
+            },
+        },
+        MenuListProps: {
+            style: {
+                maxHeight: 220,
+                overflowY: "auto",
+                paddingTop: 4,
+                paddingBottom: 4,
+            },
+            sx: {
+                maxHeight: "220px !important",
+                overflowY: "auto !important",
             },
         },
     };

@@ -33,6 +33,109 @@ const getProgramsByInstitution = async (req, res) => {
 };
 
 
+const VALID_LEVELS = ["Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null];
+const VALID_FIELDS = [
+    "Allied Health",
+    "Management, Business and Accounting",
+    "Creative, Performing and Visual Arts",
+    "Creative Media, Communication and Arts",
+    "Education, Teaching and Childcare",
+    "Engineering, Built Environment and Aviation",
+    "English and Study Pathways",
+    "Information Systems and Technology",
+    "Law, Criminology and Justice",
+    "Nursing, Paramedicine and Health",
+    "Psychology, Social Work and Community Services",
+    "Safety Sciences",
+    "Science, Environment and Agriculture",
+    "Service Industries",
+    "Trades",
+    "Other",
+    null,
+];
+const VALID_QUALIFICATIONS = ["Higher Secondary", "Diploma", "Bachelor", "Master", "Doctoral", null];
+const VALID_SCORE_TYPES = ["GPA", "Percentage", null];
+
+const parseNumberOrNull = (val) => {
+    if (val === null || val === undefined || val === "") return null;
+    const num = Number(val);
+    return Number.isNaN(num) ? null : num;
+};
+
+const sanitizeLanguageScore = (scoreObj) => {
+    if (!scoreObj || typeof scoreObj !== "object") return {};
+    return {
+        overall: parseNumberOrNull(scoreObj.overall),
+        listening: parseNumberOrNull(scoreObj.listening),
+        reading: parseNumberOrNull(scoreObj.reading),
+        writing: parseNumberOrNull(scoreObj.writing),
+        speaking: parseNumberOrNull(scoreObj.speaking),
+    };
+};
+
+const sanitizeProgramData = (data) => {
+    const sanitized = { ...data };
+    delete sanitized._id;
+    delete sanitized.institutionId;
+    delete sanitized.name;
+    delete sanitized.tuitionFee;
+
+    if (sanitized.field !== undefined) {
+        sanitized.field = VALID_FIELDS.includes(sanitized.field)
+            ? sanitized.field
+            : (sanitized.field ? "Other" : null);
+    }
+    if (sanitized.level !== undefined) {
+        sanitized.level = VALID_LEVELS.includes(sanitized.level) ? sanitized.level : null;
+    }
+
+    if (sanitized.entry_requirements) {
+        const er = { ...sanitized.entry_requirements };
+        if (er.academic) {
+            er.academic = {
+                ...er.academic,
+                minimum_qualification: VALID_QUALIFICATIONS.includes(er.academic.minimum_qualification)
+                    ? er.academic.minimum_qualification
+                    : null,
+                score_type: VALID_SCORE_TYPES.includes(er.academic.score_type)
+                    ? er.academic.score_type
+                    : null,
+                score: parseNumberOrNull(er.academic.score),
+                scale: parseNumberOrNull(er.academic.scale),
+                field_requirement: er.academic.field_requirement || null,
+            };
+        }
+
+        if (er.language_requirements) {
+            const lr = { ...er.language_requirements };
+            if (lr.english) {
+                lr.english = {
+                    ...lr.english,
+                    ielts: sanitizeLanguageScore(lr.english.ielts),
+                    toefl: sanitizeLanguageScore(lr.english.toefl),
+                    pte: sanitizeLanguageScore(lr.english.pte),
+                    duolingo: sanitizeLanguageScore(lr.english.duolingo),
+                    cambridge: lr.english.cambridge || null,
+                    cefr: lr.english.cefr || null,
+                };
+            }
+            if (lr.german) {
+                lr.german = {
+                    ...lr.german,
+                    cefr: lr.german.cefr || null,
+                    testdaf: sanitizeLanguageScore(lr.german.testdaf),
+                    dsh: sanitizeLanguageScore(lr.german.dsh),
+                };
+            }
+            er.language_requirements = lr;
+        }
+
+        sanitized.entry_requirements = er;
+    }
+
+    return sanitized;
+};
+
 // Create one program
 const createProgram = async (req, res) => {
     try {
@@ -50,9 +153,11 @@ const createProgram = async (req, res) => {
             });
         }
 
+        const sanitizedData = sanitizeProgramData(programData);
+
         const program = await Program.create({
             institutionId,
-            ...programData,
+            ...sanitizedData,
         });
 
         return res.status(201).json(program);
@@ -66,7 +171,6 @@ const createProgram = async (req, res) => {
     }
 };
 
-
 // Update one program
 const updateProgram = async (req, res) => {
     try {
@@ -78,17 +182,13 @@ const updateProgram = async (req, res) => {
             });
         }
 
-        const updateData = { ...req.body };
-
-        // Don't allow changing these through normal update
-        delete updateData._id;
-        delete updateData.institutionId;
+        const updateData = sanitizeProgramData(req.body);
 
         const program = await Program.findByIdAndUpdate(
             programId,
             updateData,
             {
-                new: true,
+                returnDocument: 'after',
                 runValidators: true,
             }
         );

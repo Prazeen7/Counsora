@@ -55,6 +55,48 @@ const FIELD_OPTIONS = [
     "Other",
 ];
 
+const DEFAULT_MENU_PROPS = {
+    disableAutoFocusItem: true,
+    autoFocus: false,
+    getContentAnchorEl: null,
+    anchorOrigin: {
+        vertical: "bottom",
+        horizontal: "left",
+    },
+    transformOrigin: {
+        vertical: "top",
+        horizontal: "left",
+    },
+    PaperProps: {
+        style: {
+            maxHeight: 220,
+            overflowY: "auto",
+        },
+        sx: {
+            maxHeight: "220px !important",
+            overflowY: "auto !important",
+            mt: 0.5,
+            boxShadow: "0px 8px 24px rgba(0,0,0,0.15)",
+            "& .MuiMenuItem-root": {
+                py: 0.75,
+                fontSize: "0.875rem",
+            },
+        },
+    },
+    MenuListProps: {
+        style: {
+            maxHeight: 220,
+            overflowY: "auto",
+            paddingTop: 4,
+            paddingBottom: 4,
+        },
+        sx: {
+            maxHeight: "220px !important",
+            overflowY: "auto !important",
+        },
+    },
+};
+
 export default function ReviewProgramsModal({
     open,
     programs,
@@ -302,11 +344,14 @@ export default function ReviewProgramsModal({
                         />
 
                         <FormControl fullWidth>
-                            <InputLabel>Level</InputLabel>
+                            <InputLabel id="review-level-label">Level</InputLabel>
                             <Select
+                                labelId="review-level-label"
+                                id="review-level-select"
                                 value={editProgramForm.level || ''}
                                 label="Level"
                                 onChange={(e) => setEditProgramForm({ ...editProgramForm, level: e.target.value })}
+                                MenuProps={DEFAULT_MENU_PROPS}
                             >
                                 <MenuItem value="">
                                     <em>None</em>
@@ -320,11 +365,14 @@ export default function ReviewProgramsModal({
                         </FormControl>
 
                         <FormControl fullWidth>
-                            <InputLabel>Field</InputLabel>
+                            <InputLabel id="review-field-label">Field</InputLabel>
                             <Select
+                                labelId="review-field-label"
+                                id="review-field-select"
                                 value={editProgramForm.field || ''}
                                 label="Field"
                                 onChange={(e) => setEditProgramForm({ ...editProgramForm, field: e.target.value })}
+                                MenuProps={DEFAULT_MENU_PROPS}
                             >
                                 <MenuItem value="">
                                     <em>None</em>

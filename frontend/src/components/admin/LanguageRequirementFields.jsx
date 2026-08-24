@@ -29,7 +29,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
 
     const handleAddTest = () => {
         const newTest = {
-            id: Date.now(),
+            id: `test_${Date.now()}_${Math.random()}`,
             testType: "",
             testName: "", // For custom test name when "Other" is selected
             overall: "",
@@ -47,14 +47,14 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
         onChange([...requirements, newTest]);
     };
 
-    const handleRemoveTest = (id) => {
-        onChange(requirements.filter((req) => req.id !== id));
+    const handleRemoveTest = (index) => {
+        onChange(requirements.filter((_, i) => i !== index));
     };
 
-    const handleTestChange = (id, key, newValue) => {
+    const handleTestChange = (index, key, newValue) => {
         onChange(
-            requirements.map((req) =>
-                req.id === id ? { ...req, [key]: newValue } : req
+            requirements.map((req, i) =>
+                i === index ? { ...req, [key]: newValue } : req
             )
         );
     };
@@ -63,10 +63,11 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
         <Box sx={{ width: "100%" }}>
             {requirements.map((requirement, index) => {
                 const fields = languageTests[requirement.testType] || [];
+                const itemKey = requirement.id || requirement._id || `req_${index}`;
 
                 return (
                     <Box
-                        key={requirement.id}
+                        key={itemKey}
                         sx={{
                             mb: 2,
                             pb: 2,
@@ -85,17 +86,47 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                             }}
                         >
                             <FormControl size="small" sx={{ minWidth: 120, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
-                                <InputLabel>Test</InputLabel>
+                                <InputLabel id={`test-type-label-${itemKey}`}>Test</InputLabel>
                                 <Select
+                                    labelId={`test-type-label-${itemKey}`}
+                                    id={`test-type-select-${itemKey}`}
                                     value={requirement.testType || ""}
                                     label="Test"
                                     onChange={(e) =>
-                                        handleTestChange(requirement.id, "testType", e.target.value)
+                                        handleTestChange(index, "testType", e.target.value)
                                     }
                                     MenuProps={{
+                                        disableAutoFocusItem: true,
+                                        autoFocus: false,
+                                        getContentAnchorEl: null,
+                                        anchorOrigin: {
+                                            vertical: "bottom",
+                                            horizontal: "left",
+                                        },
+                                        transformOrigin: {
+                                            vertical: "top",
+                                            horizontal: "left",
+                                        },
                                         PaperProps: {
                                             style: {
-                                                maxHeight: 300,
+                                                maxHeight: 220,
+                                                overflowY: "auto",
+                                            },
+                                            sx: {
+                                                maxHeight: "220px !important",
+                                                overflowY: "auto !important",
+                                                mt: 0.5,
+                                                boxShadow: "0px 8px 24px rgba(0,0,0,0.15)",
+                                            },
+                                        },
+                                        MenuListProps: {
+                                            style: {
+                                                maxHeight: 220,
+                                                overflowY: "auto",
+                                            },
+                                            sx: {
+                                                maxHeight: "220px !important",
+                                                overflowY: "auto !important",
                                             },
                                         },
                                     }}
@@ -115,7 +146,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                                     sx={{ minWidth: 150, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
                                     value={requirement.testName || ""}
                                     onChange={(e) =>
-                                        handleTestChange(requirement.id, "testName", e.target.value)
+                                        handleTestChange(index, "testName", e.target.value)
                                     }
                                     placeholder="e.g., Cambridge"
                                 />
@@ -127,7 +158,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                                 sx={{ minWidth: 100, flex: { xs: '1 1 100%', sm: '1' } }}
                                 value={requirement.overall || ""}
                                 onChange={(e) =>
-                                    handleTestChange(requirement.id, "overall", e.target.value)
+                                    handleTestChange(index, "overall", e.target.value)
                                 }
                                 placeholder="e.g., 6.5"
                             />
@@ -138,7 +169,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                                 sx={{ minWidth: 100, flex: { xs: '1 1 100%', sm: '1' } }}
                                 value={requirement.minimum || ""}
                                 onChange={(e) =>
-                                    handleTestChange(requirement.id, "minimum", e.target.value)
+                                    handleTestChange(index, "minimum", e.target.value)
                                 }
                                 placeholder="e.g., 6.0"
                             />
@@ -151,7 +182,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                                         checked={requirement.hasIndividualScores || false}
                                         onChange={(e) =>
                                             handleTestChange(
-                                                requirement.id,
+                                                index,
                                                 "hasIndividualScores",
                                                 e.target.checked
                                             )
@@ -164,7 +195,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                             <IconButton
                                 size="small"
                                 sx={{ flex: '0 0 auto' }}
-                                onClick={() => handleRemoveTest(requirement.id)}
+                                onClick={() => handleRemoveTest(index)}
                                 disabled={requirements.length === 1}
                             >
                                 <DeleteIcon fontSize="small" />
@@ -182,7 +213,7 @@ const LanguageRequirementFields = ({ value = [], onChange }) => {
                                             value={requirement[field.toLowerCase()] || ""}
                                             onChange={(e) =>
                                                 handleTestChange(
-                                                    requirement.id,
+                                                    index,
                                                     field.toLowerCase(),
                                                     e.target.value
                                                 )
