@@ -61,18 +61,7 @@ function AdminInstitutions() {
                 sortOrder: order,
             });
 
-            const institutionsWithCounts = await Promise.all(
-                (response.institutions || []).map(async (inst) => {
-                    const programData = await getProgramsByInstitution(inst._id);
-
-                    return {
-                        ...inst,
-                        programCount: programData.count,
-                    };
-                })
-            );
-
-            setInstitutions(institutionsWithCounts);
+            setInstitutions(response.institutions || []);
             setTotalInstitutions(response.pagination?.total || 0);
         } catch (error) {
             console.error("Error fetching institutions:", error);

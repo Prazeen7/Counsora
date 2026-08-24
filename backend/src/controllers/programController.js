@@ -1,162 +1,187 @@
 const Program = require("../models/Program");
+const mongoose = require("mongoose");
 
+
+// Get all programs for an institution
 const getProgramsByInstitution = async (req, res) => {
     try {
         const { institutionId } = req.params;
 
-        const programDoc = await Program.findOne({ institution: institutionId });
-
-        // we are leaving this 200 for now, we will change it later after db is poppulated.
-        if (!programDoc) {
-            return res.status(200).json({
-                count: 0,
-                programs: [],
+        if (!mongoose.Types.ObjectId.isValid(institutionId)) {
+            return res.status(400).json({
+                error: "Invalid institution ID",
             });
         }
+
+        const programs = await Program.find({
+            institutionId,
+            isActive: true,
+        }).lean();
 
         return res.status(200).json({
-            count: programDoc.programs.length,
-            programs: programDoc.programs,
+            count: programs.length,
+            programs,
         });
+
     } catch (error) {
         console.error("Error fetching programs:", error);
-        return res.status(500).json({ error: error.message });
+
+        return res.status(500).json({
+            error: error.message,
+        });
     }
 };
 
+
+// Create one program
 const createProgram = async (req, res) => {
     try {
-        const { institution, ...programData } = req.body;
+        const { institutionId, ...programData } = req.body;
 
-        // Find or create the program document for this institution
-        let programDoc = await Program.findOne({ institution });
-
-        if (!programDoc) {
-            programDoc = new Program({
-                institution,
-                programs: [programData],
+        if (!institutionId) {
+            return res.status(400).json({
+                error: "institutionId is required",
             });
-        } else {
-            programDoc.programs.push(programData);
         }
 
-        await programDoc.save();
+        if (!mongoose.Types.ObjectId.isValid(institutionId)) {
+            return res.status(400).json({
+                error: "Invalid institutionId",
+            });
+        }
 
-        // Return the newly created program (last item in the array)
-        const newProgram = programDoc.programs[programDoc.programs.length - 1];
+        const program = await Program.create({
+            institutionId,
+            ...programData,
+        });
 
-        return res.status(201).json(newProgram);
+        return res.status(201).json(program);
+
     } catch (error) {
         console.error("Error creating program:", error);
-        return res.status(500).json({ error: error.message });
+
+        return res.status(500).json({
+            error: error.message,
+        });
     }
 };
 
+
+// Update one program
 const updateProgram = async (req, res) => {
     try {
         const { programId } = req.params;
-        const updateData = req.body;
 
-        console.log('Updating program with ID:', programId);
-        console.log('Update data:', updateData);
-
-        // Find the document containing this program
-        const programDoc = await Program.findOne({ "programs._id": programId });
-
-        if (!programDoc) {
-            console.log('Program document not found for ID:', programId);
-            return res.status(404).json({ error: "Program not found" });
+        if (!mongoose.Types.ObjectId.isValid(programId)) {
+            return res.status(400).json({
+                error: "Invalid program ID",
+            });
         }
 
-        // Find and update the specific program
-        const program = programDoc.programs.id(programId);
-        if (!program) {
-            console.log('Program not found in array for ID:', programId);
-            return res.status(404).json({ error: "Program not found" });
-        }
+        const updateData = { ...req.body };
 
-        // Update program fields
-        Object.keys(updateData).forEach(key => {
-            if (key !== '_id' && key !== 'institution') {
-                program[key] = updateData[key];
+        // Don't allow changing these through normal update
+        delete updateData._id;
+        delete updateData.institutionId;
+
+        const program = await Program.findByIdAndUpdate(
+            programId,
+            updateData,
+            {
+                new: true,
+                runValidators: true,
             }
-        });
+        );
 
-        await programDoc.save();
-        console.log('Program updated successfully:', program._id);
+        if (!program) {
+            return res.status(404).json({
+                error: "Program not found",
+            });
+        }
 
         return res.status(200).json(program);
+
     } catch (error) {
         console.error("Error updating program:", error);
-        return res.status(500).json({ error: error.message });
+
+        return res.status(500).json({
+            error: error.message,
+        });
     }
 };
 
+
+// Delete one program
 const deleteProgram = async (req, res) => {
     try {
         const { programId } = req.params;
 
-        console.log('Deleting program with ID:', programId);
-
-        // Find the document containing this program
-        const programDoc = await Program.findOne({ "programs._id": programId });
-
-        if (!programDoc) {
-            console.log('Program document not found for ID:', programId);
-            return res.status(404).json({ error: "Program not found" });
+        if (!mongoose.Types.ObjectId.isValid(programId)) {
+            return res.status(400).json({
+                error: "Invalid program ID",
+            });
         }
 
-        console.log('Found program document, removing program from array');
+        const program = await Program.findByIdAndDelete(programId);
 
-        // Remove the program from the array
-        programDoc.programs.pull(programId);
-        await programDoc.save();
-
-        console.log('Program deleted successfully:', programId);
+        if (!program) {
+            return res.status(404).json({
+                error: "Program not found",
+            });
+        }
 
         return res.status(200).json({
             message: "Program deleted successfully",
-            programId
+            programId,
         });
+
     } catch (error) {
         console.error("Error deleting program:", error);
-        return res.status(500).json({ error: error.message });
+
+        return res.status(500).json({
+            error: error.message,
+        });
     }
 };
 
+
+// Get all programs
 const getAllProgram = async (req, res) => {
     try {
-        const docs = await Program.find({ crawlStatus: 'completed' })
+        const programs = await Program.find({
+            isActive: true,
+        })
             .populate({
-                path: 'institution',
-                select: 'name country logo campuses entryRequirements applicationFee documents',
+                path: "institutionId",
+                select: "name country logo campuses entryRequirements applicationFee documents",
                 populate: {
-                    path: 'country',
-                    select: 'name code currency'
-                }
+                    path: "country",
+                    select: "name code currency",
+                },
             })
             .lean();
 
-        const allPrograms = docs.flatMap(doc =>
-            doc.programs
-                .filter(program => program.isActive !== false)
-                .map(program => ({
-                    ...program,
-                    institutionId: doc.institution._id,
-                    institutionName: doc.institution.name,
-                    institutionLogo: doc.institution.logo,
-                    country: doc.institution.country,
-                    institutionData: doc.institution
-                }))
-        );
+        const allPrograms = programs.map((program) => ({
+            ...program,
+            institution: program.institutionId,
+            institutionId: program.institutionId?._id,
+            institutionName: program.institutionId?.name,
+            institutionLogo: program.institutionId?.logo,
+            country: program.institutionId?.country,
+            institutionData: program.institutionId,
+        }));
 
         return res.status(200).json(allPrograms);
 
-    } catch (err) {
-        console.error('Error fetching programs: ', err);
-        return res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("Error fetching programs:", error);
+
+        return res.status(500).json({
+            error: error.message,
+        });
     }
-}
+};
+
 
 module.exports = {
     getProgramsByInstitution,

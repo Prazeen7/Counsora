@@ -226,11 +226,19 @@ export default function InstitutionTabsContent({
 
         case 2:
             return (
-                <Paper sx={{ p: 4, borderRadius: 3, position: "relative" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                        <Typography variant="h5" fontWeight="bold" gutterBottom>
+                <Paper sx={{ p: 4, borderRadius: 3 }}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 2,
+                        }}
+                    >
+                        <Typography variant="h5" fontWeight="bold">
                             Programs Offered
                         </Typography>
+
                         {isAdmin && isEditMode && onEditProgram && (
                             <Button
                                 variant="contained"
@@ -248,7 +256,7 @@ export default function InstitutionTabsContent({
                         )}
                     </Box>
 
-                    {/* Filter fields – unchanged */}
+                    {/* Filters */}
                     <Box
                         sx={{
                             display: "grid",
@@ -268,6 +276,7 @@ export default function InstitutionTabsContent({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+
                         <TextField
                             select
                             fullWidth
@@ -276,12 +285,14 @@ export default function InstitutionTabsContent({
                             onChange={(e) => setSelectedLevel(e.target.value)}
                         >
                             <MenuItem value="all">All Levels</MenuItem>
+
                             {levels.map((level) => (
                                 <MenuItem key={level} value={level}>
                                     {level}
                                 </MenuItem>
                             ))}
                         </TextField>
+
                         <TextField
                             select
                             fullWidth
@@ -290,12 +301,14 @@ export default function InstitutionTabsContent({
                             onChange={(e) => setSelectedField(e.target.value)}
                         >
                             <MenuItem value="all">All Fields</MenuItem>
+
                             {fields.map((field) => (
                                 <MenuItem key={field} value={field}>
                                     {field}
                                 </MenuItem>
                             ))}
                         </TextField>
+
                         <TextField
                             select
                             fullWidth
@@ -304,12 +317,14 @@ export default function InstitutionTabsContent({
                             onChange={(e) => setSelectedIntake(e.target.value)}
                         >
                             <MenuItem value="all">All Intakes</MenuItem>
+
                             {intakes.map((intake) => (
                                 <MenuItem key={intake} value={intake}>
                                     {intake}
                                 </MenuItem>
                             ))}
                         </TextField>
+
                         <TextField
                             select
                             fullWidth
@@ -318,260 +333,367 @@ export default function InstitutionTabsContent({
                             onChange={(e) => setSelectedTuition(e.target.value)}
                         >
                             <MenuItem value="all">Any Tuition</MenuItem>
-                            <MenuItem value="under20000">Under 20,000</MenuItem>
-                            <MenuItem value="20000to30000">20,000-30,000</MenuItem>
-                            <MenuItem value="above30000">Above 30,000</MenuItem>
+                            <MenuItem value="under20000">
+                                Under 20,000
+                            </MenuItem>
+                            <MenuItem value="20000to30000">
+                                20,000 - 30,000
+                            </MenuItem>
+                            <MenuItem value="above30000">
+                                Above 30,000
+                            </MenuItem>
                         </TextField>
                     </Box>
 
-                    <Box
-                        sx={{
-                            display: "grid",
-                            gridTemplateColumns: {
-                                xs: "1fr",
-                                sm: "repeat(2, 1fr)",
-                                lg: "repeat(3, 1fr)",
-                            },
-                            gap: 3,
-                        }}
-                    >
-                        {filteredPrograms?.map((program, index) => {
-                            // Determine level key for institution fallback
-                            const levelKey =
-                                program.level === "Bachelor" || program.level === "Diploma"
-                                    ? "undergraduate"
-                                    : "postgraduate";
-                            const instEntry = institution?.entryRequirements?.[levelKey] || {};
-                            const instGPA = instEntry?.gpa;
-                            const instLang = instEntry?.languageRequirement || [];
+                    {/* Program documents */}
+                    {filteredPrograms.length === 0 ? (
+                        <Typography
+                            color="text.secondary"
+                            sx={{ py: 4, textAlign: "center" }}
+                        >
+                            No programs found.
+                        </Typography>
+                    ) : (
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: {
+                                    xs: "1fr",
+                                    sm: "repeat(2, 1fr)",
+                                    lg: "repeat(3, 1fr)",
+                                },
+                                gap: 3,
+                            }}
+                        >
+                            {filteredPrograms.map((program) => {
+                                /*
+                                 * Each `program` is now an individual
+                                 * Program MongoDB document.
+                                 *
+                                 * Example:
+                                 *
+                                 * {
+                                 *   _id,
+                                 *   institutionId,
+                                 *   degree_name,
+                                 *   level,
+                                 *   field,
+                                 *   duration,
+                                 *   tuition_fees,
+                                 *   intakes,
+                                 *   entry_requirements,
+                                 *   campuses,
+                                 *   url
+                                 * }
+                                 */
 
-                            return (
-                                <Card
-                                    key={program._id || index}
-                                    sx={{
-                                        borderRadius: 3,
-                                        height: "100%",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        position: "relative",
-                                        transition: "0.2s",
-                                        "&:hover": {
-                                            boxShadow: 4,
-                                            transform: "translateY(-2px)",
-                                        },
-                                    }}
-                                >
-                                    {/* Admin Actions – unchanged */}
-                                    {isAdmin && isEditMode && onEditProgram && onDeleteProgram && (
-                                        <Box
-                                            sx={{
-                                                position: "absolute",
-                                                top: 8,
-                                                right: 8,
-                                                display: "flex",
-                                                gap: 1,
-                                                zIndex: 10,
-                                            }}
-                                        >
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => onEditProgram(program)}
-                                                sx={{
-                                                    backgroundColor: "rgba(79, 70, 229, 0.9)",
-                                                    color: "white",
-                                                    "&:hover": {
-                                                        backgroundColor: "#4338ca",
-                                                    },
-                                                }}
-                                            >
-                                                <EditIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => onDeleteProgram(program)}
-                                                sx={{
-                                                    backgroundColor: "rgba(239, 68, 68, 0.9)",
-                                                    color: "white",
-                                                    "&:hover": {
-                                                        backgroundColor: "#dc2626",
-                                                    },
-                                                }}
-                                            >
-                                                <DeleteIcon fontSize="small" />
-                                            </IconButton>
-                                        </Box>
-                                    )}
+                                const levelKey =
+                                    program.level === "Bachelor" ||
+                                        program.level === "Diploma"
+                                        ? "undergraduate"
+                                        : "postgraduate";
 
-                                    <CardContent
+                                const institutionEntry =
+                                    institution?.entryRequirements?.[levelKey];
+
+                                const institutionGPA =
+                                    institutionEntry?.gpa;
+
+                                const institutionLanguage =
+                                    institutionEntry?.languageRequirement || [];
+
+                                const programAcademic =
+                                    program.entry_requirements?.academic;
+
+                                const programLanguage =
+                                    program.entry_requirements
+                                        ?.language_requirements;
+
+                                const hasProgramAcademic =
+                                    !!(
+                                        programAcademic?.minimum_qualification ||
+                                        programAcademic?.field_requirement ||
+                                        programAcademic?.score != null
+                                    );
+
+                                const hasProgramLanguage =
+                                    !!(
+                                        programLanguage?.english?.ielts?.overall != null ||
+                                        programLanguage?.english?.toefl?.overall != null ||
+                                        programLanguage?.english?.pte?.overall != null ||
+                                        programLanguage?.english?.duolingo?.overall != null ||
+                                        programLanguage?.english?.cambridge ||
+                                        programLanguage?.english?.cefr ||
+                                        programLanguage?.german?.cefr ||
+                                        programLanguage?.german?.testdaf?.overall != null ||
+                                        programLanguage?.german?.dsh?.overall != null
+                                    );
+
+                                const hasInstitutionAcademic =
+                                    institutionGPA?.score != null;
+
+                                const hasInstitutionLanguage =
+                                    institutionLanguage.length > 0;
+
+                                const showAcademic =
+                                    hasProgramAcademic ||
+                                    hasInstitutionAcademic;
+
+                                const showLanguage =
+                                    hasProgramLanguage ||
+                                    hasInstitutionLanguage;
+
+                                const additionalRequirements =
+                                    program.entry_requirements
+                                        ?.additional_requirements || [];
+
+                                const hasEntryRequirements =
+                                    showAcademic ||
+                                    showLanguage ||
+                                    additionalRequirements.length > 0;
+
+                                return (
+                                    <Card
+                                        key={program._id}
                                         sx={{
-                                            p: 2.5,
+                                            borderRadius: 3,
+                                            height: "100%",
                                             display: "flex",
                                             flexDirection: "column",
-                                            gap: 1.5,
-                                            flex: 1,
+                                            position: "relative",
+                                            transition: "0.2s",
+                                            "&:hover": {
+                                                boxShadow: 4,
+                                                transform: "translateY(-2px)",
+                                            },
                                         }}
                                     >
-                                        {/* Program Title – unchanged */}
-                                        <Box sx={{ pr: isAdmin && isEditMode ? 8 : 0 }}>
-                                            <Typography
-                                                variant="h6"
-                                                fontWeight="bold"
+                                        {/* Admin actions */}
+                                        {isAdmin &&
+                                            isEditMode &&
+                                            onEditProgram &&
+                                            onDeleteProgram && (
+                                                <Box
+                                                    sx={{
+                                                        position: "absolute",
+                                                        top: 8,
+                                                        right: 8,
+                                                        display: "flex",
+                                                        gap: 1,
+                                                        zIndex: 10,
+                                                    }}
+                                                >
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() =>
+                                                            onEditProgram(program)
+                                                        }
+                                                        sx={{
+                                                            backgroundColor:
+                                                                "rgba(79, 70, 229, 0.9)",
+                                                            color: "white",
+                                                            "&:hover": {
+                                                                backgroundColor:
+                                                                    "#4338ca",
+                                                            },
+                                                        }}
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() =>
+                                                            onDeleteProgram(program)
+                                                        }
+                                                        sx={{
+                                                            backgroundColor:
+                                                                "rgba(239, 68, 68, 0.9)",
+                                                            color: "white",
+                                                            "&:hover": {
+                                                                backgroundColor:
+                                                                    "#dc2626",
+                                                            },
+                                                        }}
+                                                    >
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Box>
+                                            )}
+
+                                        <CardContent
+                                            sx={{
+                                                p: 2.5,
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: 1.5,
+                                                flex: 1,
+                                            }}
+                                        >
+                                            {/* Title */}
+                                            <Box
                                                 sx={{
-                                                    lineHeight: 1.3,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
+                                                    pr:
+                                                        isAdmin && isEditMode
+                                                            ? 8
+                                                            : 0,
                                                 }}
                                             >
-                                                {program.degree_name || program.name}
-                                            </Typography>
-                                            {program.field && (
                                                 <Typography
-                                                    variant="body2"
-                                                    color="text.secondary"
+                                                    variant="h6"
+                                                    fontWeight="bold"
                                                     sx={{
-                                                        mt: 0.5,
+                                                        lineHeight: 1.3,
                                                         display: "-webkit-box",
-                                                        WebkitLineClamp: 1,
+                                                        WebkitLineClamp: 2,
                                                         WebkitBoxOrient: "vertical",
                                                         overflow: "hidden",
                                                     }}
                                                 >
-                                                    {program.field}
+                                                    {program.degree_name ||
+                                                        program.name}
                                                 </Typography>
-                                            )}
-                                        </Box>
 
-                                        <Divider />
-
-                                        {/* Duration + Tuition – unchanged */}
-                                        {(program.duration || program.tuition_fees?.length > 0) && (
-                                            <Box
-                                                sx={{
-                                                    display: "grid",
-                                                    gridTemplateColumns: {
-                                                        xs: "1fr",
-                                                        sm: "1fr 1fr",
-                                                    },
-                                                    gap: 2,
-                                                }}
-                                            >
-                                                {program.duration && (
-                                                    <Box>
-                                                        <Typography
-                                                            variant="caption"
-                                                            color="text.secondary"
-                                                            display="block"
-                                                            sx={{ mb: 0.25 }}
-                                                        >
-                                                            Duration
-                                                        </Typography>
-                                                        <Typography variant="body2" fontWeight="medium">
-                                                            {program.duration}
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                                {program.tuition_fees?.length > 0 && (
-                                                    <Box>
-                                                        <Typography
-                                                            variant="caption"
-                                                            color="text.secondary"
-                                                            display="block"
-                                                            sx={{ mb: 0.25 }}
-                                                        >
-                                                            Tuition Fees
-                                                        </Typography>
-                                                        <Box
-                                                            sx={{
-                                                                display: "flex",
-                                                                flexDirection: "column",
-                                                                gap: 0.25,
-                                                            }}
-                                                        >
-                                                            {program.tuition_fees.map((fee, i) => (
-                                                                <Typography
-                                                                    key={i}
-                                                                    variant="body2"
-                                                                    fontWeight="bold"
-                                                                    color="primary.main"
-                                                                >
-                                                                    {fee?.credits}
-                                                                    {fee?.annual_fee_eur != null &&
-                                                                        ` · ${fee.annual_fee_eur.toLocaleString()} EUR`}
-                                                                </Typography>
-                                                            ))}
-                                                        </Box>
-                                                    </Box>
+                                                {program.field && (
+                                                    <Typography
+                                                        variant="body2"
+                                                        color="text.secondary"
+                                                        sx={{
+                                                            mt: 0.5,
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 1,
+                                                            WebkitBoxOrient:
+                                                                "vertical",
+                                                            overflow: "hidden",
+                                                        }}
+                                                    >
+                                                        {program.field}
+                                                    </Typography>
                                                 )}
                                             </Box>
-                                        )}
 
-                                        {/* Intakes – unchanged */}
-                                        {program.intakes?.length > 0 && (
-                                            <Box>
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    display="block"
-                                                    sx={{ mb: 0.5 }}
-                                                >
-                                                    Intakes
-                                                </Typography>
-                                                <Box
-                                                    sx={{
-                                                        display: "flex",
-                                                        flexWrap: "wrap",
-                                                        gap: 0.5,
-                                                    }}
-                                                >
-                                                    {program.intakes.map((intake, i) => (
-                                                        <Chip key={i} label={intake} size="small" variant="outlined" />
-                                                    ))}
+                                            <Divider />
+
+                                            {/* Level */}
+                                            {program.level && (
+                                                <Box>
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.secondary"
+                                                    >
+                                                        Level
+                                                    </Typography>
+
+                                                    <Typography
+                                                        variant="body2"
+                                                        fontWeight="medium"
+                                                    >
+                                                        {program.level}
+                                                    </Typography>
                                                 </Box>
-                                            </Box>
-                                        )}
+                                            )}
 
-                                        {/* ==================== ENTRY REQUIREMENTS (with fallback) ==================== */}
-                                        {(() => {
-                                            // Extract program-specific requirements
-                                            const progAcademic = program.entry_requirements?.academic;
-                                            const progLang = program.entry_requirements?.language_requirements;
+                                            {/* Duration + Tuition */}
+                                            {(program.duration ||
+                                                program.tuition_fees?.length > 0) && (
+                                                    <Box
+                                                        sx={{
+                                                            display: "grid",
+                                                            gridTemplateColumns:
+                                                                "1fr 1fr",
+                                                            gap: 2,
+                                                        }}
+                                                    >
+                                                        {program.duration && (
+                                                            <Box>
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    color="text.secondary"
+                                                                    display="block"
+                                                                >
+                                                                    Duration
+                                                                </Typography>
 
-                                            // Check if program has its own requirements
-                                            const hasProgAcademic =
-                                                progAcademic?.minimum_qualification ||
-                                                progAcademic?.field_requirement ||
-                                                progAcademic?.score != null;
-                                            const hasProgLang =
-                                                progLang?.english?.ielts?.overall != null ||
-                                                progLang?.english?.toefl?.overall != null ||
-                                                progLang?.english?.pte?.overall != null ||
-                                                progLang?.english?.duolingo?.overall != null ||
-                                                progLang?.english?.cambridge ||
-                                                progLang?.english?.cefr ||
-                                                progLang?.german?.cefr ||
-                                                progLang?.german?.testdaf?.overall != null ||
-                                                progLang?.german?.dsh?.overall != null;
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    fontWeight="medium"
+                                                                >
+                                                                    {program.duration}
+                                                                </Typography>
+                                                            </Box>
+                                                        )}
 
-                                            // Institution fallback availability
-                                            const hasInstGPA = instGPA?.score != null;
-                                            const hasInstLang = instLang.length > 0;
+                                                        {program.tuition_fees?.length >
+                                                            0 && (
+                                                                <Box>
+                                                                    <Typography
+                                                                        variant="caption"
+                                                                        color="text.secondary"
+                                                                        display="block"
+                                                                    >
+                                                                        Tuition
+                                                                    </Typography>
 
-                                            // Overall flags
-                                            const showAcademic = hasProgAcademic || hasInstGPA;
-                                            const showLanguage = hasProgLang || hasInstLang;
-                                            const hasAdditional =
-                                                program.entry_requirements?.additional_requirements?.length > 0;
+                                                                    {program.tuition_fees.map(
+                                                                        (fee, index) => (
+                                                                            <Typography
+                                                                                key={index}
+                                                                                variant="body2"
+                                                                                fontWeight="bold"
+                                                                                color="primary.main"
+                                                                            >
+                                                                                {fee?.credits}
+                                                                                {fee?.annual_fee_eur !=
+                                                                                    null &&
+                                                                                    ` · ${Number(
+                                                                                        fee.annual_fee_eur
+                                                                                    ).toLocaleString()} EUR`}
+                                                                            </Typography>
+                                                                        )
+                                                                    )}
+                                                                </Box>
+                                                            )}
+                                                    </Box>
+                                                )}
 
-                                            // If nothing to show, skip entirely
-                                            if (!showAcademic && !showLanguage && !hasAdditional) {
-                                                return null;
-                                            }
+                                            {/* Intakes */}
+                                            {program.intakes?.length > 0 && (
+                                                <Box>
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.secondary"
+                                                        display="block"
+                                                        sx={{ mb: 0.5 }}
+                                                    >
+                                                        Intakes
+                                                    </Typography>
 
-                                            return (
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            flexWrap: "wrap",
+                                                            gap: 0.5,
+                                                        }}
+                                                    >
+                                                        {program.intakes.map(
+                                                            (intake, index) => (
+                                                                <Chip
+                                                                    key={index}
+                                                                    label={intake}
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                />
+                                                            )
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            )}
+
+                                            {/* Entry requirements */}
+                                            {hasEntryRequirements && (
                                                 <>
                                                     <Divider />
+
                                                     <Box>
                                                         <Typography
                                                             variant="caption"
@@ -583,42 +705,68 @@ export default function InstitutionTabsContent({
                                                             Entry Requirements
                                                         </Typography>
 
-                                                        {/* Academic Requirements */}
+                                                        {/* Academic */}
                                                         {showAcademic && (
-                                                            <Box sx={{ mb: 0.75 }}>
-                                                                {hasProgAcademic ? (
-                                                                    // Program-specific academic (full details)
+                                                            <Box sx={{ mb: 1 }}>
+                                                                {hasProgramAcademic ? (
                                                                     <>
-                                                                        {progAcademic.minimum_qualification && (
+                                                                        {programAcademic?.minimum_qualification && (
                                                                             <Typography variant="body2">
-                                                                                <b>Academic:</b> {progAcademic.minimum_qualification}
+                                                                                <b>
+                                                                                    Academic:
+                                                                                </b>{" "}
+                                                                                {
+                                                                                    programAcademic.minimum_qualification
+                                                                                }
                                                                             </Typography>
                                                                         )}
-                                                                        {progAcademic.field_requirement && (
+
+                                                                        {programAcademic?.field_requirement && (
                                                                             <Typography variant="body2">
-                                                                                <b>Field:</b> {progAcademic.field_requirement}
+                                                                                <b>
+                                                                                    Field:
+                                                                                </b>{" "}
+                                                                                {
+                                                                                    programAcademic.field_requirement
+                                                                                }
                                                                             </Typography>
                                                                         )}
-                                                                        {progAcademic.score != null && (
-                                                                            <Typography variant="body2">
-                                                                                <b>{progAcademic.score_type || "Score"}:</b>{" "}
-                                                                                {progAcademic.score}
-                                                                                {progAcademic.scale ? ` / ${progAcademic.scale}` : ""}
-                                                                            </Typography>
-                                                                        )}
+
+                                                                        {programAcademic?.score !=
+                                                                            null && (
+                                                                                <Typography variant="body2">
+                                                                                    <b>
+                                                                                        {programAcademic.score_type ||
+                                                                                            "Score"}
+                                                                                        :
+                                                                                    </b>{" "}
+                                                                                    {
+                                                                                        programAcademic.score
+                                                                                    }
+                                                                                    {programAcademic.scale &&
+                                                                                        ` / ${programAcademic.scale}`}
+                                                                                </Typography>
+                                                                            )}
                                                                     </>
-                                                                ) : hasInstGPA ? (
-                                                                    // Institution fallback for academic (GPA/Percentage/Qualification)
+                                                                ) : (
                                                                     <Typography variant="body2">
-                                                                        <b>Minimum {instGPA.type || "GPA"}:</b> {instGPA.score}
+                                                                        <b>
+                                                                            Minimum{" "}
+                                                                            {institutionGPA?.type ||
+                                                                                "GPA"}
+                                                                            :
+                                                                        </b>{" "}
+                                                                        {
+                                                                            institutionGPA?.score
+                                                                        }
                                                                     </Typography>
-                                                                ) : null}
+                                                                )}
                                                             </Box>
                                                         )}
 
-                                                        {/* Language Requirements */}
+                                                        {/* Language */}
                                                         {showLanguage && (
-                                                            <Box sx={{ mt: 0.75 }}>
+                                                            <Box>
                                                                 <Typography
                                                                     variant="body2"
                                                                     fontWeight="medium"
@@ -627,202 +775,250 @@ export default function InstitutionTabsContent({
                                                                     Language:
                                                                 </Typography>
 
-                                                                {hasProgLang ? (
-                                                                    // Program-specific language (existing chip logic)
-                                                                    <Box
-                                                                        sx={{
-                                                                            display: "flex",
-                                                                            flexWrap: "wrap",
-                                                                            gap: 0.5,
-                                                                        }}
-                                                                    >
-                                                                        {progLang?.english?.ielts?.overall != null && (
-                                                                            <Chip
-                                                                                label={`IELTS ${progLang.english.ielts.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.english?.toefl?.overall != null && (
-                                                                            <Chip
-                                                                                label={`TOEFL ${progLang.english.toefl.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.english?.pte?.overall != null && (
-                                                                            <Chip
-                                                                                label={`PTE ${progLang.english.pte.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.english?.duolingo?.overall != null && (
-                                                                            <Chip
-                                                                                label={`Duolingo ${progLang.english.duolingo.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.english?.cambridge && (
-                                                                            <Chip
-                                                                                label={`Cambridge ${progLang.english.cambridge}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.english?.cefr && (
-                                                                            <Chip
-                                                                                label={`English CEFR ${progLang.english.cefr}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.german?.cefr && (
-                                                                            <Chip
-                                                                                label={`German CEFR ${progLang.german.cefr}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.german?.testdaf?.overall != null && (
-                                                                            <Chip
-                                                                                label={`TestDaF ${progLang.german.testdaf.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                        {progLang?.german?.dsh?.overall != null && (
-                                                                            <Chip
-                                                                                label={`DSH ${progLang.german.dsh.overall}`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        )}
-                                                                    </Box>
-                                                                ) : hasInstLang ? (
-                                                                    // Institution fallback – display array of language tests
-                                                                    <Box
-                                                                        sx={{
-                                                                            display: "flex",
-                                                                            flexWrap: "wrap",
-                                                                            gap: 0.5,
-                                                                        }}
-                                                                    >
-                                                                        {instLang.map((test, idx) => (
-                                                                            <Chip
-                                                                                key={idx}
-                                                                                label={`${test.testType || test.testName || "Test"}${test.overall ? ` ${test.overall}` : ""
-                                                                                    }`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        ))}
-                                                                    </Box>
-                                                                ) : null}
-                                                            </Box>
-                                                        )}
-
-                                                        {/* Additional Requirements – unchanged */}
-                                                        {hasAdditional && (
-                                                            <Box sx={{ mt: 0.75 }}>
-                                                                <Typography variant="body2" fontWeight="medium">
-                                                                    Additional:
-                                                                </Typography>
                                                                 <Box
                                                                     sx={{
                                                                         display: "flex",
-                                                                        flexWrap: "wrap",
+                                                                        flexWrap:
+                                                                            "wrap",
                                                                         gap: 0.5,
-                                                                        mt: 0.5,
                                                                     }}
                                                                 >
-                                                                    {program.entry_requirements.additional_requirements
-                                                                        .slice(0, 3)
-                                                                        .map((requirement, i) => (
-                                                                            <Chip
-                                                                                key={i}
-                                                                                label={requirement}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                            />
-                                                                        ))}
-                                                                    {program.entry_requirements.additional_requirements.length >
-                                                                        3 && (
-                                                                            <Chip
-                                                                                label={`+${program.entry_requirements.additional_requirements
-                                                                                    .length - 3
-                                                                                    } more`}
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                                color="primary"
-                                                                            />
-                                                                        )}
+                                                                    {hasProgramLanguage ? (
+                                                                        <>
+                                                                            {programLanguage?.english?.ielts?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`IELTS ${programLanguage.english.ielts.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+
+                                                                            {programLanguage?.english?.toefl?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`TOEFL ${programLanguage.english.toefl.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+
+                                                                            {programLanguage?.english?.pte?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`PTE ${programLanguage.english.pte.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+
+                                                                            {programLanguage?.english?.duolingo?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`Duolingo ${programLanguage.english.duolingo.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+
+                                                                            {programLanguage?.english?.cambridge && (
+                                                                                <Chip
+                                                                                    label={`Cambridge ${programLanguage.english.cambridge}`}
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                />
+                                                                            )}
+
+                                                                            {programLanguage?.english?.cefr && (
+                                                                                <Chip
+                                                                                    label={`English CEFR ${programLanguage.english.cefr}`}
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                />
+                                                                            )}
+
+                                                                            {programLanguage?.german?.cefr && (
+                                                                                <Chip
+                                                                                    label={`German CEFR ${programLanguage.german.cefr}`}
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                />
+                                                                            )}
+
+                                                                            {programLanguage?.german?.testdaf?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`TestDaF ${programLanguage.german.testdaf.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+
+                                                                            {programLanguage?.german?.dsh?.overall !=
+                                                                                null && (
+                                                                                    <Chip
+                                                                                        label={`DSH ${programLanguage.german.dsh.overall}`}
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+                                                                        </>
+                                                                    ) : (
+                                                                        institutionLanguage.map(
+                                                                            (
+                                                                                test,
+                                                                                index
+                                                                            ) => (
+                                                                                <Chip
+                                                                                    key={
+                                                                                        index
+                                                                                    }
+                                                                                    label={`${test.testType || "Test"}${test.overall
+                                                                                        ? ` ${test.overall}`
+                                                                                        : ""
+                                                                                        }`}
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                />
+                                                                            )
+                                                                        )
+                                                                    )}
                                                                 </Box>
                                                             </Box>
                                                         )}
+
+                                                        {/* Additional */}
+                                                        {additionalRequirements.length >
+                                                            0 && (
+                                                                <Box sx={{ mt: 1 }}>
+                                                                    <Typography
+                                                                        variant="body2"
+                                                                        fontWeight="medium"
+                                                                    >
+                                                                        Additional:
+                                                                    </Typography>
+
+                                                                    <Box
+                                                                        sx={{
+                                                                            display: "flex",
+                                                                            flexWrap:
+                                                                                "wrap",
+                                                                            gap: 0.5,
+                                                                            mt: 0.5,
+                                                                        }}
+                                                                    >
+                                                                        {additionalRequirements
+                                                                            .slice(0, 3)
+                                                                            .map(
+                                                                                (
+                                                                                    requirement,
+                                                                                    index
+                                                                                ) => (
+                                                                                    <Chip
+                                                                                        key={
+                                                                                            index
+                                                                                        }
+                                                                                        label={
+                                                                                            requirement
+                                                                                        }
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )
+                                                                            )}
+
+                                                                        {additionalRequirements.length >
+                                                                            3 && (
+                                                                                <Chip
+                                                                                    label={`+${additionalRequirements.length -
+                                                                                        3
+                                                                                        } more`}
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                    color="primary"
+                                                                                />
+                                                                            )}
+                                                                    </Box>
+                                                                </Box>
+                                                            )}
                                                     </Box>
                                                 </>
-                                            );
-                                        })()}
+                                            )}
 
-                                        {/* Campuses – unchanged */}
-                                        {program.campuses?.length > 0 && (
-                                            <Box>
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    display="block"
-                                                    sx={{ mb: 0.5 }}
-                                                >
-                                                    Campuses
-                                                </Typography>
+                                            {/* Campuses */}
+                                            {program.campuses?.length > 0 && (
+                                                <Box>
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.secondary"
+                                                        display="block"
+                                                        sx={{ mb: 0.5 }}
+                                                    >
+                                                        Campuses
+                                                    </Typography>
+
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            flexWrap: "wrap",
+                                                            gap: 0.5,
+                                                        }}
+                                                    >
+                                                        {program.campuses
+                                                            .slice(0, 4)
+                                                            .map((campus, index) => (
+                                                                <Chip
+                                                                    key={index}
+                                                                    label={campus}
+                                                                    size="small"
+                                                                />
+                                                            ))}
+
+                                                        {program.campuses.length > 4 && (
+                                                            <Chip
+                                                                label={`+${program.campuses.length -
+                                                                    4
+                                                                    }`}
+                                                                size="small"
+                                                                variant="outlined"
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            )}
+
+                                            {/* URL */}
+                                            {program.url && (
                                                 <Box
                                                     sx={{
-                                                        display: "flex",
-                                                        flexWrap: "wrap",
-                                                        gap: 0.5,
+                                                        mt: "auto",
+                                                        pt: 1,
                                                     }}
                                                 >
-                                                    {program.campuses.slice(0, 4).map((campus, i) => (
-                                                        <Chip key={i} label={campus} size="small" />
-                                                    ))}
-                                                    {program.campuses.length > 4 && (
-                                                        <Chip
-                                                            label={`+${program.campuses.length - 4}`}
-                                                            size="small"
-                                                            variant="outlined"
-                                                        />
-                                                    )}
+                                                    <Button
+                                                        variant="contained"
+                                                        fullWidth
+                                                        endIcon={
+                                                            <OpenInNewIcon />
+                                                        }
+                                                        href={program.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        sx={{
+                                                            textTransform: "none",
+                                                            fontWeight: "bold",
+                                                        }}
+                                                    >
+                                                        Visit Program Page
+                                                    </Button>
                                                 </Box>
-                                            </Box>
-                                        )}
-
-                                        {/* Program URL button – unchanged */}
-                                        {program.url && (
-                                            <Box sx={{ mt: "auto", pt: 1 }}>
-                                                <Button
-                                                    variant="contained"
-                                                    color="primary"
-                                                    fullWidth
-                                                    endIcon={<OpenInNewIcon />}
-                                                    href={program.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    sx={{
-                                                        textTransform: "none",
-                                                        fontWeight: "bold",
-                                                    }}
-                                                >
-                                                    Visit Program Page
-                                                </Button>
-                                            </Box>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
-                    </Box>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </Box>
+                    )}
                 </Paper>
             );
 

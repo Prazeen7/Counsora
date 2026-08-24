@@ -35,14 +35,103 @@ const getInstitutions = async (req, res) => {
         const skip = (pageNumber - 1) * limitNumber;
 
         const [institutions, total] = await Promise.all([
-            Institution.find(query)
-                .populate('country', 'code name currency')
-                .select(
-                    'name logo country type campuses.city entryRequirements scholarships applicationFee'
-                )
-                .skip(skip)
-                .limit(limitNumber)
-                .sort({ name: 1 }),
+            Institution.aggregate([
+                { $match: query },
+
+                {
+                    $lookup: {
+                        from: "programs",
+                        let: { institutionId: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            {
+                                                $eq: [
+                                                    "$institutionId",
+                                                    "$$institutionId",
+                                                ],
+                                            },
+                                            {
+                                                $eq: ["$isActive", true],
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                            {
+                                $count: "count",
+                            },
+                        ],
+                        as: "programStats",
+                    },
+                },
+
+                {
+                    $addFields: {
+                        programCount: {
+                            $ifNull: [
+                                { $arrayElemAt: ["$programStats.count", 0] },
+                                0,
+                            ],
+                        },
+                    },
+                },
+
+                {
+                    $project: {
+                        name: 1,
+                        logo: 1,
+                        country: 1,
+                        type: 1,
+                        "campuses.city": 1,
+                        entryRequirements: 1,
+                        scholarships: 1,
+                        applicationFee: 1,
+                        programCount: 1,
+                    },
+                },
+
+                { $sort: { name: 1 } },
+                { $skip: skip },
+                { $limit: limitNumber },
+
+                {
+                    $lookup: {
+                        from: "countries",
+                        localField: "country",
+                        foreignField: "_id",
+                        as: "country",
+                    },
+                },
+
+                {
+                    $unwind: {
+                        path: "$country",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+
+                {
+                    $project: {
+                        name: 1,
+                        logo: 1,
+                        type: 1,
+                        campuses: 1,
+                        entryRequirements: 1,
+                        scholarships: 1,
+                        applicationFee: 1,
+                        programCount: 1,
+                        country: {
+                            _id: "$country._id",
+                            code: "$country.code",
+                            name: "$country.name",
+                            currency: "$country.currency",
+                        },
+                    },
+                },
+            ]),
 
             Institution.countDocuments(query),
         ]);
