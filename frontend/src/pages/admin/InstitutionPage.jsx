@@ -156,19 +156,21 @@ const DEFAULT_MENU_PROPS = {
 // --- Dialog Components with Isolated Local State ---
 
 function ScholarshipDialog({ open, onClose, scholarship, onSave }) {
-    const [formData, setFormData] = useState({ name: "", amount: "", description: "" });
+    const [formData, setFormData] = useState({ name: "", value: "", description: "", url: "" });
 
     useEffect(() => {
         if (open) {
             if (scholarship) {
                 setFormData({
                     name: scholarship.name || "",
-                    amount: scholarship.amount || "",
+                    value: scholarship.value || scholarship.amount || "",
                     description: scholarship.description || "",
+                    url: scholarship.url || "",
                     _id: scholarship._id,
+                    _clientId: scholarship._clientId,
                 });
             } else {
-                setFormData({ name: "", amount: "", description: "" });
+                setFormData({ name: "", value: "", description: "", url: "" });
             }
         }
     }, [scholarship, open]);
@@ -186,7 +188,7 @@ function ScholarshipDialog({ open, onClose, scholarship, onSave }) {
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle>
-                {formData._id ? "Edit Scholarship" : "Add Scholarship"}
+                {formData._id || formData._clientId ? "Edit Scholarship" : "Add Scholarship"}
             </DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -201,9 +203,9 @@ function ScholarshipDialog({ open, onClose, scholarship, onSave }) {
                     <Grid item xs={12}>
                         <TextField
                             fullWidth
-                            label="Amount"
-                            value={formData.amount}
-                            onChange={(e) => handleChange("amount", e.target.value)}
+                            label="Scholarship Value"
+                            value={formData.value}
+                            onChange={(e) => handleChange("value", e.target.value)}
                         />
                     </Grid>
                     <Grid item xs={12}>
@@ -214,6 +216,16 @@ function ScholarshipDialog({ open, onClose, scholarship, onSave }) {
                             label="Description"
                             value={formData.description}
                             onChange={(e) => handleChange("description", e.target.value)}
+                        />
+                    </Grid>
+                    <Grid item xs={12}>
+                        <TextField
+                            fullWidth
+                            type="url"
+                            label="Scholarship URL"
+                            value={formData.url}
+                            onChange={(e) => handleChange("url", e.target.value)}
+                            placeholder="https://www.example.edu/scholarships/..."
                         />
                     </Grid>
                 </Grid>
@@ -255,6 +267,7 @@ function LocationDialog({ open, onClose, location, institution, onSave }) {
                     useInstitutionContact: location.useInstitutionContact || false,
                     useInstitutionEmail: location.useInstitutionEmail || false,
                     _id: location._id,
+                    _clientId: location._clientId,
                 });
             } else {
                 setFormData({
@@ -284,7 +297,7 @@ function LocationDialog({ open, onClose, location, institution, onSave }) {
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>{formData._id ? "Edit Campus" : "Add Campus"}</DialogTitle>
+            <DialogTitle>{formData._id || formData._clientId ? "Edit Campus" : "Add Campus"}</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                     <Grid item xs={12}>
@@ -529,11 +542,19 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                     application_fees: "",
                     application_deadline: "",
                     url: "",
+                    isActive: true,
                 };
 
             setFormData({
                 ...base,
-                field: base.field && FIELD_OPTIONS.includes(base.field) ? base.field : (base.field || ""),
+                isActive: base.isActive !== false,
+                field_other: base.field_other || (base.field && !FIELD_OPTIONS.includes(base.field) ? base.field : ""),
+                field_requirement_other:
+                    base.entry_requirements?.academic?.field_requirement &&
+                    !FIELD_OPTIONS.includes(base.entry_requirements.academic.field_requirement)
+                        ? base.entry_requirements.academic.field_requirement
+                        : "",
+                field: base.field && FIELD_OPTIONS.includes(base.field) ? base.field : (base.field ? "Other" : ""),
                 level: base.level && LEVEL_OPTIONS.includes(base.level) ? base.level : (base.level || ""),
                 credits_raw: Array.isArray(base.credits)
                     ? base.credits.join(", ")
@@ -617,7 +638,10 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
         const payload = {
             ...formData,
             level: formData.level && LEVEL_OPTIONS.includes(formData.level) ? formData.level : null,
-            field: formData.field && FIELD_OPTIONS.includes(formData.field) ? formData.field : (formData.field ? "Other" : null),
+            field: formData.field === "Other"
+                ? (formData.field_other?.trim() || "Other")
+                : (formData.field || null),
+            field_other: null,
             credits:
                 typeof formData.credits_raw === "string"
                     ? formData.credits_raw
@@ -668,7 +692,11 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                     score: parseScoreNumber(formData.entry_requirements?.academic?.score),
                     scale: parseScoreNumber(formData.entry_requirements?.academic?.scale),
                     field_requirement:
-                        formData.entry_requirements?.academic?.field_requirement || null,
+                        formData.entry_requirements?.academic?.field_requirement === "Other"
+                            ? (formData.field_requirement_other || "Other")
+                            : FIELD_OPTIONS.includes(formData.entry_requirements?.academic?.field_requirement)
+                            ? formData.entry_requirements.academic.field_requirement
+                            : (formData.entry_requirements?.academic?.field_requirement ? "Other" : null),
                 },
                 language_requirements: {
                     ...formData.entry_requirements?.language_requirements,
@@ -786,6 +814,17 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                                 </Select>
                             </FormControl>
                         </Grid>
+                        {formData.field === "Other" && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    required
+                                    label="Specify Other Field"
+                                    value={formData.field_other || ""}
+                                    onChange={(e) => handleChange("field_other", e.target.value)}
+                                />
+                            </Grid>
+                        )}
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
@@ -898,6 +937,18 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                             />
                         </Grid>
 
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={formData.isActive !== false}
+                                        onChange={(e) => handleChange("isActive", e.target.checked)}
+                                    />
+                                }
+                                label="Program is active"
+                            />
+                        </Grid>
+
                         {/* Tuition Fees */}
                         <Grid item xs={12}>
                             <TextField
@@ -975,12 +1026,15 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                                     </FormControl>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
+                                    <FormControl fullWidth>
+                                        <InputLabel id="academic-field-requirement-label">Field Requirement</InputLabel>
+                                        <Select
+                                        labelId="academic-field-requirement-label"
                                         label="Field Requirement"
                                         value={
-                                            formData.entry_requirements?.academic
-                                                ?.field_requirement || ""
+                                            FIELD_OPTIONS.includes(formData.entry_requirements?.academic?.field_requirement)
+                                                ? formData.entry_requirements.academic.field_requirement
+                                                : (formData.entry_requirements?.academic?.field_requirement ? "Other" : "")
                                         }
                                         onChange={(e) =>
                                             handleChange("entry_requirements", {
@@ -991,8 +1045,27 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                                                 },
                                             })
                                         }
-                                    />
+                                        >
+                                            <MenuItem value=""><em>Not specified</em></MenuItem>
+                                            {FIELD_OPTIONS.map((fieldOption) => (
+                                                <MenuItem key={fieldOption} value={fieldOption}>
+                                                    {fieldOption}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
+                                {formData.entry_requirements?.academic?.field_requirement === "Other" && (
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Specify Other Field Requirement"
+                                            value={formData.field_requirement_other || ""}
+                                            onChange={(e) => handleChange("field_requirement_other", e.target.value)}
+                                        />
+                                    </Grid>
+                                )}
                                 <Grid item xs={12} sm={4}>
                                     <FormControl fullWidth>
                                         <InputLabel id="program-score-type-label">Score Type</InputLabel>
@@ -1249,8 +1322,15 @@ const OverviewEditTab = React.memo(({ editedInstitution, onChange, onAwardsChang
                     label="Application Fee (Amount)"
                     fullWidth
                     type="number"
-                    value={editedInstitution?.applicationFee ?? ""}
-                    onChange={(e) => onChange("applicationFee", e.target.value)}
+                    value={
+                        typeof editedInstitution?.applicationFee === "object"
+                            ? editedInstitution.applicationFee?.amount ?? ""
+                            : editedInstitution?.applicationFee ?? ""
+                    }
+                    onChange={(e) => onChange("applicationFee", {
+                        ...(typeof editedInstitution?.applicationFee === "object" ? editedInstitution.applicationFee : {}),
+                        amount: e.target.value,
+                    })}
                 />
 
                 <TextField
@@ -1391,7 +1471,7 @@ const CampusesEditTab = React.memo(({ campuses, onAddCampus, onEditCampus, onDel
             </Box>
             <Grid container spacing={3}>
                 {campuses?.map((location, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={location._id || index}>
+                    <Grid item xs={12} sm={6} md={4} key={location._id || location._clientId || index}>
                         <Card
                             sx={{
                                 borderRadius: 2,
@@ -1432,7 +1512,7 @@ const CampusesEditTab = React.memo(({ campuses, onAddCampus, onEditCampus, onDel
                                     </IconButton>
                                     <IconButton
                                         size="small"
-                                        onClick={() => onDeleteCampus(location._id)}
+                                        onClick={() => onDeleteCampus(location._id || location._clientId)}
                                         sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
                                     >
                                         <DeleteIcon fontSize="small" color="error" />
@@ -1478,7 +1558,7 @@ const ScholarshipsEditTab = React.memo(({ scholarships, onAddScholarship, onEdit
             </Box>
             <Grid container spacing={3}>
                 {scholarships?.map((scholarship, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={scholarship._id || index}>
+                    <Grid item xs={12} sm={6} md={4} key={scholarship._id || scholarship._clientId || index}>
                         <Card
                             sx={{
                                 minHeight: 100,
@@ -1524,7 +1604,7 @@ const ScholarshipsEditTab = React.memo(({ scholarships, onAddScholarship, onEdit
                                     </IconButton>
                                     <IconButton
                                         size="small"
-                                        onClick={() => onDeleteScholarship(scholarship._id)}
+                                        onClick={() => onDeleteScholarship(scholarship._id || scholarship._clientId)}
                                         sx={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
                                     >
                                         <DeleteIcon fontSize="small" color="error" />
@@ -1542,15 +1622,26 @@ const ScholarshipsEditTab = React.memo(({ scholarships, onAddScholarship, onEdit
                                 >
                                     {scholarship.name}
                                 </Typography>
-                                {scholarship.amount && (
+                                {(scholarship.value || scholarship.amount) && (
                                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
-                                        Amount: {scholarship.amount}
+                                        Value: {scholarship.value || scholarship.amount}
                                     </Typography>
                                 )}
                                 {scholarship.description && (
                                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 1 }}>
                                         {scholarship.description}
                                     </Typography>
+                                )}
+                                {scholarship.url && (
+                                    <Button
+                                        href={scholarship.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        size="small"
+                                        sx={{ mt: 1, display: "flex", mx: "auto" }}
+                                    >
+                                        View scholarship
+                                    </Button>
                                 )}
                             </CardContent>
                         </Card>
@@ -2105,6 +2196,14 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
     const handleEditInstitution = useCallback(() => {
         const clone = JSON.parse(JSON.stringify(institution));
+        clone.campuses = (clone.campuses || []).map((campus, index) => ({
+            ...campus,
+            _clientId: campus._id || `campus_${index}`,
+        }));
+        clone.scholarships = (clone.scholarships || []).map((scholarship, index) => ({
+            ...scholarship,
+            _clientId: scholarship._id || `scholarship_${index}`,
+        }));
         if (clone.documents) {
             clone.documents.incomeSources = Array.isArray(clone.documents.incomeSources)
                 ? clone.documents.incomeSources.join("\n")
@@ -2159,16 +2258,26 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             // Filter out marked items and format fields
             const toSave = {
                 ...editedInstitution,
-                applicationFee:
-                    editedInstitution.applicationFee !== "" &&
-                        editedInstitution.applicationFee !== null &&
-                        editedInstitution.applicationFee !== undefined
-                        ? Number(editedInstitution.applicationFee)
-                        : 0,
+                applicationFee: {
+                    amount: Number(
+                        typeof editedInstitution.applicationFee === "object"
+                            ? editedInstitution.applicationFee?.amount || 0
+                            : editedInstitution.applicationFee || 0
+                    ),
+                    currency:
+                        (typeof editedInstitution.applicationFee === "object"
+                            ? editedInstitution.applicationFee?.currency
+                            : null) || institution?.country?.currency || "",
+                },
                 campuses: editedInstitution.campuses?.filter(
                     (loc) =>
-                        !pendingDeletions.locations.includes(loc._id) &&
+                        !pendingDeletions.locations.includes(loc._id || loc._clientId) &&
                         !loc.markedForDeletion
+                ),
+                scholarships: editedInstitution.scholarships?.filter(
+                    (scholarship) =>
+                        !pendingDeletions.scholarships.includes(scholarship._id || scholarship._clientId) &&
+                        !scholarship.markedForDeletion
                 ),
                 documents: editedInstitution.documents
                     ? {
@@ -2208,6 +2317,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             const formData = new FormData();
 
             Object.keys(toSave).forEach((key) => {
+                if (toSave[key] === undefined) {
+                    return;
+                }
                 if (key === "logo" && typeof toSave[key] === "object") {
                     return;
                 }
@@ -2270,7 +2382,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             [field === "locations" ? "campuses" : field]: prev[
                 field === "locations" ? "campuses" : field
             ]?.map((item) =>
-                item._id === itemId ? { ...item, markedForDeletion: true } : item
+                (item._id || item._clientId) === itemId ? { ...item, markedForDeletion: true } : item
             ),
         }));
 
@@ -2298,15 +2410,16 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const saveLocationChanges = useCallback((savedLocation) => {
         setEditedInstitution((prev) => {
             const updatedLocations = [...(prev?.campuses || [])];
-            if (savedLocation._id) {
-                const index = updatedLocations.findIndex((l) => l._id === savedLocation._id);
+            const savedId = savedLocation._id || savedLocation._clientId;
+            if (savedId) {
+                const index = updatedLocations.findIndex((location) => (location._id || location._clientId) === savedId);
                 if (index !== -1) {
                     updatedLocations[index] = savedLocation;
                 }
             } else {
                 updatedLocations.push({
                     ...savedLocation,
-                    _id: `temp_${Date.now()}`,
+                    _clientId: `campus_temp_${Date.now()}`,
                 });
             }
             return {
@@ -2328,15 +2441,16 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const saveScholarshipChanges = useCallback((savedScholarship) => {
         setEditedInstitution((prev) => {
             const updatedScholarships = [...(prev?.scholarships || [])];
-            if (savedScholarship._id) {
-                const index = updatedScholarships.findIndex((s) => s._id === savedScholarship._id);
+            const savedId = savedScholarship._id || savedScholarship._clientId;
+            if (savedId) {
+                const index = updatedScholarships.findIndex((scholarship) => (scholarship._id || scholarship._clientId) === savedId);
                 if (index !== -1) {
                     updatedScholarships[index] = savedScholarship;
                 }
             } else {
                 updatedScholarships.push({
                     ...savedScholarship,
-                    _id: `temp_${Date.now()}`,
+                    _clientId: `scholarship_temp_${Date.now()}`,
                 });
             }
             return {
@@ -2615,10 +2729,10 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                             {displayCampuses.length} campuses • {programs.length} programs
                         </Typography>
 
-                        {institution.applicationFee > 0 && (
+                        {(institution.applicationFee?.amount || Number(institution.applicationFee) || 0) > 0 && (
                             <Typography variant="body2" sx={{ mt: 0.5 }}>
                                 Application Fee: {institution.country?.currency || "USD"}{" "}
-                                {institution.applicationFee}
+                                {institution.applicationFee?.amount || institution.applicationFee}
                             </Typography>
                         )}
                     </Box>

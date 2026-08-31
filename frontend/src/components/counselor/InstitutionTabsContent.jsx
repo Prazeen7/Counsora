@@ -544,10 +544,7 @@ export default function InstitutionTabsContent({
                                                     fontWeight="bold"
                                                     sx={{
                                                         lineHeight: 1.3,
-                                                        display: "-webkit-box",
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: "vertical",
-                                                        overflow: "hidden",
+                                                        overflowWrap: "anywhere",
                                                     }}
                                                 >
                                                     {program.degree_name ||
@@ -567,7 +564,7 @@ export default function InstitutionTabsContent({
                                                             overflow: "hidden",
                                                         }}
                                                     >
-                                                        {program.field}
+                                                        {program.field_other || program.field}
                                                     </Typography>
                                                 )}
                                             </Box>
@@ -592,6 +589,22 @@ export default function InstitutionTabsContent({
                                                     </Typography>
                                                 </Box>
                                             )}
+
+                                            <Box>
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                    sx={{ display: "block", mb: 0.5 }}
+                                                >
+                                                    Status
+                                                </Typography>
+                                                <Chip
+                                                    label={program.isActive !== false ? "Active" : "Inactive"}
+                                                    color={program.isActive !== false ? "success" : "default"}
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </Box>
 
                                             {/* Duration + Tuition */}
                                             {(program.duration ||
@@ -1110,7 +1123,10 @@ export default function InstitutionTabsContent({
                                 key={index}
                                 sx={{
                                     borderRadius: 3,
-                                    height: "100%",
+                                    minHeight: 380,
+                                    height: 550,
+                                    display: "flex",
+                                    flexDirection: "column",
                                     transition: "0.2s",
                                     "&:hover": {
                                         boxShadow: 4,
@@ -1118,22 +1134,88 @@ export default function InstitutionTabsContent({
                                     },
                                 }}
                             >
-                                <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <CardContent
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 2,
+                                        flex: 1,
+                                        minHeight: 0,
+                                        overflow: "hidden",
+                                    }}
+                                >
                                     <Typography variant="h6" fontWeight="bold">
                                         {scholarship.name}
                                     </Typography>
 
-                                    <Box>
+                                    {scholarship.value && String(scholarship.value).length > 24 && (
+                                        <Box
+                                            aria-label={`Scholarship value: ${scholarship.value}`}
+                                            sx={{
+                                                py: 0.75,
+                                                overflow: "hidden",
+                                                whiteSpace: "nowrap",
+                                                bgcolor: "success.main",
+                                                color: "success.contrastText",
+                                                borderRadius: 5,
+                                                "@keyframes scholarshipTickerRightToLeft": {
+                                                    from: { transform: "translateX(0)" },
+                                                    to: { transform: "translateX(-50%)" },
+                                                },
+                                                "&:hover .scholarship-ticker": {
+                                                    animationPlayState: "paused",
+                                                },
+                                            }}
+                                        >
+                                            <Typography
+                                                className="scholarship-ticker"
+                                                variant="body2"
+                                                sx={{
+                                                    display: "inline-block",
+                                                    width: "max-content",
+                                                    fontWeight: 700,
+                                                    animation: `scholarshipTickerRightToLeft ${Math.max(
+                                                        35,
+                                                        String(scholarship.value).length * 0.55
+                                                    )}s linear infinite`,
+                                                    willChange: "transform",
+                                                }}
+                                            >
+                                                <Box component="span" sx={{ display: "inline-block", px: 1.5 }}>
+                                                    {scholarship.value} &nbsp;|&nbsp; {scholarship.value} &nbsp;|&nbsp;
+                                                </Box>
+                                                <Box component="span" aria-hidden="true" sx={{ display: "inline-block", px: 1.5 }}>
+                                                    {scholarship.value} &nbsp;|&nbsp; {scholarship.value} &nbsp;|&nbsp;
+                                                </Box>
+                                            </Typography>
+                                        </Box>
+                                    )}
+
+                                    {scholarship.value && String(scholarship.value).length <= 24 && (
                                         <Chip
                                             label={scholarship.value}
                                             color="success"
                                             size="small"
+                                            sx={{ alignSelf: "flex-start", maxWidth: "100%" }}
                                         />
-                                    </Box>
+                                    )}
 
                                     <Divider />
 
-                                    <Box>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minHeight: 0,
+                                            overflowY: "auto",
+                                            pr: 0.5,
+                                            scrollbarWidth: "thin",
+                                            "&::-webkit-scrollbar": { width: 6 },
+                                            "&::-webkit-scrollbar-thumb": {
+                                                bgcolor: "action.disabled",
+                                                borderRadius: 3,
+                                            },
+                                        }}
+                                    >
                                         <Typography
                                             variant="caption"
                                             color="text.secondary"
@@ -1142,26 +1224,27 @@ export default function InstitutionTabsContent({
                                             Description
                                         </Typography>
 
-                                        <Typography variant="body2">
+                                        <Typography
+                                            variant="body2"
+                                            sx={{ textAlign: "justify", textJustify: "inter-word" }}
+                                        >
                                             {scholarship.description}
                                         </Typography>
                                     </Box>
 
-                                    <Divider />
-
-                                    <Box>
-                                        <Typography
-                                            variant="caption"
-                                            color="text.secondary"
-                                            sx={{ display: "block", mb: 1 }}
+                                    {scholarship.url && (
+                                        <Button
+                                            href={scholarship.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            variant="outlined"
+                                            size="small"
+                                            endIcon={<OpenInNewIcon />}
+                                            sx={{ mt: "auto", alignSelf: "flex-start" }}
                                         >
-                                            Eligibility
-                                        </Typography>
-
-                                        <Typography variant="body2">
-                                            {scholarship.eligibility}
-                                        </Typography>
-                                    </Box>
+                                            View scholarship
+                                        </Button>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}

@@ -109,26 +109,8 @@ const programSchema = new mongoose.Schema(
         },
         field: {
             type: String,
-            enum: [
-                "Allied Health",
-                "Management, Business and Accounting",
-                "Creative, Performing and Visual Arts",
-                "Creative Media, Communication and Arts",
-                "Education, Teaching and Childcare",
-                "Engineering, Built Environment and Aviation",
-                "English and Study Pathways",
-                "Information Systems and Technology",
-                "Law, Criminology and Justice",
-                "Nursing, Paramedicine and Health",
-                "Psychology, Social Work and Community Services",
-                "Safety Sciences",
-                "Science, Environment and Agriculture",
-                "Service Industries",
-                "Trades",
-                "Other",
-                null,
-            ],
             default: null,
+            trim: true,
         },
         credits: {
             type: [String],
@@ -184,8 +166,8 @@ const programSchema = new mongoose.Schema(
         },
         url: {
             type: String,
-            required: true,
             trim: true,
+            default: null,
         },
         isActive: {
             type: Boolean,

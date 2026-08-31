@@ -27,6 +27,7 @@ backend/.env.*
 dist/
 frontend/dist/
 backend/dist/
+backend/import-output/
 dist-ssr/
 
 # Local config

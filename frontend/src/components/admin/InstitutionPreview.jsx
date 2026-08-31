@@ -240,6 +240,11 @@ export default function InstitutionPreview({ data, onEdit, onConfirm, onCancel, 
                                         <Typography variant="body2" color="text.secondary">
                                             <strong>Description:</strong> {scholarship.description || 'N/A'}
                                         </Typography>
+                                        {scholarship.url && (
+                                            <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                                                <strong>URL:</strong> {scholarship.url}
+                                            </Typography>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}

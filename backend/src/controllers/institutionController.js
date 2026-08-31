@@ -747,13 +747,38 @@ const updateInstitution = async (req, res) => {
         const updateData = {};
 
         for (const [key, value] of Object.entries(req.body)) {
+            // FormData stringifies JavaScript undefined. Never pass that
+            // sentinel into Mongoose, especially for embedded documents.
+            if (value === undefined || value === "undefined") {
+                continue;
+            }
             try {
                 // Try to parse as JSON
-                updateData[key] = JSON.parse(value);
+                const parsed = JSON.parse(value);
+                if (parsed !== undefined) updateData[key] = parsed;
             } catch {
                 // If not JSON, use as-is
                 updateData[key] = value;
             }
+        }
+
+        // Normalize legacy embedded records before running update validators.
+        // Older campuses may predate the required address field, and edit-mode
+        // client identifiers must never be persisted.
+        if (Array.isArray(updateData.campuses)) {
+            updateData.campuses = updateData.campuses
+                .filter((campus) => campus && typeof campus === "object" && !campus.markedForDeletion)
+                .map(({ _clientId, markedForDeletion, country, ...campus }) => ({
+                    ...campus,
+                    address: String(campus.address || campus.city || campus.name || country || "").trim(),
+                }))
+                .filter((campus) => campus.address);
+        }
+
+        if (Array.isArray(updateData.scholarships)) {
+            updateData.scholarships = updateData.scholarships
+                .filter((scholarship) => scholarship && typeof scholarship === "object" && !scholarship.markedForDeletion)
+                .map(({ _clientId, markedForDeletion, ...scholarship }) => scholarship);
         }
 
         // Handle logo upload if file is provided
@@ -797,7 +822,7 @@ const updateInstitution = async (req, res) => {
         const institution = await Institution.findByIdAndUpdate(
             id,
             updateData,
-            { new: true, runValidators: true }
+            { returnDocument: "after", runValidators: true }
         ).populate("country", "code name currency");
 
         if (!institution) {

@@ -30,6 +30,15 @@ function normalizeNumber(value) {
     return Number.isNaN(num) ? null : num;
 }
 
+function normalizeEnum(value, allowedValues, fallback = null) {
+    const normalized = normalizeString(value);
+    if (normalized === null) return fallback;
+    const match = allowedValues.find(
+        (allowed) => allowed.toLowerCase() === normalized.toLowerCase()
+    );
+    return match || fallback;
+}
+
 // ---------- Academic requirements ----------
 
 function normalizeAcademicRequirement(value) {
@@ -44,9 +53,11 @@ function normalizeAcademicRequirement(value) {
     }
 
     return {
-        minimum_qualification: normalizeString(value.minimum_qualification),
+        minimum_qualification: normalizeEnum(value.minimum_qualification, [
+            "Higher Secondary", "Diploma", "Bachelor", "Master", "Doctoral",
+        ]),
         field_requirement: normalizeString(value.field_requirement),
-        score_type: normalizeString(value.score_type),
+        score_type: normalizeEnum(value.score_type, ["GPA", "Percentage"]),
         score: normalizeNumber(value.score),
         scale: normalizeNumber(value.scale),
     };
@@ -205,7 +216,9 @@ function normalizeProgramData(program) {
 
     return {
         degree_name: normalizeString(program.degree_name),
-        level: normalizeString(program.level),
+        level: normalizeEnum(program.level, [
+            "Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research",
+        ]),
         field: normalizeString(program.field),
         credits: normalizeStringArray(program.credits),
         format: normalizeString(program.format),
@@ -264,5 +277,6 @@ module.exports = {
     normalizeProgramsArray,
     normalizeString,
     normalizeStringArray,
+    normalizeEnum,
     normalizeEntryRequirements,
 };

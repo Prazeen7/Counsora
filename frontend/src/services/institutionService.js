@@ -37,3 +37,26 @@ export function addInstitution(institutionData, logoFile = null) {
         isFormData: true,
     });
 }
+
+function uploadImport(endpoint, file, extra = {}) {
+    const formData = new FormData();
+    formData.append("file", file);
+    Object.entries(extra).forEach(([key, value]) => formData.append(key, typeof value === "string" ? value : JSON.stringify(value)));
+    return apiRequest(endpoint, { method: "POST", body: formData, isFormData: true });
+}
+
+export function discoverSpreadsheetGroups(file) {
+    return uploadImport("/institution/import/groups", file);
+}
+
+export function extractInstitutionsFromSpreadsheet(file, groupId, sessionId) {
+    return uploadImport("/institution/import/extract-institutions", file, { groupId, sessionId });
+}
+
+export function extractProgramsFromSpreadsheet(file, institutions, groupId, sessionId) {
+    return uploadImport("/institution/import/extract-programs", file, { institutions, groupId, sessionId });
+}
+
+export function commitInstitutionImport(institutions, programs, sessionId, groupId) {
+    return apiRequest("/institution/import/commit", { method: "POST", body: JSON.stringify({ institutions, programs, sessionId, groupId }) });
+}

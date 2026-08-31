@@ -31,8 +31,8 @@ const campusSchema = new mongoose.Schema(
 
         mapEmbedUrl: {
             type: String,
-            required: true,
             trim: true,
+            default: null,
         },
     },
     { _id: false }
@@ -91,6 +91,10 @@ const scholarshipSchema = new mongoose.Schema(
         value: String,
         description: String,
         eligibility: String,
+        url: {
+            type: String,
+            trim: true,
+        },
     },
     { _id: false }
 );
@@ -195,6 +199,13 @@ const institutionSchema = new mongoose.Schema(
         isActive: {
             type: Boolean,
             default: true,
+        },
+
+        importFingerprint: {
+            type: String,
+            unique: true,
+            sparse: true,
+            index: true,
         },
 
         crawlStatus: {

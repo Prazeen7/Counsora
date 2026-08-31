@@ -81,9 +81,9 @@ const sanitizeProgramData = (data) => {
     delete sanitized.tuitionFee;
 
     if (sanitized.field !== undefined) {
-        sanitized.field = VALID_FIELDS.includes(sanitized.field)
-            ? sanitized.field
-            : (sanitized.field ? "Other" : null);
+        sanitized.field = typeof sanitized.field === "string"
+            ? sanitized.field.trim() || null
+            : null;
     }
     if (sanitized.level !== undefined) {
         sanitized.level = VALID_LEVELS.includes(sanitized.level) ? sanitized.level : null;
