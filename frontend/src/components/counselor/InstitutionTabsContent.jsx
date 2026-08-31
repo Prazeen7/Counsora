@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     Typography,
@@ -16,6 +16,7 @@ import {
     MenuItem,
     Button,
     IconButton,
+    Tooltip,
 } from "@mui/material";
 import {
     OpenInNew as OpenInNewIcon,
@@ -23,6 +24,111 @@ import {
     Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
+
+const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== "";
+
+const MONTH_NAMES = [
+    ["january", "jan"], ["february", "feb"], ["march", "mar"],
+    ["april", "apr"], ["may"], ["june", "jun"], ["july", "jul"],
+    ["august", "aug"], ["september", "sep", "sept"],
+    ["october", "oct"], ["november", "nov"], ["december", "dec"],
+];
+
+const getIntakeMonthIndex = (intake) => {
+    const text = String(intake || "").toLowerCase();
+    return MONTH_NAMES.findIndex((aliases) =>
+        aliases.some((month) => new RegExp(`\\b${month}\\b`, "i").test(text))
+    );
+};
+
+const sortIntakesByMonth = (values = []) => [...values].sort((left, right) => {
+    const leftMonth = getIntakeMonthIndex(left);
+    const rightMonth = getIntakeMonthIndex(right);
+    if (leftMonth === -1 && rightMonth !== -1) return 1;
+    if (leftMonth !== -1 && rightMonth === -1) return -1;
+    if (leftMonth !== rightMonth) return leftMonth - rightMonth;
+    return String(left).localeCompare(String(right), undefined, { numeric: true });
+});
+
+const isUndergraduateLevel = (level = "") =>
+    /foundation|diploma|associate|bachelor|undergraduate/i.test(level);
+
+const deriveLowestProgramRequirements = (programs, undergraduate) => {
+    const matchingPrograms = programs.filter((program) =>
+        undergraduate
+            ? isUndergraduateLevel(program.level)
+            : !isUndergraduateLevel(program.level)
+    );
+
+    const academicOptions = matchingPrograms
+        .map((program) => program.entry_requirements?.academic)
+        .filter(Boolean);
+    const scoredAcademicOptions = academicOptions
+        .map((academic) => ({ academic, numericScore: Number.parseFloat(academic.score) }))
+        .filter(({ numericScore }) => Number.isFinite(numericScore))
+        .sort((a, b) => a.numericScore - b.numericScore);
+    const lowestAcademic = scoredAcademicOptions[0]?.academic || academicOptions.find(
+        (academic) => hasValue(academic.minimum_qualification)
+    );
+
+    const tests = [
+        ["IELTS", "english", "ielts"],
+        ["TOEFL", "english", "toefl"],
+        ["PTE", "english", "pte"],
+        ["Duolingo", "english", "duolingo"],
+        ["TestDaF", "german", "testdaf"],
+        ["DSH", "german", "dsh"],
+    ];
+    const languageRequirement = tests.flatMap(([testType, language, testKey]) => {
+        const options = matchingPrograms
+            .map((program) => program.entry_requirements?.language_requirements?.[language]?.[testKey])
+            .filter((test) => test && hasValue(test.overall))
+            .map((test) => ({ test, numericOverall: Number.parseFloat(test.overall) }))
+            .sort((a, b) => {
+                if (Number.isFinite(a.numericOverall) && Number.isFinite(b.numericOverall)) {
+                    return a.numericOverall - b.numericOverall;
+                }
+                return Number.isFinite(a.numericOverall) ? -1 : 1;
+            });
+        if (!options.length) return [];
+
+        const test = options[0].test;
+        const individualFields = ["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"];
+        return [{
+            testType,
+            overall: test.overall,
+            ...Object.fromEntries(individualFields.map((field) => [field, test[field]])),
+            hasIndividualScores: individualFields.some((field) => hasValue(test[field])),
+        }];
+    });
+
+    return {
+        gpa: lowestAcademic
+            ? {
+                type: lowestAcademic.score_type || "Score",
+                score: lowestAcademic.score,
+                scale: lowestAcademic.scale,
+                minimumQualification: lowestAcademic.minimum_qualification,
+                fieldRequirement: lowestAcademic.field_requirement,
+            }
+            : null,
+        languageRequirement,
+    };
+};
+
+const resolveEntryRequirement = (institutionEntry, programFallback) => {
+    const institutionGpa = institutionEntry?.gpa;
+    const institutionLanguages = (institutionEntry?.languageRequirement || []).filter(
+        (test) => hasValue(test?.testType || test?.testName) || hasValue(test?.overall)
+    );
+
+    return {
+        gpa: hasValue(institutionGpa?.score) ? institutionGpa : programFallback.gpa,
+        languageRequirement: institutionLanguages.length
+            ? institutionLanguages
+            : programFallback.languageRequirement,
+    };
+};
 
 export default function InstitutionTabsContent({
     activeTab,
@@ -50,6 +156,32 @@ export default function InstitutionTabsContent({
     const [selectedCampus, setSelectedCampus] = useState(
         institution?.campuses?.[0] || null
     );
+
+    useEffect(() => {
+        const latestCampuses = getDisplayCampuses(institution, programs);
+
+        setSelectedCampus((currentCampus) => {
+            if (latestCampuses.length === 0) return null;
+
+            const matchingCampus = latestCampuses.find((campus) =>
+                currentCampus?._id && campus?._id
+                    ? String(campus._id) === String(currentCampus._id)
+                    : campus?.name === currentCampus?.name
+            );
+
+            return matchingCampus || latestCampuses[0];
+        });
+    }, [institution, programs]);
+
+    const undergraduateEntry = resolveEntryRequirement(
+        institution?.entryRequirements?.undergraduate,
+        deriveLowestProgramRequirements(programs, true)
+    );
+    const postgraduateEntry = resolveEntryRequirement(
+        institution?.entryRequirements?.postgraduate,
+        deriveLowestProgramRequirements(programs, false)
+    );
+    const sortedIntakes = sortIntakesByMonth(intakes);
 
     switch (activeTab) {
         case 0:
@@ -134,6 +266,12 @@ export default function InstitutionTabsContent({
 
         case 1:
             const displayCampuses = getDisplayCampuses(institution, programs);
+            const institutionCountry =
+                typeof institution?.country === "object"
+                    ? institution.country?.name
+                    : institution?.country;
+            const selectedCampusMapUrl = selectedCampus?.mapEmbedUrl
+                ?.match(/^https?:\/\/[^\s\"]+/)?.[0];
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -176,19 +314,30 @@ export default function InstitutionTabsContent({
                                     </Typography>
 
                                     <Typography sx={{ mb: 1 }}>
-                                        <strong>Address:</strong> {selectedCampus.address}
+                                        <strong>Address:</strong>{" "}
+                                        {selectedCampus.address || "Not provided"}
                                     </Typography>
 
                                     <Typography sx={{ mb: 1 }}>
-                                        <strong>City:</strong> {selectedCampus.city}
+                                        <strong>City:</strong>{" "}
+                                        {selectedCampus.city || "Not provided"}
                                     </Typography>
 
                                     <Typography sx={{ mb: 1 }}>
-                                        <strong>Phone:</strong> {selectedCampus.contactNumber}
+                                        <strong>Country:</strong>{" "}
+                                        {selectedCampus.country || institutionCountry || "Not provided"}
+                                    </Typography>
+
+                                    <Typography sx={{ mb: 1 }}>
+                                        <strong>Phone:</strong>{" "}
+                                        {selectedCampus.contactNumber ||
+                                            institution?.contactNumber ||
+                                            "Not provided"}
                                     </Typography>
 
                                     <Typography>
-                                        <strong>Email:</strong> {selectedCampus.email}
+                                        <strong>Email:</strong>{" "}
+                                        {selectedCampus.email || institution?.email || "Not provided"}
                                     </Typography>
                                 </Box>
                             )}
@@ -196,7 +345,7 @@ export default function InstitutionTabsContent({
 
                         {/* Right side */}
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                            {selectedCampus && (
+                            {selectedCampus && selectedCampusMapUrl && (
                                 <Box
                                     sx={{
                                         width: "100%",
@@ -208,7 +357,7 @@ export default function InstitutionTabsContent({
                                     }}
                                 >
                                     <iframe
-                                        src={selectedCampus.mapEmbedUrl}
+                                        src={selectedCampusMapUrl}
                                         width="100%"
                                         height="100%"
                                         style={{ border: 0 }}
@@ -318,7 +467,7 @@ export default function InstitutionTabsContent({
                         >
                             <MenuItem value="all">All Intakes</MenuItem>
 
-                            {intakes.map((intake) => (
+                            {sortedIntakes.map((intake) => (
                                 <MenuItem key={intake} value={intake}>
                                     {intake}
                                 </MenuItem>
@@ -432,20 +581,62 @@ export default function InstitutionTabsContent({
                                 const hasInstitutionAcademic =
                                     institutionGPA?.score != null;
 
-                                const hasInstitutionLanguage =
-                                    institutionLanguage.length > 0;
-
                                 const showAcademic =
                                     hasProgramAcademic ||
                                     hasInstitutionAcademic;
 
-                                const showLanguage =
-                                    hasProgramLanguage ||
-                                    hasInstitutionLanguage;
+                                const getIndividualLanguageScores = (score = {}) =>
+                                    [
+                                        ["Listening", score?.listening],
+                                        ["Reading", score?.reading],
+                                        ["Writing", score?.writing],
+                                        ["Speaking", score?.speaking],
+                                        ["Literacy", score?.literacy],
+                                        ["Comprehension", score?.comprehension],
+                                        ["Conversation", score?.conversation],
+                                        ["Production", score?.production],
+                                    ]
+                                        .filter(([, value]) => value !== undefined && value !== null && value !== "")
+                                        .map(([label, value]) => `${label}: ${value}`);
 
-                                const additionalRequirements =
+                                const languageRequirementItems = hasProgramLanguage
+                                    ? [
+                                        programLanguage?.english?.ielts?.overall != null && { label: `IELTS ${programLanguage.english.ielts.overall}`, scores: getIndividualLanguageScores(programLanguage.english.ielts) },
+                                        programLanguage?.english?.toefl?.overall != null && { label: `TOEFL ${programLanguage.english.toefl.overall}`, scores: getIndividualLanguageScores(programLanguage.english.toefl) },
+                                        programLanguage?.english?.pte?.overall != null && { label: `PTE ${programLanguage.english.pte.overall}`, scores: getIndividualLanguageScores(programLanguage.english.pte) },
+                                        programLanguage?.english?.duolingo?.overall != null && { label: `Duolingo ${programLanguage.english.duolingo.overall}`, scores: getIndividualLanguageScores(programLanguage.english.duolingo) },
+                                        programLanguage?.english?.cambridge && { label: `Cambridge ${programLanguage.english.cambridge}`, scores: [] },
+                                        programLanguage?.english?.cefr && { label: `English CEFR ${programLanguage.english.cefr}`, scores: [] },
+                                        programLanguage?.german?.cefr && { label: `German CEFR ${programLanguage.german.cefr}`, scores: [] },
+                                        programLanguage?.german?.testdaf?.overall != null && { label: `TestDaF ${programLanguage.german.testdaf.overall}`, scores: getIndividualLanguageScores(programLanguage.german.testdaf) },
+                                        programLanguage?.german?.dsh?.overall != null && { label: `DSH ${programLanguage.german.dsh.overall}`, scores: getIndividualLanguageScores(programLanguage.german.dsh) },
+                                    ].filter(Boolean)
+                                    : institutionLanguage.map((test) => ({
+                                        label: `${test.testType || "Test"}${test.overall ? ` ${test.overall}` : ""}`,
+                                        scores: getIndividualLanguageScores(test),
+                                    }));
+                                const languageRequirements = languageRequirementItems.map((item) => item.label);
+                                const languageRequirementsText = languageRequirements.join(" | ");
+                                const scrollLanguageRequirements = languageRequirementsText.length > 38;
+
+                                const showLanguage = languageRequirements.length > 0;
+
+                                const rawAdditionalRequirements =
                                     program.entry_requirements
-                                        ?.additional_requirements || [];
+                                        ?.additional_requirements;
+                                const additionalRequirements = (
+                                    Array.isArray(rawAdditionalRequirements)
+                                        ? rawAdditionalRequirements
+                                        : typeof rawAdditionalRequirements === "string"
+                                            ? rawAdditionalRequirements.split(/\r?\n|\s*\|\s*/)
+                                            : []
+                                )
+                                    .map((requirement) => String(requirement).trim())
+                                    .filter(Boolean);
+                                const additionalRequirementsText =
+                                    additionalRequirements.join(" | ");
+                                const scrollAdditionalRequirements =
+                                    additionalRequirementsText.length > 48;
 
                                 const hasEntryRequirements =
                                     showAcademic ||
@@ -526,7 +717,7 @@ export default function InstitutionTabsContent({
                                                 p: 2.5,
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                gap: 1.5,
+                                                gap: 1.25,
                                                 flex: 1,
                                             }}
                                         >
@@ -571,103 +762,61 @@ export default function InstitutionTabsContent({
 
                                             <Divider />
 
-                                            {/* Level */}
-                                            {program.level && (
-                                                <Box>
-                                                    <Typography
-                                                        variant="caption"
-                                                        color="text.secondary"
-                                                    >
+                                            {/* Compact program metadata */}
+                                            <Box
+                                                sx={{
+                                                    display: "grid",
+                                                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                                                    gap: 1.5,
+                                                    alignItems: "start",
+                                                }}
+                                            >
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <Typography variant="caption" color="text.secondary" display="block">
                                                         Level
                                                     </Typography>
-
-                                                    <Typography
-                                                        variant="body2"
-                                                        fontWeight="medium"
-                                                    >
-                                                        {program.level}
+                                                    <Typography variant="body2" fontWeight="medium" noWrap title={program.level || "Not specified"}>
+                                                        {program.level || "—"}
                                                     </Typography>
                                                 </Box>
-                                            )}
 
-                                            <Box>
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    sx={{ display: "block", mb: 0.5 }}
-                                                >
-                                                    Status
-                                                </Typography>
-                                                <Chip
-                                                    label={program.isActive !== false ? "Active" : "Inactive"}
-                                                    color={program.isActive !== false ? "success" : "default"}
-                                                    size="small"
-                                                    variant="outlined"
-                                                />
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
+                                                        Status
+                                                    </Typography>
+                                                    <Chip
+                                                        label={program.isActive !== false ? "Active" : "Inactive"}
+                                                        color={program.isActive !== false ? "success" : "default"}
+                                                        size="small"
+                                                        variant="outlined"
+                                                        sx={{ height: 22, "& .MuiChip-label": { px: 1 } }}
+                                                    />
+                                                </Box>
+
+                                                <Box sx={{ minWidth: 0 }}>
+                                                    <Typography variant="caption" color="text.secondary" display="block">
+                                                        Duration
+                                                    </Typography>
+                                                    <Typography variant="body2" fontWeight="medium" noWrap title={program.duration || "Not specified"}>
+                                                        {program.duration || "—"}
+                                                    </Typography>
+                                                </Box>
                                             </Box>
 
-                                            {/* Duration + Tuition */}
-                                            {(program.duration ||
-                                                program.tuition_fees?.length > 0) && (
-                                                    <Box
-                                                        sx={{
-                                                            display: "grid",
-                                                            gridTemplateColumns:
-                                                                "1fr 1fr",
-                                                            gap: 2,
-                                                        }}
-                                                    >
-                                                        {program.duration && (
-                                                            <Box>
-                                                                <Typography
-                                                                    variant="caption"
-                                                                    color="text.secondary"
-                                                                    display="block"
-                                                                >
-                                                                    Duration
-                                                                </Typography>
-
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    fontWeight="medium"
-                                                                >
-                                                                    {program.duration}
-                                                                </Typography>
-                                                            </Box>
-                                                        )}
-
-                                                        {program.tuition_fees?.length >
-                                                            0 && (
-                                                                <Box>
-                                                                    <Typography
-                                                                        variant="caption"
-                                                                        color="text.secondary"
-                                                                        display="block"
-                                                                    >
-                                                                        Tuition
-                                                                    </Typography>
-
-                                                                    {program.tuition_fees.map(
-                                                                        (fee, index) => (
-                                                                            <Typography
-                                                                                key={index}
-                                                                                variant="body2"
-                                                                                fontWeight="bold"
-                                                                                color="primary.main"
-                                                                            >
-                                                                                {fee?.credits}
-                                                                                {fee?.annual_fee_eur !=
-                                                                                    null &&
-                                                                                    ` · ${Number(
-                                                                                        fee.annual_fee_eur
-                                                                                    ).toLocaleString()} EUR`}
-                                                                            </Typography>
-                                                                        )
-                                                                    )}
-                                                                </Box>
-                                                            )}
-                                                    </Box>
-                                                )}
+                                            {program.tuition_fees?.length > 0 && (
+                                                <Box>
+                                                    <Typography variant="caption" color="text.secondary" display="block">
+                                                        Tuition
+                                                    </Typography>
+                                                    {program.tuition_fees.map((fee, index) => (
+                                                        <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
+                                                            {fee?.credits}
+                                                            {fee?.annual_fee_eur != null &&
+                                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()} EUR`}
+                                                        </Typography>
+                                                    ))}
+                                                </Box>
+                                            )}
 
                                             {/* Intakes */}
                                             {program.intakes?.length > 0 && (
@@ -688,7 +837,7 @@ export default function InstitutionTabsContent({
                                                             gap: 0.5,
                                                         }}
                                                     >
-                                                        {program.intakes.map(
+                                                        {sortIntakesByMonth(program.intakes).map(
                                                             (intake, index) => (
                                                                 <Chip
                                                                     key={index}
@@ -788,115 +937,71 @@ export default function InstitutionTabsContent({
                                                                     Language:
                                                                 </Typography>
 
-                                                                <Box
-                                                                    sx={{
-                                                                        display: "flex",
-                                                                        flexWrap:
-                                                                            "wrap",
-                                                                        gap: 0.5,
-                                                                    }}
+                                                                <Tooltip
+                                                                    arrow
+                                                                    placement="top"
+                                                                    title={
+                                                                        <Box sx={{ py: 0.5 }}>
+                                                                            {languageRequirementItems.map((requirement, index) => (
+                                                                                <Box
+                                                                                    key={index}
+                                                                                    sx={{ mb: index < languageRequirementItems.length - 1 ? 1 : 0 }}
+                                                                                >
+                                                                                    <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.5 }}>
+                                                                                        {requirement.label}
+                                                                                    </Typography>
+                                                                                    {requirement.scores.length > 0 && (
+                                                                                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5, opacity: 0.9 }}>
+                                                                                            {requirement.scores.join(" | ")}
+                                                                                        </Typography>
+                                                                                    )}
+                                                                                </Box>
+                                                                            ))}
+                                                                        </Box>
+                                                                    }
                                                                 >
-                                                                    {hasProgramLanguage ? (
-                                                                        <>
-                                                                            {programLanguage?.english?.ielts?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`IELTS ${programLanguage.english.ielts.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-
-                                                                            {programLanguage?.english?.toefl?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`TOEFL ${programLanguage.english.toefl.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-
-                                                                            {programLanguage?.english?.pte?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`PTE ${programLanguage.english.pte.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-
-                                                                            {programLanguage?.english?.duolingo?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`Duolingo ${programLanguage.english.duolingo.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-
-                                                                            {programLanguage?.english?.cambridge && (
-                                                                                <Chip
-                                                                                    label={`Cambridge ${programLanguage.english.cambridge}`}
-                                                                                    size="small"
-                                                                                    variant="outlined"
-                                                                                />
+                                                                    <Box
+                                                                        sx={{
+                                                                            width: "100%",
+                                                                            overflow: "hidden",
+                                                                            whiteSpace: "nowrap",
+                                                                            cursor: "help",
+                                                                            "@keyframes languageRequirementsTicker": {
+                                                                                from: { transform: "translateX(0)" },
+                                                                                to: { transform: "translateX(-50%)" },
+                                                                            },
+                                                                            "&:hover .language-requirements-ticker": {
+                                                                                animationPlayState: "paused",
+                                                                            },
+                                                                        }}
+                                                                    >
+                                                                        <Typography
+                                                                            className="language-requirements-ticker"
+                                                                            variant="body2"
+                                                                            component="div"
+                                                                            sx={{
+                                                                                display: "inline-flex",
+                                                                                width: "max-content",
+                                                                                ...(scrollLanguageRequirements && {
+                                                                                    animation: `languageRequirementsTicker ${Math.max(
+                                                                                        15,
+                                                                                        languageRequirementsText.length * 0.28
+                                                                                    )}s linear infinite`,
+                                                                                }),
+                                                                            }}
+                                                                        >
+                                                                            <Box component="span" sx={{ pr: scrollLanguageRequirements ? 4 : 0 }}>
+                                                                                {languageRequirementsText}
+                                                                                {scrollLanguageRequirements && " |"}
+                                                                            </Box>
+                                                                            {scrollLanguageRequirements && (
+                                                                                <Box component="span" sx={{ pr: 4 }} aria-hidden="true">
+                                                                                    {languageRequirementsText} |
+                                                                                </Box>
                                                                             )}
-
-                                                                            {programLanguage?.english?.cefr && (
-                                                                                <Chip
-                                                                                    label={`English CEFR ${programLanguage.english.cefr}`}
-                                                                                    size="small"
-                                                                                    variant="outlined"
-                                                                                />
-                                                                            )}
-
-                                                                            {programLanguage?.german?.cefr && (
-                                                                                <Chip
-                                                                                    label={`German CEFR ${programLanguage.german.cefr}`}
-                                                                                    size="small"
-                                                                                    variant="outlined"
-                                                                                />
-                                                                            )}
-
-                                                                            {programLanguage?.german?.testdaf?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`TestDaF ${programLanguage.german.testdaf.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-
-                                                                            {programLanguage?.german?.dsh?.overall !=
-                                                                                null && (
-                                                                                    <Chip
-                                                                                        label={`DSH ${programLanguage.german.dsh.overall}`}
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )}
-                                                                        </>
-                                                                    ) : (
-                                                                        institutionLanguage.map(
-                                                                            (
-                                                                                test,
-                                                                                index
-                                                                            ) => (
-                                                                                <Chip
-                                                                                    key={
-                                                                                        index
-                                                                                    }
-                                                                                    label={`${test.testType || "Test"}${test.overall
-                                                                                        ? ` ${test.overall}`
-                                                                                        : ""
-                                                                                        }`}
-                                                                                    size="small"
-                                                                                    variant="outlined"
-                                                                                />
-                                                                            )
-                                                                        )
-                                                                    )}
-                                                                </Box>
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </Tooltip>
                                                             </Box>
                                                         )}
 
@@ -911,47 +1016,69 @@ export default function InstitutionTabsContent({
                                                                         Additional:
                                                                     </Typography>
 
-                                                                    <Box
-                                                                        sx={{
-                                                                            display: "flex",
-                                                                            flexWrap:
-                                                                                "wrap",
-                                                                            gap: 0.5,
-                                                                            mt: 0.5,
-                                                                        }}
+                                                                    <Tooltip
+                                                                        arrow
+                                                                        placement="top"
+                                                                        title={
+                                                                            <Box sx={{ py: 0.5 }}>
+                                                                                {additionalRequirements.map((requirement, index) => (
+                                                                                    <Typography
+                                                                                        key={index}
+                                                                                        variant="body2"
+                                                                                        sx={{
+                                                                                            lineHeight: 1.5,
+                                                                                            mb: index < additionalRequirements.length - 1 ? 0.75 : 0,
+                                                                                        }}
+                                                                                    >
+                                                                                        {requirement}
+                                                                                    </Typography>
+                                                                                ))}
+                                                                            </Box>
+                                                                        }
                                                                     >
-                                                                        {additionalRequirements
-                                                                            .slice(0, 3)
-                                                                            .map(
-                                                                                (
-                                                                                    requirement,
-                                                                                    index
-                                                                                ) => (
-                                                                                    <Chip
-                                                                                        key={
-                                                                                            index
-                                                                                        }
-                                                                                        label={
-                                                                                            requirement
-                                                                                        }
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                    />
-                                                                                )
-                                                                            )}
-
-                                                                        {additionalRequirements.length >
-                                                                            3 && (
-                                                                                <Chip
-                                                                                    label={`+${additionalRequirements.length -
-                                                                                        3
-                                                                                        } more`}
-                                                                                    size="small"
-                                                                                    variant="outlined"
-                                                                                    color="primary"
-                                                                                />
-                                                                            )}
-                                                                    </Box>
+                                                                        <Box
+                                                                            sx={{
+                                                                                mt: 0.5,
+                                                                                width: "100%",
+                                                                                overflow: "hidden",
+                                                                                whiteSpace: "nowrap",
+                                                                                cursor: "help",
+                                                                                "@keyframes additionalRequirementsTicker": {
+                                                                                    from: { transform: "translateX(0)" },
+                                                                                    to: { transform: "translateX(-50%)" },
+                                                                                },
+                                                                                "&:hover .additional-requirements-ticker": {
+                                                                                    animationPlayState: "paused",
+                                                                                },
+                                                                            }}
+                                                                        >
+                                                                            <Typography
+                                                                                className="additional-requirements-ticker"
+                                                                                variant="body2"
+                                                                                component="div"
+                                                                                sx={{
+                                                                                    display: "inline-flex",
+                                                                                    width: "max-content",
+                                                                                    ...(scrollAdditionalRequirements && {
+                                                                                        animation: `additionalRequirementsTicker ${Math.max(
+                                                                                            22,
+                                                                                            additionalRequirementsText.length * 0.42
+                                                                                        )}s linear infinite`,
+                                                                                    }),
+                                                                                }}
+                                                                            >
+                                                                                <Box component="span" sx={{ pr: scrollAdditionalRequirements ? 4 : 0 }}>
+                                                                                    {additionalRequirementsText}
+                                                                                    {scrollAdditionalRequirements && " |"}
+                                                                                </Box>
+                                                                                {scrollAdditionalRequirements && (
+                                                                                    <Box component="span" sx={{ pr: 4 }} aria-hidden="true">
+                                                                                        {additionalRequirementsText} |
+                                                                                    </Box>
+                                                                                )}
+                                                                            </Typography>
+                                                                        </Box>
+                                                                    </Tooltip>
                                                                 </Box>
                                                             )}
                                                     </Box>
@@ -1036,7 +1163,17 @@ export default function InstitutionTabsContent({
             );
 
         case 3: {
-            const allIntakes = [...new Set(programs.flatMap((p) => p.intakes || []))];
+            const allIntakes = sortIntakesByMonth([
+                ...new Set(
+                    programs.flatMap((program) =>
+                        Array.isArray(program.intakes)
+                            ? program.intakes
+                            : typeof program.intakes === "string"
+                                ? program.intakes.split(",").map((intake) => intake.trim()).filter(Boolean)
+                                : []
+                    )
+                ),
+            ]);
 
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
@@ -1283,19 +1420,31 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Minimum {institution?.entryRequirements?.undergraduate?.gpa?.type || "GPA"}
+                                        Minimum {undergraduateEntry.gpa?.type || "GPA"}
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.undergraduate?.gpa?.score || "N/A"}
+                                        {hasValue(undergraduateEntry.gpa?.score)
+                                            ? `${undergraduateEntry.gpa.score}${hasValue(undergraduateEntry.gpa?.scale) ? ` / ${undergraduateEntry.gpa.scale}` : ""}`
+                                            : undergraduateEntry.gpa?.minimumQualification || "N/A"}
                                     </Typography>
+                                    {undergraduateEntry.gpa?.minimumQualification && hasValue(undergraduateEntry.gpa?.score) && (
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            {undergraduateEntry.gpa.minimumQualification}
+                                        </Typography>
+                                    )}
+                                    {undergraduateEntry.gpa?.fieldRequirement && (
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            Field: {undergraduateEntry.gpa.fieldRequirement}
+                                        </Typography>
+                                    )}
                                 </Box>
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
                                         Language Requirements
                                     </Typography>
-                                    {institution?.entryRequirements?.undergraduate?.languageRequirement?.length > 0 ? (
-                                        institution.entryRequirements.undergraduate.languageRequirement.map((test, idx) => (
+                                    {undergraduateEntry.languageRequirement.length > 0 ? (
+                                        undergraduateEntry.languageRequirement.map((test, idx) => (
                                             <Typography key={idx} variant="body2" fontWeight="medium">
                                                 {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
                                                 {test.hasIndividualScores && (
@@ -1320,19 +1469,31 @@ export default function InstitutionTabsContent({
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Minimum {institution?.entryRequirements?.postgraduate?.gpa?.type || "GPA"}
+                                        Minimum {postgraduateEntry.gpa?.type || "GPA"}
                                     </Typography>
                                     <Typography variant="body2" fontWeight="medium">
-                                        {institution?.entryRequirements?.postgraduate?.gpa?.score || "N/A"}
+                                        {hasValue(postgraduateEntry.gpa?.score)
+                                            ? `${postgraduateEntry.gpa.score}${hasValue(postgraduateEntry.gpa?.scale) ? ` / ${postgraduateEntry.gpa.scale}` : ""}`
+                                            : postgraduateEntry.gpa?.minimumQualification || "N/A"}
                                     </Typography>
+                                    {postgraduateEntry.gpa?.minimumQualification && hasValue(postgraduateEntry.gpa?.score) && (
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            {postgraduateEntry.gpa.minimumQualification}
+                                        </Typography>
+                                    )}
+                                    {postgraduateEntry.gpa?.fieldRequirement && (
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            Field: {postgraduateEntry.gpa.fieldRequirement}
+                                        </Typography>
+                                    )}
                                 </Box>
 
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
                                         Language Requirements
                                     </Typography>
-                                    {institution?.entryRequirements?.postgraduate?.languageRequirement?.length > 0 ? (
-                                        institution.entryRequirements.postgraduate.languageRequirement.map((test, idx) => (
+                                    {postgraduateEntry.languageRequirement.length > 0 ? (
+                                        postgraduateEntry.languageRequirement.map((test, idx) => (
                                             <Typography key={idx} variant="body2" fontWeight="medium">
                                                 {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
                                                 {test.hasIndividualScores && (

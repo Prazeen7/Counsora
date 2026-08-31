@@ -368,7 +368,13 @@ export default function InstitutionList() {
                                             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                                                 <Avatar
                                                     src={institution.logo?.url || undefined}
-                                                    sx={{ width: 56, height: 56 }}
+                                                    sx={{
+                                                        width: 56,
+                                                        height: 56,
+                                                        '& img': {
+                                                            objectFit: 'contain',
+                                                        },
+                                                    }}
                                                 />
                                                 <Box sx={{ flex: 1 }}>
                                                     <Typography level='title-lg'>{institution.name}</Typography>

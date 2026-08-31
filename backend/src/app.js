@@ -1,5 +1,6 @@
 // Express app 
 require('dotenv').config(); // Load env variables first
+require('./config/systemCa'); // Include certificates trusted by the operating system
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");

@@ -2044,17 +2044,13 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     useEffect(() => {
         const fetchData = async () => {
             try {
-                let institutionData = institutionProp;
+                const [institutionData, programData] = await Promise.all([
+                    getInstitutionById(institutionId),
+                    getProgramsByInstitution(institutionId),
+                ]);
 
-                if (!institutionProp && institutionId) {
-                    institutionData = await getInstitutionById(institutionId);
-                    setInstitution(institutionData);
-                }
-
-                if (institutionId) {
-                    const programData = await getProgramsByInstitution(institutionId);
-                    setPrograms(programData.programs || []);
-                }
+                setInstitution(institutionData);
+                setPrograms(programData.programs || []);
             } catch (err) {
                 console.error("Error fetching data:", err);
             }
@@ -2320,7 +2316,13 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 if (toSave[key] === undefined) {
                     return;
                 }
-                if (key === "logo" && typeof toSave[key] === "object") {
+                if (key === "logoFile") {
+                    if (toSave.logoFile instanceof File) {
+                        formData.append("logo", toSave.logoFile);
+                    }
+                    return;
+                }
+                if (key === "logo") {
                     return;
                 }
                 if (typeof toSave[key] === "object") {
@@ -2604,34 +2606,20 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const handleLogoChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            const formData = new FormData();
-            formData.append("image", file);
-
-            const apiUrl = import.meta.env.VITE_BACKEND_URL;
-            fetch(`${apiUrl}/upload`, {
-                method: "POST",
-                body: formData,
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    setEditedInstitution((prev) => ({
-                        ...prev,
-                        logo: data,
-                    }));
-                    setSnackbar({
-                        open: true,
-                        message: "Logo uploaded successfully!",
-                        severity: "success",
-                    });
-                })
-                .catch((error) => {
-                    console.error("Error uploading logo:", error);
-                    setSnackbar({
-                        open: true,
-                        message: "Error uploading logo. Please try again.",
-                        severity: "error",
-                    });
-                });
+            const previewUrl = URL.createObjectURL(file);
+            setEditedInstitution((prev) => ({
+                ...prev,
+                logoFile: file,
+                logo: {
+                    ...(prev?.logo || {}),
+                    url: previewUrl,
+                },
+            }));
+            setSnackbar({
+                open: true,
+                message: "New logo selected. Save changes to upload it.",
+                severity: "info",
+            });
         }
     };
 
