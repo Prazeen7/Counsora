@@ -226,6 +226,11 @@ export default function AddInstitution({ onClose }) {
     const handleProfilePictureUpload = (event) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
+            if (!["image/png", "image/jpeg"].includes(file.type.toLowerCase())) {
+                event.target.value = "";
+                alert("Please select a PNG, JPG, or JPEG image.");
+                return;
+            }
             setProfilePicture({
                 file: file,
                 preview: URL.createObjectURL(file),
@@ -1312,7 +1317,7 @@ export default function AddInstitution({ onClose }) {
                                                         }}
                                                     />
                                                     <input
-                                                        accept="image/*"
+                                                        accept=".png,.jpg,.jpeg,image/png,image/jpeg"
                                                         style={{ display: 'none' }}
                                                         id="profile-picture-upload"
                                                         type="file"

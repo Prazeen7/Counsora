@@ -17,11 +17,13 @@ import {
     Button,
     IconButton,
     Tooltip,
+    CircularProgress,
 } from "@mui/material";
 import {
     OpenInNew as OpenInNewIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
+    CloudDownload as ImportIcon,
 } from "@mui/icons-material";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 
@@ -152,6 +154,8 @@ export default function InstitutionTabsContent({
     isEditMode = false,
     onEditProgram = null,
     onDeleteProgram = null,
+    onImportPrograms = null,
+    importingPrograms = false,
 }) {
     const [selectedCampus, setSelectedCampus] = useState(
         institution?.campuses?.[0] || null
@@ -388,20 +392,32 @@ export default function InstitutionTabsContent({
                             Programs Offered
                         </Typography>
 
-                        {isAdmin && isEditMode && onEditProgram && (
-                            <Button
-                                variant="contained"
-                                startIcon={<OpenInNewIcon />}
-                                onClick={() => onEditProgram(null)}
-                                sx={{
-                                    backgroundColor: "#4f46e5",
-                                    "&:hover": {
-                                        backgroundColor: "#4338ca",
-                                    },
-                                }}
-                            >
-                                Add Program
-                            </Button>
+                        {isAdmin && (
+                            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                                {onImportPrograms && (
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={importingPrograms ? <CircularProgress size={16} /> : <ImportIcon />}
+                                        onClick={onImportPrograms}
+                                        disabled={importingPrograms}
+                                    >
+                                        {importingPrograms ? "Importing..." : "Import from website"}
+                                    </Button>
+                                )}
+                                {isEditMode && onEditProgram && (
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<OpenInNewIcon />}
+                                        onClick={() => onEditProgram(null)}
+                                        sx={{
+                                            backgroundColor: "#4f46e5",
+                                            "&:hover": { backgroundColor: "#4338ca" },
+                                        }}
+                                    >
+                                        Add Program
+                                    </Button>
+                                )}
+                            </Box>
                         )}
                     </Box>
 

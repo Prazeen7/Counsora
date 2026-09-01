@@ -356,8 +356,8 @@ export default function ReviewPrograms() {
                             multiline
                             rows={3}
                             value={
-                                Array.isArray(editProgramForm?.tuition_fees)
-                                    ? editProgramForm.tuition_fees
+                                Array.isArray(editForm?.tuition_fees)
+                                    ? editForm.tuition_fees
                                         .map(fee =>
                                             `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`
                                         )
@@ -383,8 +383,8 @@ export default function ReviewPrograms() {
                                         };
                                     });
 
-                                setEditProgramForm({
-                                    ...editProgramForm,
+                                setEditForm({
+                                    ...editForm,
                                     tuition_fees: tuitionFees
                                 });
                             }}

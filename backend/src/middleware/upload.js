@@ -3,12 +3,14 @@ const multer = require('multer');
 // Configure multer to use memory storage
 const storage = multer.memoryStorage();
 
-// File filter to accept only images
+// Institution avatar formats supported by Cloudinary and the frontend picker.
+const allowedImageTypes = new Set(['image/png', 'image/jpeg']);
+
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (allowedImageTypes.has(file.mimetype.toLowerCase())) {
         cb(null, true);
     } else {
-        cb(new Error('Only image files are allowed!'), false);
+        cb(new Error('Only PNG, JPG, and JPEG images are allowed.'), false);
     }
 };
 

@@ -61,15 +61,24 @@ function ProgramCard({ program, institutionData }) {
                 {/* Header with Avatar and Program Name */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>
                     <Avatar
-                        sx={{ width: 56, height: 56, bgcolor: "#4f46e5", flexShrink: 0 }}
+                        sx={{
+                            width: 56,
+                            height: 56,
+                            flexShrink: 0,
+                            "& img": {
+                                objectFit: "contain",
+                            },
+                        }}
                         alt={program.institution}
-                        src={avatarImage} 
+                        src={avatarImage}
                     >
-                        {!avatarImage && program.institution[0]} 
+                        {!avatarImage && program.institution[0]}
                     </Avatar>
+
+
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography 
-                            variant="h6" 
+                        <Typography
+                            variant="h6"
                             fontWeight="bold"
                             sx={{
                                 wordBreak: 'break-word',
@@ -79,8 +88,8 @@ function ProgramCard({ program, institutionData }) {
                         >
                             {program.program}
                         </Typography>
-                        <Typography 
-                            variant="body2" 
+                        <Typography
+                            variant="body2"
                             color="text.secondary"
                             sx={{
                                 wordBreak: 'break-word',
@@ -100,7 +109,7 @@ function ProgramCard({ program, institutionData }) {
                     {/* Campus */}
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 auto' }}>
                         <LocationIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
-                        <Typography 
+                        <Typography
                             variant="body2"
                             sx={{
                                 wordBreak: 'break-word',
@@ -115,7 +124,7 @@ function ProgramCard({ program, institutionData }) {
                     {/* Level */}
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 auto' }}>
                         <SchoolIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
-                        <Typography 
+                        <Typography
                             variant="body2"
                             sx={{
                                 wordBreak: 'break-word',
@@ -130,7 +139,7 @@ function ProgramCard({ program, institutionData }) {
                     {/* Duration */}
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 100%' }}>
                         <TimeIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
-                        <Typography 
+                        <Typography
                             variant="body2"
                             sx={{
                                 wordBreak: 'break-word',
@@ -275,19 +284,19 @@ function ProgramCard({ program, institutionData }) {
                                     {(() => {
                                         const level = program.level.toLowerCase();
                                         const entryReqs = institutionData?.entryRequirements;
-                                        
+
                                         if (level === "undergraduate" && entryReqs?.undergraduate?.gpa) {
                                             const gpaData = entryReqs.undergraduate.gpa;
-                                            return gpaData.type && gpaData.score 
+                                            return gpaData.type && gpaData.score
                                                 ? `${gpaData.score} (${gpaData.type})`
                                                 : gpaData.score || "Not specified";
                                         } else if (level === "postgraduate" && entryReqs?.postgraduate?.gpa) {
                                             const gpaData = entryReqs.postgraduate.gpa;
-                                            return gpaData.type && gpaData.score 
+                                            return gpaData.type && gpaData.score
                                                 ? `${gpaData.score} (${gpaData.type})`
                                                 : gpaData.score || "Not specified";
                                         }
-                                        
+
                                         // Fallback to program's entry requirements
                                         return program.entry_requirements?.academic || "Not specified";
                                     })()}
@@ -315,7 +324,7 @@ function ProgramCard({ program, institutionData }) {
                                     Application Fees:
                                 </Typography>
                                 <Typography variant="body2">
-                                    {institutionData?.applicationFee?.amount 
+                                    {institutionData?.applicationFee?.amount
                                         ? `${institutionData.applicationFee.amount} ${institutionData.applicationFee.currency || ''}`.trim()
                                         : program.applicationFees || "N/A"}
                                 </Typography>
@@ -334,7 +343,7 @@ function ProgramCard({ program, institutionData }) {
                     </Grid>
                 </Grid>
             </CardContent>
-            
+
             {/* Learn More */}
             <Box sx={{ mt: "auto", px: 2, pb: 2 }}>
                 <Divider sx={{ mb: 2 }} />

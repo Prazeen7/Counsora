@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     Box,
@@ -2040,6 +2040,12 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
     const [programSaving, setProgramSaving] = useState(false);
+    const [programImporting, setProgramImporting] = useState(false);
+    const programImportPollRef = useRef(null);
+
+    useEffect(() => () => {
+        if (programImportPollRef.current) clearTimeout(programImportPollRef.current);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -2606,6 +2612,15 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const handleLogoChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            if (!["image/png", "image/jpeg"].includes(file.type.toLowerCase())) {
+                e.target.value = "";
+                setSnackbar({
+                    open: true,
+                    message: "Please select a PNG, JPG, or JPEG image.",
+                    severity: "error",
+                });
+                return;
+            }
             const previewUrl = URL.createObjectURL(file);
             setEditedInstitution((prev) => ({
                 ...prev,
@@ -2622,6 +2637,89 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             });
         }
     };
+
+    const handleImportProgramsFromWebsite = useCallback(async () => {
+        const websiteUrl = String(institution?.url || institution?.website || "").trim();
+        if (!websiteUrl) {
+            setSnackbar({
+                open: true,
+                message: "This institution does not have a website URL.",
+                severity: "error",
+            });
+            return;
+        }
+
+        const normalizedUrl = /^https?:\/\//i.test(websiteUrl)
+            ? websiteUrl
+            : `https://${websiteUrl}`;
+        const token = localStorage.getItem("token");
+        const apiUrl = import.meta.env.VITE_BACKEND_URL;
+
+        const pollStatus = async () => {
+            try {
+                const response = await fetch(`${apiUrl}/institution/${institutionId}/crawl-status`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Could not check import status");
+
+                if (data.status === "pending_review") {
+                    setProgramImporting(false);
+                    navigate(`/admin/institutions/${institutionId}/review-programs`);
+                    return;
+                }
+                if (data.status === "completed") {
+                    setProgramImporting(false);
+                    setSnackbar({
+                        open: true,
+                        message: "Website scan completed. No missing programs were found.",
+                        severity: "info",
+                    });
+                    return;
+                }
+                if (data.status === "failed") {
+                    throw new Error("Program import failed. Please check the crawler and try again.");
+                }
+
+                programImportPollRef.current = setTimeout(pollStatus, 10000);
+            } catch (error) {
+                setProgramImporting(false);
+                setSnackbar({ open: true, message: error.message, severity: "error" });
+            }
+        };
+
+        try {
+            setProgramImporting(true);
+            const response = await fetch(`${apiUrl}/institution/${institutionId}/crawl`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ websiteUrl: normalizedUrl, importMissingOnly: true }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to start program import");
+
+            if (data.crawlStatus === "pending_review") {
+                setProgramImporting(false);
+                navigate(`/admin/institutions/${institutionId}/review-programs`);
+                return;
+            }
+
+            setSnackbar({
+                open: true,
+                message: data.crawlStatus === "in_progress"
+                    ? "A website scan is already running. Waiting for it to finish."
+                    : "Website scan started. Only missing programs will be sent for review.",
+                severity: "info",
+            });
+            programImportPollRef.current = setTimeout(pollStatus, 3000);
+        } catch (error) {
+            setProgramImporting(false);
+            setSnackbar({ open: true, message: error.message, severity: "error" });
+        }
+    }, [institution, institutionId, navigate]);
 
     const handleDeleteInstitution = useCallback(() => {
         if (
@@ -2698,7 +2796,12 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                     "&:hover": { backgroundColor: "#4338ca" },
                                 }}
                             >
-                                <input type="file" hidden accept="image/*" onChange={handleLogoChange} />
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                                    onChange={handleLogoChange}
+                                />
                                 <EditIcon fontSize="small" />
                             </IconButton>
                         )}
@@ -2901,6 +3004,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                     setProgramToDelete(program);
                                     setConfirmDeleteDialog(true);
                                 }}
+                                onImportPrograms={handleImportProgramsFromWebsite}
+                                importingPrograms={programImporting}
                             />
                         )}
                     </Box>
@@ -2931,6 +3036,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                             setProgramToDelete(program);
                             setConfirmDeleteDialog(true);
                         }}
+                        onImportPrograms={handleImportProgramsFromWebsite}
+                        importingPrograms={programImporting}
                     />
                 )}
             </Container>

@@ -11,6 +11,23 @@ const { normalizeProgramsArray } = require('../utils/normalizeProgramData');
 
 const CRAWLER_API_URL = process.env.CRAWLER_API_URL || 'http://localhost:3000';
 
+const programIdentity = (program) => String(program?.degree_name || program?.name || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const keepMissingPrograms = (candidates, existingPrograms) => {
+    const known = new Set(existingPrograms.map(programIdentity).filter(Boolean));
+    return candidates.filter((program) => {
+        const identity = programIdentity(program);
+        if (!identity || known.has(identity)) return false;
+        known.add(identity);
+        return true;
+    });
+};
+
 // Get all institutions
 const getInstitutions = async (req, res) => {
     try {
@@ -300,7 +317,7 @@ const addInstitution = async (req, res) => {
 const crawlAndAddPrograms = async (req, res) => {
     try {
         const { institutionId } = req.params;
-        const { websiteUrl } = req.body;
+        const { websiteUrl, importMissingOnly = false } = req.body;
 
         console.log(`\n=== Crawl Request Received ===`);
         console.log(`Institution ID: ${institutionId}`);
@@ -330,7 +347,7 @@ const crawlAndAddPrograms = async (req, res) => {
             isActive: true,
         });
 
-        if (institution.crawlStatus === "completed") {
+        if (institution.crawlStatus === "completed" && !importMissingOnly) {
             console.log(
                 `✓ Programs already approved (${existingProgramCount} programs)`
             );
@@ -372,6 +389,15 @@ const crawlAndAddPrograms = async (req, res) => {
             });
         }
 
+        if (institution.crawlStatus === "in_progress") {
+            return res.status(200).json({
+                message: "A program crawl is already in progress",
+                shouldCrawl: false,
+                programCount: existingProgramCount,
+                crawlStatus: institution.crawlStatus,
+            });
+        }
+
         console.log(`No existing approved programs found, starting crawl...`);
         // Update institution crawl status
         institution.crawlStatus = "in_progress";
@@ -390,7 +416,7 @@ const crawlAndAddPrograms = async (req, res) => {
         console.log(`✓ Response sent to client, starting background crawl...`);
 
         // Start crawler in background (non-blocking)
-        crawlInBackground(institutionId, websiteUrl);
+        crawlInBackground(institutionId, websiteUrl, { importMissingOnly });
 
     } catch (error) {
         console.error('Error initiating crawl:', error);
@@ -401,7 +427,7 @@ const crawlAndAddPrograms = async (req, res) => {
 };
 
 // Background crawler function
-const crawlInBackground = async (institutionId, websiteUrl) => {
+const crawlInBackground = async (institutionId, websiteUrl, { importMissingOnly = false } = {}) => {
     try {
         console.log(`\n=== Starting background crawl ===`);
         console.log(`Institution ID: ${institutionId}`);
@@ -438,6 +464,28 @@ const crawlInBackground = async (institutionId, websiteUrl) => {
 
             console.log(`✓ Successfully normalized ${normalized.length} programs`);
 
+            const existingPrograms = importMissingOnly
+                ? await Program.find({ institutionId }).select("degree_name").lean()
+                : [];
+            const programsForReview = importMissingOnly
+                ? keepMissingPrograms(normalized, existingPrograms)
+                : normalized;
+
+            if (importMissingOnly) {
+                console.log(`✓ Kept ${programsForReview.length} programs missing from the database`);
+            }
+
+            if (programsForReview.length === 0) {
+                const staleTempFile = path.join(__dirname, '../../temp-crawls', `${institutionId}.json`);
+                if (fs.existsSync(staleTempFile)) fs.unlinkSync(staleTempFile);
+                await Institution.findByIdAndUpdate(institutionId, {
+                    crawlStatus: "completed",
+                    lastCrawled: new Date(),
+                });
+                console.log("✓ No missing programs found; nothing was queued for review");
+                return;
+            }
+
             // Store temporarily in file system, NOT in database
             const tempDir = path.join(__dirname, '../../temp-crawls');
             if (!fs.existsSync(tempDir)) {
@@ -446,9 +494,9 @@ const crawlInBackground = async (institutionId, websiteUrl) => {
             }
 
             const tempFilePath = path.join(tempDir, `${institutionId}.json`);
-            fs.writeFileSync(tempFilePath, JSON.stringify(normalized, null, 2));
+            fs.writeFileSync(tempFilePath, JSON.stringify(programsForReview, null, 2));
 
-            console.log(`✓ Stored ${normalized.length} programs in temp file: ${tempFilePath}`);
+            console.log(`✓ Stored ${programsForReview.length} programs in temp file: ${tempFilePath}`);
             console.log(`⚠️  IMPORTANT: Programs are NOT in database yet - awaiting user review`);
 
             // Update status to pending_review without saving programs to DB
@@ -465,7 +513,7 @@ const crawlInBackground = async (institutionId, websiteUrl) => {
 
             console.log(`✓ Institution status updated to pending_review`);
 
-            console.log(`✅ Crawl completed - ${normalized.length} programs ready for review (not saved to DB yet)`);
+            console.log(`✅ Crawl completed - ${programsForReview.length} programs ready for review (not saved to DB yet)`);
             console.log(`✅ Status set to: pending_review`);
 
             if (errors.length > 0) {
@@ -646,13 +694,11 @@ const approvePrograms = async (req, res) => {
             console.warn(`⚠️  ${errors.length} programs failed validation during approval`);
         }
 
-        // Remove existing programs for this institution
-        await Program.deleteMany({
-            institutionId,
-        });
-
-        // Create one document for each approved program
-        const programDocuments = normalized.map((program) => ({
+        // Preserve existing records and append only genuinely missing programs.
+        // Recheck here because the database may have changed while review was open.
+        const existingPrograms = await Program.find({ institutionId }).select("degree_name").lean();
+        const missingPrograms = keepMissingPrograms(normalized, existingPrograms);
+        const programDocuments = missingPrograms.map((program) => ({
             ...program,
             institutionId,
         }));
@@ -670,7 +716,7 @@ const approvePrograms = async (req, res) => {
             }
         );
 
-        console.log(`✅ Approved and saved ${normalized.length} programs to database`);
+        console.log(`✅ Approved and saved ${missingPrograms.length} missing programs to database`);
 
         // Delete temp file after successful approval
         const tempFilePath = path.join(__dirname, '../../temp-crawls', `${institutionId}.json`);
@@ -682,8 +728,8 @@ const approvePrograms = async (req, res) => {
 
         return res.status(200).json({
             message: 'Programs approved successfully',
-            approvedCount: normalized.length,
-            skippedCount: errors.length,
+            approvedCount: missingPrograms.length,
+            skippedCount: errors.length + (normalized.length - missingPrograms.length),
             errors: errors.length > 0 ? errors : undefined
         });
 
