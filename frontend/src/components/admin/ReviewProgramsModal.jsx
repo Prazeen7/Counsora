@@ -211,6 +211,13 @@ export default function ReviewProgramsModal({
                                             <Typography variant="body1">{program.field || 'N/A'}</Typography>
                                         </Grid>
 
+                                        {program.specialization?.length > 0 && (
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2" color="text.secondary">Specializations:</Typography>
+                                                <Typography variant="body1">{program.specialization.join(', ')}</Typography>
+                                            </Grid>
+                                        )}
+
                                         <Grid item xs={12} md={6}>
                                             <Typography variant="body2" color="text.secondary">Duration:</Typography>
                                             <Typography variant="body1">{program.duration || 'N/A'}</Typography>
@@ -385,6 +392,15 @@ export default function ReviewProgramsModal({
                             </Select>
                         </FormControl>
 
+                        <TextField
+                            label="Specializations (comma-separated)"
+                            fullWidth
+                            value={editProgramForm.specialization?.join(', ') || ''}
+                            onChange={(e) => setEditProgramForm({
+                                ...editProgramForm,
+                                specialization: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                            })}
+                        />
                         <TextField
                             label="Duration"
                             fullWidth

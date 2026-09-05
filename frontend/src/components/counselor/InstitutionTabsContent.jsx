@@ -774,6 +774,15 @@ export default function InstitutionTabsContent({
                                                         {program.field_other || program.field}
                                                     </Typography>
                                                 )}
+                                                {program.specialization?.length > 0 && (
+                                                    <Typography
+                                                        variant="body2"
+                                                        color="text.secondary"
+                                                        sx={{ mt: 0.5, overflowWrap: "anywhere" }}
+                                                    >
+                                                        Specializations: {program.specialization.join(", ")}
+                                                    </Typography>
+                                                )}
                                             </Box>
 
                                             <Divider />

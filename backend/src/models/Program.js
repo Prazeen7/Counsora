@@ -112,6 +112,10 @@ const programSchema = new mongoose.Schema(
             default: null,
             trim: true,
         },
+        specialization: {
+            type: [String],
+            default: [],
+        },
         credits: {
             type: [String],
             default: [],

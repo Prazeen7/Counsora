@@ -63,29 +63,6 @@ export default function InstitutionList() {
         return Infinity;
     };
 
-    // Extract the lowest overall language score from language_requirements
-    const parseLanguageScore = (entryReq) => {
-        if (!entryReq || !entryReq.language_requirements) return Infinity;
-        const lang = entryReq.language_requirements;
-        // Check common English tests – take the first available overall
-        const tests = [
-            lang.english?.ielts?.overall,
-            lang.english?.toefl?.overall,
-            lang.english?.pte?.overall,
-            lang.english?.duolingo?.overall,
-            // German tests if needed (optional)
-            // lang.german?.testdaf?.overall,
-            // lang.german?.dsh?.overall,
-        ];
-        const scores = tests
-            .filter(v => v !== undefined && v !== null)
-            .map(Number)
-            .filter(v => !isNaN(v));
-        if (scores.length === 0) return Infinity;
-        // Return the minimum (or you could pick the first)
-        return Math.min(...scores);
-    };
-
     // Format academic requirement for display
     const formatAcademic = (entryReq) => {
         if (!entryReq || !entryReq.academic) return 'Not specified';
@@ -124,6 +101,9 @@ export default function InstitutionList() {
 
     // Determine program level based on degree name
     const getProgramLevel = (program) => {
+        const level = program.level?.toLowerCase();
+        if (['master', 'phd', 'doctoral', 'research', 'postgraduate'].includes(level)) return 'postgraduate';
+        if (['foundation', 'diploma', 'bachelor', 'undergraduate'].includes(level)) return 'undergraduate';
         const name = program.degree_name?.toLowerCase() || '';
         if (name.includes('master') || name.includes('msc') || name.includes('ma ') ||
             name.includes('mba') || name.includes('phd') || name.includes('doctorate')) {
@@ -145,43 +125,57 @@ export default function InstitutionList() {
         const undergradPrograms = programs.filter(p => getProgramLevel(p) === 'undergraduate');
         const postgradPrograms = programs.filter(p => getProgramLevel(p) === 'postgraduate');
 
-        // Helper to find minimum among an array of programs
-        const findMin = (progList) => {
-            return progList.reduce((min, program) => {
-                if (!program.entry_requirements) return min;
-                const currentGPA = parseGPA(program.entry_requirements);
-                const currentLang = parseLanguageScore(program.entry_requirements);
-                if (!min) return program;
-
-                const minGPA = parseGPA(min.entry_requirements);
-                const minLang = parseLanguageScore(min.entry_requirements);
-
-                // Combine scores (treat missing as 100 so they are never the minimum)
-                const currentScore = (currentGPA === Infinity ? 100 : currentGPA) +
-                    (currentLang === Infinity ? 100 : currentLang);
-                const minScore = (minGPA === Infinity ? 100 : minGPA) +
-                    (minLang === Infinity ? 100 : minLang);
-
-                return currentScore < minScore ? program : min;
-            }, null);
+        // Academic and language minima are independent; do not add unrelated scores.
+        const findMin = (programs) => {
+            const academics = new Map();
+            const languages = new Map();
+            programs.forEach(({ entry_requirements: requirement }) => {
+                const score = parseGPA(requirement);
+                if (Number.isFinite(score)) {
+                    const academic = requirement.academic;
+                    const key = `${academic.score_type || ''}:${academic.scale || ''}`;
+                    if (!academics.has(key) || score < parseGPA(academics.get(key))) {
+                        academics.set(key, requirement);
+                    }
+                }
+                ['ielts', 'toefl', 'pte', 'duolingo'].forEach(test => {
+                    const value = requirement?.language_requirements?.english?.[test]?.overall;
+                    if (value === null || value === undefined || String(value).trim() === '') return;
+                    const score = Number(value);
+                    if (Number.isFinite(score) && (!languages.has(test) || score < languages.get(test))) {
+                        languages.set(test, score);
+                    }
+                });
+            });
+            const language = [...languages].map(([test, overall]) =>
+                formatLanguage({ language_requirements: { english: { [test]: { overall } } } })
+            );
+            const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+            const germanLevels = programs.map(program =>
+                program.entry_requirements?.language_requirements?.german?.cefr?.trim().toUpperCase()
+            ).filter(level => cefrLevels.includes(level));
+            if (germanLevels.length) {
+                const minimum = germanLevels.reduce((min, level) =>
+                    cefrLevels.indexOf(level) < cefrLevels.indexOf(min) ? level : min
+                );
+                language.push(`German CEFR ${minimum}`);
+            }
+            return {
+                academic: [...academics.values()].map(requirement => {
+                    const scale = requirement.academic.scale;
+                    return `${formatAcademic(requirement)}${scale ? ` (scale ${scale})` : ''}`;
+                }).join(', ') || null,
+                language: language.join(', ') || 'Not specified',
+            };
         };
 
-        const undergradMin = findMin(undergradPrograms);
-        const postgradMin = findMin(postgradPrograms);
-
-        // Return formatted strings for each level
         return {
-            undergraduate: undergradMin ? {
-                academic: formatAcademic(undergradMin.entry_requirements),
-                language: formatLanguage(undergradMin.entry_requirements),
-                // Keep raw if needed, but we won't use it
-            } : null,
-            postgraduate: postgradMin ? {
-                academic: formatAcademic(postgradMin.entry_requirements),
-                language: formatLanguage(postgradMin.entry_requirements),
-            } : null,
+            undergraduate: findMin(undergradPrograms),
+            postgraduate: findMin(postgradPrograms),
         };
     };
+
+    const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
 
     // ----- Fetch institutions -----
 
@@ -454,17 +448,17 @@ export default function InstitutionList() {
                                                     <Typography level='body-xs' fontWeight='lg'>Undergraduate</Typography>
                                                     <Typography level='body-xs'>
                                                         <strong>Academic:</strong>{' '}
-                                                        {institution.entryRequirements?.undergraduate?.gpa?.score
+                                                        {hasValue(institution.entryRequirements?.undergraduate?.gpa?.score)
                                                             ? `${institution.entryRequirements.undergraduate.gpa.score} ${institution.entryRequirements.undergraduate.gpa.type || ''}`
-                                                            : 'Not specified'}
+                                                            : institution.minimumRequirements?.undergraduate?.academic || <strong>A school-leaving certificate equivalent</strong>}
                                                     </Typography>
                                                     <Typography level='body-xs'>
                                                         <strong>Language:</strong>{' '}
-                                                        {institution.entryRequirements?.undergraduate?.languageRequirement?.length ? (
+                                                        {institution.entryRequirements?.undergraduate?.languageRequirement?.some(test => [test.overall, test.minimum, test.listening, test.reading, test.writing, test.speaking].some(hasValue)) ? (
                                                             institution.entryRequirements.undergraduate.languageRequirement
                                                                 .map(test => `${test.testType || test.testName || 'Test'}${test.overall ? ` ${test.overall}` : ''}`)
                                                                 .join(', ')
-                                                        ) : 'Not specified'}
+                                                        ) : institution.minimumRequirements?.undergraduate?.language || 'Not specified'}
                                                     </Typography>
                                                 </Box>
 
@@ -475,17 +469,17 @@ export default function InstitutionList() {
                                                     <Typography level='body-xs' fontWeight='lg'>Postgraduate</Typography>
                                                     <Typography level='body-xs'>
                                                         <strong>Academic:</strong>{' '}
-                                                        {institution.entryRequirements?.postgraduate?.gpa?.score
+                                                        {hasValue(institution.entryRequirements?.postgraduate?.gpa?.score)
                                                             ? `${institution.entryRequirements.postgraduate.gpa.score} ${institution.entryRequirements.postgraduate.gpa.type || ''}`
-                                                            : 'Not specified'}
+                                                            : institution.minimumRequirements?.postgraduate?.academic || <strong>A completed Bachelor’s degree</strong>}
                                                     </Typography>
                                                     <Typography level='body-xs'>
                                                         <strong>Language:</strong>{' '}
-                                                        {institution.entryRequirements?.postgraduate?.languageRequirement?.length ? (
+                                                        {institution.entryRequirements?.postgraduate?.languageRequirement?.some(test => [test.overall, test.minimum, test.listening, test.reading, test.writing, test.speaking].some(hasValue)) ? (
                                                             institution.entryRequirements.postgraduate.languageRequirement
                                                                 .map(test => `${test.testType || test.testName || 'Test'}${test.overall ? ` ${test.overall}` : ''}`)
                                                                 .join(', ')
-                                                        ) : 'Not specified'}
+                                                        ) : institution.minimumRequirements?.postgraduate?.language || 'Not specified'}
                                                     </Typography>
                                                 </Box>
                                             </Box>

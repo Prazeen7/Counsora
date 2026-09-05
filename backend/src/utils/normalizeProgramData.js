@@ -220,6 +220,7 @@ function normalizeProgramData(program) {
             "Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research",
         ]),
         field: normalizeString(program.field),
+        specialization: normalizeStringArray(program.specialization),
         credits: normalizeStringArray(program.credits),
         format: normalizeString(program.format),
 

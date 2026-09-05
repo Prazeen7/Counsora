@@ -505,6 +505,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                     degree_name: "",
                     level: "",
                     field: "",
+                    specialization: [],
                     credits: [],
                     format: "",
                     scholarship: { available: false, description: "", url: "" },
@@ -559,6 +560,9 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                 credits_raw: Array.isArray(base.credits)
                     ? base.credits.join(", ")
                     : base.credits || "",
+                specialization_raw: Array.isArray(base.specialization)
+                    ? base.specialization.join(", ")
+                    : base.specialization || "",
                 intakes_raw: Array.isArray(base.intakes)
                     ? base.intakes.join(", ")
                     : base.intakes || "",
@@ -642,6 +646,13 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                 ? (formData.field_other?.trim() || "Other")
                 : (formData.field || null),
             field_other: null,
+            specialization:
+                typeof formData.specialization_raw === "string"
+                    ? formData.specialization_raw
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                    : formData.specialization || [],
             credits:
                 typeof formData.credits_raw === "string"
                     ? formData.credits_raw
@@ -739,6 +750,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
         };
 
         delete payload.credits_raw;
+        delete payload.specialization_raw;
         delete payload.intakes_raw;
         delete payload.campuses_raw;
         delete payload.tuition_fees_raw;
@@ -934,6 +946,15 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                                 label="Program URL"
                                 value={formData.url || ""}
                                 onChange={(e) => handleChange("url", e.target.value)}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                label="Specializations (comma-separated)"
+                                value={formData.specialization_raw ?? ""}
+                                onChange={(e) => handleChange("specialization_raw", e.target.value)}
+                                placeholder="e.g., Artificial Intelligence, Data Science"
                             />
                         </Grid>
 

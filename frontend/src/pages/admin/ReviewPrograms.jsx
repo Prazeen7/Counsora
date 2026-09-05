@@ -259,6 +259,13 @@ export default function ReviewPrograms() {
                                         <Typography variant="body1">{program.format || 'N/A'}</Typography>
                                     </Grid>
 
+                                    {program.specialization?.length > 0 && (
+                                        <Grid item xs={12}>
+                                            <Typography variant="body2" color="text.secondary">Specializations:</Typography>
+                                            <Typography variant="body1">{program.specialization.join(', ')}</Typography>
+                                        </Grid>
+                                    )}
+
                                     {program.credits && program.credits.length > 0 && (
                                         <Grid item xs={12} md={6}>
                                             <Typography variant="body2" color="text.secondary">Credits:</Typography>
@@ -331,6 +338,15 @@ export default function ReviewPrograms() {
                             fullWidth
                             value={editForm.degree_name || ''}
                             onChange={(e) => setEditForm({ ...editForm, degree_name: e.target.value })}
+                        />
+                        <TextField
+                            label="Specializations (comma-separated)"
+                            fullWidth
+                            value={editForm.specialization?.join(', ') || ''}
+                            onChange={(e) => setEditForm({
+                                ...editForm,
+                                specialization: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                            })}
                         />
                         <TextField
                             label="Duration"

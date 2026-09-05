@@ -85,6 +85,14 @@ const sanitizeProgramData = (data) => {
             ? sanitized.field.trim() || null
             : null;
     }
+    if (sanitized.specialization !== undefined) {
+        const values = Array.isArray(sanitized.specialization)
+            ? sanitized.specialization
+            : [sanitized.specialization];
+        sanitized.specialization = values
+            .map((value) => typeof value === "string" ? value.trim() : "")
+            .filter(Boolean);
+    }
     if (sanitized.level !== undefined) {
         sanitized.level = VALID_LEVELS.includes(sanitized.level) ? sanitized.level : null;
     }
