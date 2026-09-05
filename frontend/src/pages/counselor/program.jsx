@@ -44,6 +44,7 @@ import TabPanel from "../../components/counselor/TabPanel";
 import '../counselor/institutions.css';
 import SearchBar from "../../components/counselor/SearchBar";
 import Loading from "../../components/Loading";
+import { useCountry } from "../../context/CountryContext";
 
 const URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -150,6 +151,7 @@ const SearchContainer = styled(Box)(({ theme }) => ({
 // Main Component
 export default function Programs() {
     const [filterOpen, setFilterOpen] = useState(false);
+    const { selectedCountry } = useCountry();
     const [tabValue, setTabValue] = useState(0); // For program level tabs
     const [filterTabValue, setFilterTabValue] = useState(0); // For filter dialog tabs
     const [tempFilters, setTempFilters] = useState({
@@ -203,6 +205,8 @@ export default function Programs() {
     const batchSize = itemsPerPage * 5;
     const gpaFilter = Number(appliedFilters.gpa) || 0;
     const backendParams = new URLSearchParams({ gpa: String(gpaFilter) });
+    if (selectedCountry?._id) backendParams.set("country", selectedCountry._id);
+    if (searchQuery.trim()) backendParams.set("search", searchQuery.trim());
     backendParams.set("programLevel", ["all", "undergraduate", "postgraduate"][tabValue]);
     if (appliedFilters.academicLevel) backendParams.set("academicLevel", appliedFilters.academicLevel);
     if (appliedFilters.englishTest) {
@@ -213,6 +217,7 @@ export default function Programs() {
     }
     if (appliedFilters.fieldOfStudy) backendParams.set("fieldOfStudy", appliedFilters.fieldOfStudy);
     if (appliedFilters.preferredLocation) backendParams.set("location", appliedFilters.preferredLocation);
+    if (sortOrder) backendParams.set("sortOrder", sortOrder);
     const backendFilterKey = backendParams.toString();
     const [loadedFilterKey, setLoadedFilterKey] = useState(null);
     const previousFilterRef = useRef(backendFilterKey);
@@ -460,12 +465,6 @@ export default function Programs() {
 
     // Filter programs based on search query, selected discipline, program level, and financial filters
     const filteredPrograms = institutions.filter((program) => {
-        const matchesSearch =
-            (program.program?.toLowerCase() || "").includes(searchQuery) ||
-            (program.level?.toLowerCase() || "").includes(searchQuery) ||
-            (program.institution?.toLowerCase() || "").includes(searchQuery) ||
-            (program.campus?.toLowerCase() || "").includes(searchQuery) ||
-            (program.discipline?.toLowerCase() || "").includes(searchQuery);
 
         // Financial Filter Logic
         const totalRequiredFunds = calculateTotalRequiredFunds(program);
@@ -510,7 +509,6 @@ export default function Programs() {
             program.institutionData?.documents?.previousVisaRefusal === "yes";
 
         return (
-            matchesSearch &&
             matchesBankBalance &&
             matchesEducationLoan &&
             matchesIncomeSource &&
@@ -520,17 +518,8 @@ export default function Programs() {
         );
     });
 
-    // Sort programs by tuition fee
-    const sortedPrograms = [...filteredPrograms].sort((a, b) => {
-        const feeA = parseFloat(a.fees.replace(/[^0-9.]/g, "")) || 0;
-        const feeB = parseFloat(b.fees.replace(/[^0-9.]/g, "")) || 0;
-        if (sortOrder === "highToLow") {
-            return feeB - feeA;
-        } else if (sortOrder === "lowToHigh") {
-            return feeA - feeB;
-        }
-        return 0;
-    });
+    // The backend sorts before pagination; retain the returned order here.
+    const sortedPrograms = filteredPrograms;
 
     // Updated pagination logic
     const indexOfLastItem = currentPage * itemsPerPage - batchOffset;
@@ -571,6 +560,7 @@ export default function Programs() {
     // Handle selecting a sort option
     const handleSortOptionSelect = (order) => {
         setSortOrder(order);
+        setCurrentPage(1);
         handleSortMenuClose();
     };
 
@@ -689,6 +679,7 @@ export default function Programs() {
 
     const handleSearchChange = (event) => {
         setSearchQuery(event.target.value.toLowerCase());
+        setCurrentPage(1);
     };
 
     const handleApplyFilters = () => {

@@ -44,7 +44,10 @@ const getInstitutions = async (req, res) => {
         }
 
         if (country && country !== 'all') {
-            query.country = country;
+            if (!mongoose.Types.ObjectId.isValid(country)) {
+                return res.status(400).json({ error: 'Invalid country' });
+            }
+            query.country = new mongoose.Types.ObjectId(country);
         }
 
         const pageNumber = parseInt(page);

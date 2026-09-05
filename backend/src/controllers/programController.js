@@ -264,13 +264,35 @@ const getAllProgram = async (req, res) => {
         const offset = Number(req.query.offset ?? 0);
         const seed = req.query.seed;
         const gpa = Number(req.query.gpa ?? 0);
+        const sortOrder = req.query.sortOrder;
+        if (sortOrder !== undefined && !["", "highToLow", "lowToHigh"].includes(sortOrder)) {
+            return res.status(400).json({ error: "Select a valid sort order" });
+        }
         const location = req.query.location;
+        const search = req.query.search;
+        if (search !== undefined && (typeof search !== "string" || search.length > 200)) {
+            return res.status(400).json({ error: "Invalid program search" });
+        }
+        const country = req.query.country;
+        if (country !== undefined && country !== "" && !mongoose.Types.ObjectId.isValid(country)) {
+            return res.status(400).json({ error: "Invalid country" });
+        }
         if (location !== undefined && (typeof location !== "string" || location.length > 300)) {
             return res.status(400).json({ error: "Invalid program location" });
         }
         const locationFilter = location?.trim() ? {
             campuses: { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
         } : null;
+        const searchFilter = search?.trim() ? {
+            $or: [
+                { degree_name: { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+                { level: { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+                { field: { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+                { campuses: { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+                { "programInstitution.name": { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } },
+            ],
+        } : null;
+        const countryFilter = country ? { "programInstitution.country": new mongoose.Types.ObjectId(country) } : null;
         const fieldOfStudy = req.query.fieldOfStudy;
         if (fieldOfStudy !== undefined && fieldOfStudy !== "" &&
             (typeof fieldOfStudy !== "string" || !VALID_FIELDS.includes(fieldOfStudy))) {
@@ -309,8 +331,16 @@ const getAllProgram = async (req, res) => {
         }
         let randomizedIds;
         let matchingTotal;
-        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || programLevelFilter || fieldFilter || locationFilter) {
-            const orderStages = seed ? [
+        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || programLevelFilter || fieldFilter || locationFilter || countryFilter || searchFilter) {
+            const orderStages = sortOrder ? [
+                { $addFields: {
+                    sortFee: { $convert: {
+                        input: { $arrayElemAt: ["$tuition_fees.annual_fee_eur", 0] },
+                        to: "double", onError: 0, onNull: 0,
+                    } },
+                } },
+                { $sort: { sortFee: sortOrder === "highToLow" ? -1 : 1, _id: 1 } },
+            ] : seed ? [
                 { $project: {
                     _id: 1,
                     shuffleOrder: { $toHashedIndexKey: { $concat: [{ $literal: seed }, ":", { $toString: "$_id" }] } },
@@ -319,6 +349,11 @@ const getAllProgram = async (req, res) => {
             ] : [{ $project: { _id: 1 } }, { $sort: { _id: 1 } }];
             const [result] = await Program.aggregate([
                 { $match: { isActive: true } },
+                ...(searchFilter ? [{ $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } }, { $unwind: { path: "$programInstitution", preserveNullAndEmptyArrays: true } }, { $match: searchFilter }] : []),
+                ...(countryFilter ? [
+                    { $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } },
+                    { $match: countryFilter },
+                ] : []),
                 ...(programLevelFilter ? [{ $match: programLevelFilter }] : []),
                 ...(locationFilter ? [{ $match: locationFilter }] : []),
                 ...(fieldFilter ? [{ $match: fieldFilter }] : []),

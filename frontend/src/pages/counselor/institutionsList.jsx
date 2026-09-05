@@ -186,7 +186,7 @@ export default function InstitutionList() {
             const params = {
                 search: query,
                 location: location === "all" ? undefined : location,
-                country: selectedCountry?._id,
+                country: selectedCountry?._id || selectedCountry?.id,
                 page,
             };
 
