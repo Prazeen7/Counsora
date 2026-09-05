@@ -47,7 +47,6 @@ import Loading from "../../components/Loading";
 const URL = import.meta.env.VITE_BACKEND_URL;
 
 // Shuffle cards
-const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
 
 // Theme Configuration
 const theme = createTheme({
@@ -186,9 +185,18 @@ export default function Programs() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
     const [institutions, setInstitutions] = useState([]);
+    const [totalPrograms, setTotalPrograms] = useState(0);
+    const [loadedOffset, setLoadedOffset] = useState(-1);
+    const programBatchesRef = useRef(new Map());
+    const [programShuffleSeed] = useState(() =>
+        Array.from(crypto.getRandomValues(new Uint32Array(4)), value => value.toString(16)).join("-")
+    );
+    const batchSize = itemsPerPage * 5;
+    const batchOffset = Math.floor((currentPage - 1) / 5) * batchSize;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const programTabsRef = useRef(null);
+    const pendingPageScrollRef = useRef(null);
 
     // Default filter values
     const defaultFilters = {
@@ -247,13 +255,22 @@ export default function Programs() {
     };
 
     // ----- Fetch programs and map to UI format -----
-    const fetchData = async () => {
+    const fetchData = async (offset, signal) => {
+        const cached = programBatchesRef.current.get(offset);
+        if (cached) {
+            setInstitutions(cached);
+            setLoadedOffset(offset);
+            setError("");
+            setLoading(false);
+            return;
+        }
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
 
-            const response = await fetch(`${URL}/program/get`, {
+            const response = await fetch(`${URL}/program/get?limit=${batchSize}&offset=${offset}&seed=${programShuffleSeed}`, {
                 method: "GET",
+                signal,
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
@@ -265,10 +282,10 @@ export default function Programs() {
             }
 
             const data = await response.json();
+            if (signal.aborted) return;
 
             // Map the new schema to the UI format
-            const shuffledPrograms = shuffleArray(
-                data.map((program) => {
+            const mappedPrograms = data.programs.map((program) => {
                     // Determine level from degree_name or level field
                     let level = "N/A";
                     const levelField = program.level || "";
@@ -344,6 +361,7 @@ export default function Programs() {
                         pte: pte,
                         toefl: toefl,
                         gpa: gpa,
+                        entry_requirements: program.entry_requirements,
                         applicationFees: program.application_fees || institutionData?.applicationFee?.amount || "N/A",
                         requiredFunds: null, // will be calculated later
                         institutionData: {
@@ -352,16 +370,19 @@ export default function Programs() {
                         },
                         url: program.url || "#",
                     };
-                })
-            );
+                });
 
-            setInstitutions(shuffledPrograms);
+            programBatchesRef.current.set(offset, mappedPrograms);
+            setInstitutions(mappedPrograms);
+            setLoadedOffset(offset);
+            setTotalPrograms(data.pagination.total);
             setError("");
         } catch (error) {
+            if (signal.aborted) return;
             console.error("Error fetching programs:", error);
             setError("Failed to fetch programs. Please try again later.");
         } finally {
-            setLoading(false);
+            if (!signal.aborted) setLoading(false);
         }
     };
 
@@ -371,8 +392,14 @@ export default function Programs() {
             top: 0,
             behavior: "smooth"
         });
-        fetchData();
     }, []);
+
+    // Fetch five pages at a time, including when jumping directly to a distant page.
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchData(batchOffset, controller.signal);
+        return () => controller.abort();
+    }, [batchOffset]);
 
     // Calculate total required funds for a program
     const calculateTotalRequiredFunds = (program) => {
@@ -566,25 +593,30 @@ export default function Programs() {
     });
 
     // Updated pagination logic
-    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfLastItem = currentPage * itemsPerPage - batchOffset;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentPrograms = sortedPrograms.slice(indexOfFirstItem, indexOfLastItem);
+    const currentPrograms = loadedOffset === batchOffset && !loading && !error
+        ? sortedPrograms.slice(indexOfFirstItem, indexOfLastItem) : [];
 
     // Ensure the pagination count is calculated correctly
-    const totalPages = Math.ceil(filteredPrograms.length / itemsPerPage);
+    const totalPages = Math.ceil(totalPrograms / itemsPerPage);
 
     // Handle page change 
     const handlePageChange = (event, value) => {
+        pendingPageScrollRef.current = value;
         setCurrentPage(value);
-        setTimeout(() => {
-            if (programTabsRef.current) {
-                programTabsRef.current.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        }, 0);
     };
+
+    // Scroll after the requested page's cards have rendered, including cached pages.
+    useEffect(() => {
+        if (pendingPageScrollRef.current !== currentPage || loading || error || loadedOffset !== batchOffset) return;
+
+        const frame = requestAnimationFrame(() => {
+            programTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            pendingPageScrollRef.current = null;
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [currentPage, loading, error, loadedOffset, batchOffset]);
 
     // Handle opening the sort dropdown menu
     const handleSortMenuOpen = (event) => {

@@ -8,9 +8,8 @@ import {
     Chip,
     Collapse,
     Divider,
-    Grid,
     IconButton,
-    Stack,
+    Tooltip,
     Typography,
 } from "@mui/material";
 import {
@@ -24,6 +23,11 @@ import {
 
 function ProgramCard({ program, institutionData }) {
     const [isIntakesOpen, setIsIntakesOpen] = useState(false);
+    const academic = program.entry_requirements?.academic;
+    const additionalRequirements = (program.entry_requirements?.additional_requirements || [])
+        .filter(requirement => typeof requirement === "string" && requirement.trim());
+    const additionalRequirementsText = additionalRequirements.join(" | ");
+    const scrollAdditionalRequirements = additionalRequirementsText.length > 48;
 
     // Show first 2 intakes by default 
     const visibleIntakes = program.intakes.slice(0, 2);
@@ -107,7 +111,7 @@ function ProgramCard({ program, institutionData }) {
                 {/* Level, Campus, and Duration in a Row */}
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 1, minWidth: 0 }}>
                     {/* Campus */}
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 auto' }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}>
                         <LocationIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
                         <Typography
                             variant="body2"
@@ -122,7 +126,7 @@ function ProgramCard({ program, institutionData }) {
                     </Box>
 
                     {/* Level */}
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 auto' }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}>
                         <SchoolIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
                         <Typography
                             variant="body2"
@@ -137,7 +141,7 @@ function ProgramCard({ program, institutionData }) {
                     </Box>
 
                     {/* Duration */}
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: '1 1 100%' }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, minWidth: 0, maxWidth: '100%', flex: '0 1 auto' }}>
                         <TimeIcon sx={{ fontSize: 18, color: "#4f46e5", flexShrink: 0, mt: 0.2 }} />
                         <Typography
                             variant="body2"
@@ -147,16 +151,13 @@ function ProgramCard({ program, institutionData }) {
                                 minWidth: 0
                             }}
                         >
-                            {program.duration}
+                            {program.duration}{/^\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?$/.test(String(program.duration).trim()) ? " years" : ""}
                         </Typography>
                     </Box>
                 </Box>
 
                 {/* Program Details in Two Columns */}
-                <Grid container spacing={2}>
-                    {/* Left Column */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={2}>
+                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2, "& > *": { minWidth: 0, overflowWrap: "anywhere" } }}>
                             {/* Intakes */}
                             <Box>
                                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
@@ -275,6 +276,24 @@ function ProgramCard({ program, institutionData }) {
                                 </Box>
                             </Box>
 
+                            {/* Academic and field requirements */}
+                            <Box sx={{ overflowWrap: "anywhere" }}>
+                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                    Academic:
+                                </Typography>
+                                <Typography variant="body2">
+                                    {academic?.minimum_qualification || "Not specified"}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ overflowWrap: "anywhere" }}>
+                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                    Field:
+                                </Typography>
+                                <Typography variant="body2">
+                                    {academic?.field_requirement || "Not specified"}
+                                </Typography>
+                            </Box>
+
                             {/* GPA */}
                             <Box>
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
@@ -282,6 +301,9 @@ function ProgramCard({ program, institutionData }) {
                                 </Typography>
                                 <Typography variant="body2">
                                     {(() => {
+                                        if (academic?.score != null) {
+                                            return `${academic.score}${academic.scale ? ` / ${academic.scale}` : ""}${academic.score_type ? ` (${academic.score_type})` : ""}`;
+                                        }
                                         const level = program.level.toLowerCase();
                                         const entryReqs = institutionData?.entryRequirements;
 
@@ -298,16 +320,11 @@ function ProgramCard({ program, institutionData }) {
                                         }
 
                                         // Fallback to program's entry requirements
-                                        return program.entry_requirements?.academic || "Not specified";
+                                        return "Not specified";
                                     })()}
                                 </Typography>
                             </Box>
-                        </Stack>
-                    </Grid>
 
-                    {/* Right Column */}
-                    <Grid item xs={12} sm={6}>
-                        <Stack spacing={2}>
                             {/* Tuition Fees */}
                             <Box>
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
@@ -330,7 +347,58 @@ function ProgramCard({ program, institutionData }) {
                                 </Typography>
                             </Box>
 
-                            {/* Funds Required */}
+                            {/* Additional requirements */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                    Additional Requirements:
+                                </Typography>
+                                {additionalRequirements.length ? (
+                                    <Tooltip arrow placement="top" title={
+                                        <Box sx={{ py: 0.5 }}>
+                                            {additionalRequirements.map((requirement, index) => (
+                                                <Typography variant="body2" key={index} sx={{ lineHeight: 1.5, mb: 0.75 }}>
+                                                    {requirement}
+                                                </Typography>
+                                            ))}
+                                        </Box>
+                                    }>
+                                        <Box tabIndex={0} sx={{
+                                            width: "100%", overflow: "hidden", whiteSpace: "nowrap", cursor: "help",
+                                            "@keyframes programAdditionalRequirementsTicker": {
+                                                from: { transform: "translateX(0)" },
+                                                to: { transform: "translateX(-50%)" },
+                                            },
+                                            "&:hover .additional-requirements-ticker, &:focus .additional-requirements-ticker": {
+                                                animationPlayState: "paused",
+                                            },
+                                        }}>
+                                            <Typography component="div" variant="body2" className="additional-requirements-ticker" sx={{
+                                                display: "inline-flex", width: "max-content",
+                                                ...(scrollAdditionalRequirements && {
+                                                    animation: `programAdditionalRequirementsTicker ${Math.max(22, additionalRequirementsText.length * 0.42)}s linear infinite`,
+                                                }),
+                                                "@media (prefers-reduced-motion: reduce)": {
+                                                    animation: "none", width: "100%", whiteSpace: "normal",
+                                                    "& > [aria-hidden]": { display: "none" },
+                                                },
+                                            }}>
+                                                <Box component="span" sx={{ pr: scrollAdditionalRequirements ? 4 : 0 }}>
+                                                    {additionalRequirementsText}{scrollAdditionalRequirements && " |"}
+                                                </Box>
+                                                {scrollAdditionalRequirements && (
+                                                    <Box component="span" sx={{ pr: 4 }} aria-hidden="true">
+                                                        {additionalRequirementsText} |
+                                                    </Box>
+                                                )}
+                                            </Typography>
+                                        </Box>
+                                    </Tooltip>
+                                ) : (
+                                    <Typography variant="body2">Not specified</Typography>
+                                )}
+                            </Box>
+
+                            {/* Funds Required
                             <Box>
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
                                     Funds Required:
@@ -339,9 +407,8 @@ function ProgramCard({ program, institutionData }) {
                                     {program.requiredFunds ? `$${parseInt(program.requiredFunds).toLocaleString()}` : "N/A"}
                                 </Typography>
                             </Box>
-                        </Stack>
-                    </Grid>
-                </Grid>
+                            */}
+                </Box>
             </CardContent>
 
             {/* Learn More */}
