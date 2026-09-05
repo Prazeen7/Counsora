@@ -281,9 +281,18 @@ const getAllProgram = async (req, res) => {
             : { field: fieldOfStudy };
         let englishFilter;
         let academicLevelFilter;
+        let programLevelFilter;
         try {
             englishFilter = programEnglishFilter(req.query);
             academicLevelFilter = programAcademicLevelFilter(req.query.academicLevel);
+            const programLevel = req.query.programLevel;
+            if (programLevel !== undefined && !["all", "undergraduate", "postgraduate"].includes(programLevel)) {
+                throw new Error("Select a valid program level");
+            }
+            if (programLevel === "undergraduate" || programLevel === "postgraduate") {
+                // Reuse the same level grouping and legacy degree-name fallback.
+                programLevelFilter = programAcademicLevelFilter(programLevel === "undergraduate" ? "high_school" : "bachelors");
+            }
         } catch (error) {
             return res.status(400).json({ error: error.message });
         }
@@ -300,7 +309,7 @@ const getAllProgram = async (req, res) => {
         }
         let randomizedIds;
         let matchingTotal;
-        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || fieldFilter || locationFilter) {
+        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || programLevelFilter || fieldFilter || locationFilter) {
             const orderStages = seed ? [
                 { $project: {
                     _id: 1,
@@ -310,6 +319,7 @@ const getAllProgram = async (req, res) => {
             ] : [{ $project: { _id: 1 } }, { $sort: { _id: 1 } }];
             const [result] = await Program.aggregate([
                 { $match: { isActive: true } },
+                ...(programLevelFilter ? [{ $match: programLevelFilter }] : []),
                 ...(locationFilter ? [{ $match: locationFilter }] : []),
                 ...(fieldFilter ? [{ $match: fieldFilter }] : []),
                 ...(academicLevelFilter ? [{ $match: academicLevelFilter }] : []),

@@ -203,6 +203,7 @@ export default function Programs() {
     const batchSize = itemsPerPage * 5;
     const gpaFilter = Number(appliedFilters.gpa) || 0;
     const backendParams = new URLSearchParams({ gpa: String(gpaFilter) });
+    backendParams.set("programLevel", ["all", "undergraduate", "postgraduate"][tabValue]);
     if (appliedFilters.academicLevel) backendParams.set("academicLevel", appliedFilters.academicLevel);
     if (appliedFilters.englishTest) {
         backendParams.set("englishTest", appliedFilters.englishTest);
@@ -465,10 +466,6 @@ export default function Programs() {
             (program.institution?.toLowerCase() || "").includes(searchQuery) ||
             (program.campus?.toLowerCase() || "").includes(searchQuery) ||
             (program.discipline?.toLowerCase() || "").includes(searchQuery);
-        const matchesLevel =
-            tabValue === 0 || // All Programs
-            (tabValue === 1 && program.level === "Undergraduate") || // Undergraduate
-            (tabValue === 2 && program.level === "Postgraduate"); // Postgraduate
 
         // Financial Filter Logic
         const totalRequiredFunds = calculateTotalRequiredFunds(program);
@@ -514,7 +511,6 @@ export default function Programs() {
 
         return (
             matchesSearch &&
-            matchesLevel &&
             matchesBankBalance &&
             matchesEducationLoan &&
             matchesIncomeSource &&
