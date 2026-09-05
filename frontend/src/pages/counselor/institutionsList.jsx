@@ -188,6 +188,7 @@ export default function InstitutionList() {
                 location: location === "all" ? undefined : location,
                 country: selectedCountry?._id || selectedCountry?.id,
                 page,
+                limit: itemsPerPage,
             };
 
             const jsonResponse = await getInstitutions(params);

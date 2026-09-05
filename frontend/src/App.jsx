@@ -17,6 +17,8 @@ import AdminInstitutions from "./pages/admin/institutionsList";
 import AdminLayout from "./layouts/adminLayout";
 import ReviewPrograms from "./pages/admin/ReviewPrograms";
 import Programs from "./pages/counselor/program";
+import Documents from "./pages/counselor/documents";
+import StudyGuide from "./pages/counselor/studyGuide";
 
 function App() {
   return (
@@ -96,6 +98,12 @@ function App() {
           </>
         }
       />
+
+      <Route
+        path="/documents"
+        element={<><Navbar /><RoleProtectedRoutes allowedRoles={["counselor"]}><Documents /></RoleProtectedRoutes></>}
+      />
+      <Route path="/study-guide" element={<><Navbar /><RoleProtectedRoutes allowedRoles={["counselor"]}><StudyGuide /></RoleProtectedRoutes></>} />
 
 
       <Route

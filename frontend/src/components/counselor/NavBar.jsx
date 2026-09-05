@@ -73,28 +73,28 @@ const Navbar = () => {
                 <>
                     <ul className={`nav-links ${isMenuOpen ? "active" : ""}`}>
                         <li>
-                            <NavLink to="/institutions" onClick={handleLinkClick}>
+                            <NavLink end to="/institutions" onClick={handleLinkClick} className={({ isActive }) => isActive ? "activeColor" : ""}>
                                 Institutions
                             </NavLink>
                         </li>
                         <li>
-                            <NavLink to="/programs" onClick={handleLinkClick}>
+                            <NavLink end to="/programs" onClick={handleLinkClick} className={({ isActive }) => isActive ? "activeColor" : ""}>
                                 Programs
                             </NavLink>
                         </li>
                         <li>
-                            <NavLink to="/documents" onClick={handleLinkClick}>
+                            <NavLink end to="/documents" onClick={handleLinkClick} className={({ isActive }) => isActive ? "activeColor" : ""}>
                                 Documents
                             </NavLink>
                         </li>
                         <li>
-                            <NavLink to="/cost-estimation" onClick={handleLinkClick}>
+                            <NavLink end to="/cost-estimation" onClick={handleLinkClick} className={({ isActive }) => isActive ? "activeColor" : ""}>
                                 Cost Estimation
                             </NavLink>
                         </li>
                         <li>
-                            <NavLink to="/progress-tracking" onClick={handleLinkClick}>
-                                Progress Tracking
+                            <NavLink end to="/study-guide" onClick={handleLinkClick} className={({ isActive }) => isActive ? "activeColor" : ""}>
+                                Study Guide
                             </NavLink>
                         </li>
                         <li className="region-selector">

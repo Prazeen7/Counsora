@@ -59,12 +59,13 @@ body {
 }
 
 .nav-links a {
+    position: relative;
     text-decoration: none;
     color: #374151;
     font-size: 1rem;
     padding: 0.5em;
     border-bottom: 0.125em solid transparent;
-    transition: all 0.3s ease-in-out;
+    transition: color 0.25s ease, background-color 0.3s ease, transform 0.3s ease;
     font-family: "Parkinsans", sans-serif;
     font-weight: 400;
 }
@@ -73,8 +74,31 @@ body {
     border-bottom: 0.125em solid #4f46e5;
 }
 
-.nav-links a.activeColor {
-    border-bottom: 0.125em solid #4f46e5;
+.nav-links a.activeColor,
+.nav-links a.active {
+    color: #4f46e5;
+    background: rgba(79, 70, 229, 0.08);
+    border-bottom-color: transparent;
+    border-radius: 0.45em;
+    transform: translateY(-1px);
+}
+
+.nav-links a.activeColor::after,
+.nav-links a.active::after {
+    content: "";
+    position: absolute;
+    left: 0.5em;
+    right: 0.5em;
+    bottom: -0.125em;
+    height: 0.125em;
+    border-radius: 999px;
+    background: #4f46e5;
+    animation: navActiveSlide 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes navActiveSlide {
+    from { transform: scaleX(0.15); opacity: 0.35; }
+    to { transform: scaleX(1); opacity: 1; }
 }
 
 .nav-buttons {
