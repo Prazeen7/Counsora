@@ -1,3 +1,4 @@
+import { FIELD_OPTIONS } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
     Box,
@@ -155,6 +156,10 @@ export default function Programs() {
         gpa: 0,
         englishTest: "",
         testScore: "",
+        listeningScore: "",
+        readingScore: "",
+        writingScore: "",
+        speakingScore: "",
         academicLevel: "",
         fieldOfStudy: "",
         preferredLocation: "",
@@ -168,6 +173,10 @@ export default function Programs() {
         gpa: 0,
         englishTest: "",
         testScore: "",
+        listeningScore: "",
+        readingScore: "",
+        writingScore: "",
+        speakingScore: "",
         academicLevel: "",
         fieldOfStudy: "",
         preferredLocation: "",
@@ -177,7 +186,6 @@ export default function Programs() {
         educationLoanBank: "",
         incomeSources: [{ incomeSourceType: "", totalIncome: null, sourceOwner: "" }],
     });
-    const [selectedDiscipline, setSelectedDiscipline] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortOrder, setSortOrder] = useState("");
     const [sortAnchorEl, setSortAnchorEl] = useState(null);
@@ -186,12 +194,27 @@ export default function Programs() {
     const [itemsPerPage] = useState(12);
     const [institutions, setInstitutions] = useState([]);
     const [totalPrograms, setTotalPrograms] = useState(0);
+    const [availableLocations, setAvailableLocations] = useState([]);
     const [loadedOffset, setLoadedOffset] = useState(-1);
     const programBatchesRef = useRef(new Map());
     const [programShuffleSeed] = useState(() =>
         Array.from(crypto.getRandomValues(new Uint32Array(4)), value => value.toString(16)).join("-")
     );
     const batchSize = itemsPerPage * 5;
+    const gpaFilter = Number(appliedFilters.gpa) || 0;
+    const backendParams = new URLSearchParams({ gpa: String(gpaFilter) });
+    if (appliedFilters.academicLevel) backendParams.set("academicLevel", appliedFilters.academicLevel);
+    if (appliedFilters.englishTest) {
+        backendParams.set("englishTest", appliedFilters.englishTest);
+        ["testScore", "listeningScore", "readingScore", "writingScore", "speakingScore"].forEach(key => {
+            if (appliedFilters[key] !== "") backendParams.set(key, appliedFilters[key]);
+        });
+    }
+    if (appliedFilters.fieldOfStudy) backendParams.set("fieldOfStudy", appliedFilters.fieldOfStudy);
+    if (appliedFilters.preferredLocation) backendParams.set("location", appliedFilters.preferredLocation);
+    const backendFilterKey = backendParams.toString();
+    const [loadedFilterKey, setLoadedFilterKey] = useState(null);
+    const previousFilterRef = useRef(backendFilterKey);
     const batchOffset = Math.floor((currentPage - 1) / 5) * batchSize;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -203,6 +226,10 @@ export default function Programs() {
         gpa: 0,
         englishTest: "",
         testScore: "",
+        listeningScore: "",
+        readingScore: "",
+        writingScore: "",
+        speakingScore: "",
         academicLevel: "",
         fieldOfStudy: "",
         preferredLocation: "",
@@ -256,9 +283,12 @@ export default function Programs() {
 
     // ----- Fetch programs and map to UI format -----
     const fetchData = async (offset, signal) => {
-        const cached = programBatchesRef.current.get(offset);
+        const cacheKey = `${backendFilterKey}:${offset}`;
+        const cached = programBatchesRef.current.get(cacheKey);
         if (cached) {
-            setInstitutions(cached);
+            setInstitutions(cached.programs);
+            setTotalPrograms(cached.total);
+            setLoadedFilterKey(backendFilterKey);
             setLoadedOffset(offset);
             setError("");
             setLoading(false);
@@ -268,7 +298,7 @@ export default function Programs() {
             setLoading(true);
             const token = localStorage.getItem("token");
 
-            const response = await fetch(`${URL}/program/get?limit=${batchSize}&offset=${offset}&seed=${programShuffleSeed}`, {
+            const response = await fetch(`${URL}/program/get?limit=${batchSize}&offset=${offset}&seed=${programShuffleSeed}&${backendFilterKey}`, {
                 method: "GET",
                 signal,
                 headers: {
@@ -309,9 +339,9 @@ export default function Programs() {
                         program.degree_name?.split(" of ")[1]?.split(" ")[0] ||
                         "General";
 
-                    // Get first campus or "Multiple Campuses"
+                    // Display all campuses, including locations matched by the backend filter.
                     const campus = program.campuses && program.campuses.length > 0
-                        ? program.campuses[0]
+                        ? program.campuses.join(", ")
                         : "N/A";
 
                     // Get first tuition fee (annual_fee_eur)
@@ -372,10 +402,12 @@ export default function Programs() {
                     };
                 });
 
-            programBatchesRef.current.set(offset, mappedPrograms);
+            programBatchesRef.current.set(cacheKey, { programs: mappedPrograms, total: data.pagination.total });
+            setLoadedFilterKey(backendFilterKey);
             setInstitutions(mappedPrograms);
             setLoadedOffset(offset);
             setTotalPrograms(data.pagination.total);
+            setAvailableLocations(data.locations || []);
             setError("");
         } catch (error) {
             if (signal.aborted) return;
@@ -396,10 +428,15 @@ export default function Programs() {
 
     // Fetch five pages at a time, including when jumping directly to a distant page.
     useEffect(() => {
+        if (previousFilterRef.current !== backendFilterKey) {
+            previousFilterRef.current = backendFilterKey;
+            setCurrentPage(1);
+            if (batchOffset !== 0) return;
+        }
         const controller = new AbortController();
         fetchData(batchOffset, controller.signal);
         return () => controller.abort();
-    }, [batchOffset]);
+    }, [batchOffset, backendFilterKey]);
 
     // Calculate total required funds for a program
     const calculateTotalRequiredFunds = (program) => {
@@ -410,8 +447,6 @@ export default function Programs() {
         return firstYearFees + livingExpenses + travellingExpenses + healthCover;
     };
 
-    // Extract unique disciplines
-    const uniqueDisciplines = [...new Set(institutions.map((program) => program.discipline || ""))].filter(Boolean);
 
     // Extract unique acceptable banks from all institutions
     const acceptableBanks = [
@@ -430,90 +465,10 @@ export default function Programs() {
             (program.institution?.toLowerCase() || "").includes(searchQuery) ||
             (program.campus?.toLowerCase() || "").includes(searchQuery) ||
             (program.discipline?.toLowerCase() || "").includes(searchQuery);
-        const matchesDiscipline = selectedDiscipline
-            ? (program.discipline?.toLowerCase() || "") === selectedDiscipline.toLowerCase()
-            : true;
         const matchesLevel =
             tabValue === 0 || // All Programs
             (tabValue === 1 && program.level === "Undergraduate") || // Undergraduate
             (tabValue === 2 && program.level === "Postgraduate"); // Postgraduate
-
-        // GPA Filter Logic - use institution's entry requirements (or program's as fallback)
-        const matchesGPA = () => {
-            if (appliedFilters.gpa <= 0) return true;
-
-            // Get GPA from institution's entry requirements based on program level
-            let institutionGPA = 0;
-            if (program.level === "Undergraduate" && program.institutionData?.entryRequirements?.undergraduate?.gpa) {
-                const gpaData = program.institutionData.entryRequirements.undergraduate.gpa;
-                institutionGPA = parseFloat(gpaData.score) || 0;
-            } else if (program.level === "Postgraduate" && program.institutionData?.entryRequirements?.postgraduate?.gpa) {
-                const gpaData = program.institutionData.entryRequirements.postgraduate.gpa;
-                institutionGPA = parseFloat(gpaData.score) || 0;
-            }
-
-            // If no GPA requirement, allow all
-            if (institutionGPA === 0) return true;
-
-            // Check if user's GPA meets requirement
-            return appliedFilters.gpa >= institutionGPA;
-        };
-
-        // English Proficiency Test Filter Logic
-        const matchesEnglishTest = () => {
-            const { englishTest, testScore } = appliedFilters;
-
-            // No filter applied if either field is empty
-            if (!englishTest || !testScore) return true;
-
-            // Get the raw score for the selected test
-            let rawScore;
-            switch (englishTest.toUpperCase()) {
-                case 'IELTS':
-                    rawScore = program.ielts;
-                    break;
-                case 'PTE':
-                    rawScore = program.pte;
-                    break;
-                case 'TOEFL':
-                    rawScore = program.toefl;
-                    break;
-                default:
-                    return true; // Unknown test type, don't filter
-            }
-
-            // Exclude programs that don't require this test
-            if (!rawScore) return false;
-
-            let parsedScore;
-
-            // Handle different test formats
-            if (['IELTS', 'PTE'].includes(englishTest.toUpperCase())) {
-                // If rawScore is a number already, use it; otherwise try to parse
-                parsedScore = typeof rawScore === 'number' ? rawScore : parseFloat(rawScore);
-            } else if (englishTest.toUpperCase() === 'TOEFL') {
-                parsedScore = typeof rawScore === 'number' ? rawScore : parseFloat(rawScore);
-            }
-
-            // Exclude programs with non-numeric scores
-            if (isNaN(parsedScore)) return false;
-
-            // Check if user's score meets requirement 
-            return Number(testScore) >= parsedScore;
-        };
-
-        // Academic Level Filter Logic
-        const matchesAcademicLevel =
-            !appliedFilters.academicLevel ||
-            (appliedFilters.academicLevel === "high_school" && program.level === "Undergraduate") ||
-            (appliedFilters.academicLevel === "bachelors" && program.level === "Postgraduate") ||
-            (appliedFilters.academicLevel === "masters" && program.level === "Postgraduate") ||
-            (appliedFilters.academicLevel === "phd" && program.level === "Postgraduate");
-
-        // Field of Study Filter Logic
-        const matchesFieldOfStudy =
-            !appliedFilters.fieldOfStudy ||
-            (program.discipline?.toLowerCase() || "") === appliedFilters.fieldOfStudy.toLowerCase();
 
         // Financial Filter Logic
         const totalRequiredFunds = calculateTotalRequiredFunds(program);
@@ -552,11 +507,6 @@ export default function Programs() {
                 !source.sourceOwner || acceptableSponsors.includes(source.sourceOwner)
             );
 
-        // Preferred Location Filter Logic
-        const matchesPreferredLocation =
-            !appliedFilters.preferredLocation ||
-            (program.campus?.toLowerCase() || "").includes(appliedFilters.preferredLocation.toLowerCase());
-
         // Immigration History Filter Logic
         const matchesVisaRefusal =
             !appliedFilters.visaRefusal ||
@@ -564,18 +514,12 @@ export default function Programs() {
 
         return (
             matchesSearch &&
-            matchesDiscipline &&
             matchesLevel &&
-            matchesGPA() &&
-            matchesEnglishTest() &&
-            matchesAcademicLevel &&
-            matchesFieldOfStudy &&
             matchesBankBalance &&
             matchesEducationLoan &&
             matchesIncomeSource &&
             matchesTotalIncome &&
             matchesSourceOwner &&
-            matchesPreferredLocation &&
             matchesVisaRefusal
         );
     });
@@ -595,7 +539,7 @@ export default function Programs() {
     // Updated pagination logic
     const indexOfLastItem = currentPage * itemsPerPage - batchOffset;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentPrograms = loadedOffset === batchOffset && !loading && !error
+    const currentPrograms = loadedOffset === batchOffset && loadedFilterKey === backendFilterKey && !loading && !error
         ? sortedPrograms.slice(indexOfFirstItem, indexOfLastItem) : [];
 
     // Ensure the pagination count is calculated correctly
@@ -609,14 +553,14 @@ export default function Programs() {
 
     // Scroll after the requested page's cards have rendered, including cached pages.
     useEffect(() => {
-        if (pendingPageScrollRef.current !== currentPage || loading || error || loadedOffset !== batchOffset) return;
+        if (pendingPageScrollRef.current !== currentPage || loading || error || loadedOffset !== batchOffset || loadedFilterKey !== backendFilterKey) return;
 
         const frame = requestAnimationFrame(() => {
             programTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             pendingPageScrollRef.current = null;
         });
         return () => cancelAnimationFrame(frame);
-    }, [currentPage, loading, error, loadedOffset, batchOffset]);
+    }, [currentPage, loading, error, loadedOffset, batchOffset, loadedFilterKey, backendFilterKey]);
 
     // Handle opening the sort dropdown menu
     const handleSortMenuOpen = (event) => {
@@ -680,7 +624,9 @@ export default function Programs() {
                     chips.push(
                         <Chip
                             key={key}
-                            label={`${key}: ${displayValue}`}
+                            label={key === "academicLevel"
+                                ? `Highest Qualification Completed: ${{ high_school: "High School", bachelors: "Bachelor's Degree", masters: "Master's Degree", phd: "PhD" }[value]}`
+                                : `${key === "fieldOfStudy" ? "Field of Study" : key === "preferredLocation" ? "Location" : key}: ${displayValue}`}
                             onDelete={() => handleRemoveFilter(key)}
                             deleteIcon={<CloseIcon />}
                             sx={{ m: 0.5 }}
@@ -727,6 +673,7 @@ export default function Programs() {
         setTempFilters((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "englishTest" ? { testScore: "", listeningScore: "", readingScore: "", writingScore: "", speakingScore: "" } : {}),
         }));
     };
 
@@ -742,19 +689,6 @@ export default function Programs() {
             ...prev,
             [name]: event.target.checked,
         }));
-    };
-
-    const handleChipClick = (discipline) => {
-        setSelectedDiscipline(discipline === selectedDiscipline ? "" : discipline);
-        setCurrentPage(1);
-        setTimeout(() => {
-            if (programTabsRef.current) {
-                programTabsRef.current.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        }, 0);
     };
 
     const handleSearchChange = (event) => {
@@ -890,23 +824,6 @@ export default function Programs() {
                             {getAppliedFilterChips()}
                         </Box>
 
-                        {/* Discipline Chips */}
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
-                            {uniqueDisciplines.map((discipline) => (
-                                <Chip
-                                    key={discipline}
-                                    label={discipline}
-                                    onClick={() => handleChipClick(discipline)}
-                                    sx={{ my: 0.5 }}
-                                    color={
-                                        selectedDiscipline.toLowerCase() === discipline.toLowerCase()
-                                            ? "primary"
-                                            : "default"
-                                    }
-                                />
-                            ))}
-                        </Box>
-
                         {/* Program Level Tabs */}
                         <Box ref={programTabsRef} sx={{ borderBottom: 1, borderColor: "divider" }}>
                             <Tabs value={tabValue} onChange={handleTabChange} centered>
@@ -985,22 +902,85 @@ export default function Programs() {
 
                 {/* Filter Dialog */}
                 <Dialog open={filterOpen} onClose={handleFilterDialogClose} maxWidth="md" fullWidth scroll="paper">
-                    <DialogTitle>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <DialogTitle component="div" sx={{ position: "relative", pr: 7 }}>
+                        <Stack direction="row" alignItems="center">
                             <Tabs value={filterTabValue} onChange={handleFilterTabChange} centered>
                                 <Tab label="Academic" />
-                                <Tab label="Financial" />
-                                <Tab label="Other" />
+                                {/* <Tab label="Financial" />
+                                <Tab label="Other" /> */}
                             </Tabs>
-                            <IconButton onClick={handleFilterDialogClose}>
+                            <IconButton
+                                aria-label="Close filters"
+                                onClick={handleFilterDialogClose}
+                                sx={{ position: "absolute", top: 8, right: 8 }}
+                            >
                                 <CloseIcon />
                             </IconButton>
                         </Stack>
                     </DialogTitle>
                     <DialogContent dividers>
                         <TabPanel value={filterTabValue} index={0}>
-                            <Stack spacing={3}>
-                                <Box>
+                            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" }, gap: 3, alignItems: "start", "& > *": { minWidth: 0 } }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Highest Qualification Completed</InputLabel>
+                                    <Select
+                                        label="Highest Qualification Completed"
+                                        name="academicLevel"
+                                        value={tempFilters.academicLevel}
+                                        onChange={handleFilterChange}
+                                    >
+                                        <MenuItem value="">None</MenuItem>
+                                        <MenuItem value="high_school">High School</MenuItem>
+                                        <MenuItem value="bachelors">Bachelor's Degree</MenuItem>
+                                        <MenuItem value="masters">Master's Degree</MenuItem>
+                                        <MenuItem value="phd">PhD</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth>
+                                    <InputLabel id="counselor-program-field-label">Field of Study</InputLabel>
+                                    <Select
+                                        labelId="counselor-program-field-label"
+                                        label="Field of Study"
+                                        name="fieldOfStudy"
+                                        value={tempFilters.fieldOfStudy}
+                                        onChange={handleFilterChange}
+                                        MenuProps={{
+                                            slotProps: {
+                                                paper: {
+                                                    sx: {
+                                                        maxHeight: "min(300px, calc(100vh - 64px))",
+                                                        overflowY: "auto",
+                                                    },
+                                                },
+                                            },
+                                        }}
+                                    >
+                                        <MenuItem value="">All Fields</MenuItem>
+                                        {FIELD_OPTIONS.map(field => (
+                                            <MenuItem key={field} value={field}>{field}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth>
+                                    <InputLabel id="counselor-program-location-label">Location</InputLabel>
+                                    <Select
+                                        labelId="counselor-program-location-label"
+                                        label="Location"
+                                        name="preferredLocation"
+                                        value={tempFilters.preferredLocation}
+                                        onChange={handleFilterChange}
+                                        MenuProps={{ slotProps: { paper: { sx: {
+                                            maxHeight: "min(300px, calc(100vh - 64px))",
+                                            overflowY: "auto",
+                                        } } } }}
+                                    >
+                                        <MenuItem value="">All Locations</MenuItem>
+                                        {availableLocations.map(location => (
+                                            <MenuItem key={location} value={location}>{location}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <Box sx={{ gridColumn: "1 / -1", px: 1 }}>
                                     <Typography gutterBottom>GPA Range</Typography>
                                     <Slider
                                         value={tempFilters.gpa}
@@ -1032,30 +1012,32 @@ export default function Programs() {
                                 </FormControl>
                                 <TextField
                                     type="number"
-                                    label="Test Score"
+                                    label="Overall Score (optional)"
                                     name="testScore"
                                     value={tempFilters.testScore}
                                     onChange={handleFilterChange}
                                     disabled={!tempFilters.englishTest}
                                 />
-                                <FormControl fullWidth>
-                                    <InputLabel>Academic Level</InputLabel>
-                                    <Select
-                                        label="Academic Level"
-                                        name="academicLevel"
-                                        value={tempFilters.academicLevel}
-                                        onChange={handleFilterChange}
-                                    >
-                                        <MenuItem value="">None</MenuItem>
-                                        <MenuItem value="high_school">High School</MenuItem>
-                                        <MenuItem value="bachelors">Bachelor's Degree</MenuItem>
-                                        <MenuItem value="masters">Master's Degree</MenuItem>
-                                        <MenuItem value="phd">PhD</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Stack>
+                                <Box sx={{ display: "grid", gridTemplateColumns: "subgrid", gridColumn: "1 / -1", gap: 3 }}>
+                                    {["listening", "reading", "writing", "speaking"].map(component => (
+                                        <TextField
+                                            key={component}
+                                            type="number"
+                                            label={`${component[0].toUpperCase()}${component.slice(1)} Score (optional)`}
+                                            name={`${component}Score`}
+                                            value={tempFilters[`${component}Score`]}
+                                            onChange={handleFilterChange}
+                                            disabled={!tempFilters.englishTest}
+                                            slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                                        />
+                                    ))}
+                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
+                                    Enter your scores. Programs must accept the selected test and have minimum requirements no higher than the scores you enter.
+                                </Typography>
+                            </Box>
                         </TabPanel>
-                        {/* Financial Tab */}
+                        {/* Financial and Other filters temporarily hidden.
                         <TabPanel value={filterTabValue} index={1}>
                             <Stack spacing={3}>
                                 <Card variant="outlined">
@@ -1110,7 +1092,7 @@ export default function Programs() {
                                     </CardContent>
                                 </Card>
 
-                                {/* Income Source Section */}
+                                Income Source Section
                                 {tempFilters.incomeSources.map((source, index) => (
                                     <Card key={index} variant="outlined">
                                         <CardContent>
@@ -1181,27 +1163,7 @@ export default function Programs() {
                         </TabPanel>
                         <TabPanel value={filterTabValue} index={2}>
                             <Stack spacing={3}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Preferred Location</InputLabel>
-                                    <Select
-                                        label="Preferred Location"
-                                        name="preferredLocation"
-                                        value={tempFilters.preferredLocation}
-                                        onChange={handleFilterChange}
-                                    >
-                                        <MenuItem value="">None</MenuItem>
-                                        <MenuItem value="sydney">Sydney</MenuItem>
-                                        <MenuItem value="melbourne">Melbourne</MenuItem>
-                                        <MenuItem value="brisbane">Brisbane</MenuItem>
-                                        <MenuItem value="perth">Perth</MenuItem>
-                                        <MenuItem value="adelaide">Adelaide</MenuItem>
-                                        <MenuItem value="gold-coast">Gold Coast</MenuItem>
-                                        <MenuItem value="canberra">Canberra</MenuItem>
-                                        <MenuItem value="hobart">Hobart</MenuItem>
-                                        <MenuItem value="darwin">Darwin</MenuItem>
-                                        <MenuItem value="cairns">Cairns</MenuItem>
-                                    </Select>
-                                </FormControl>
+
                                 <Card variant="outlined">
                                     <CardContent>
                                         <Stack spacing={2}>
@@ -1221,6 +1183,7 @@ export default function Programs() {
                                 </Card>
                             </Stack>
                         </TabPanel>
+                        */}
                     </DialogContent>
                     <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                         <Button
@@ -1231,7 +1194,10 @@ export default function Programs() {
                         >
                             Clear Filters
                         </Button>
-                        <Button variant="contained" onClick={handleApplyFilters}>
+                        <Button variant="contained" onClick={handleApplyFilters} disabled={Boolean(tempFilters.englishTest) &&
+                            ["testScore", "listeningScore", "readingScore", "writingScore", "speakingScore"].some(key =>
+                                tempFilters[key] !== "" && (!Number.isFinite(Number(tempFilters[key])) || Number(tempFilters[key]) < 0)
+                            )}>
                             Apply Filters
                         </Button>
                     </Box>

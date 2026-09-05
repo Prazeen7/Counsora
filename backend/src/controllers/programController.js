@@ -1,3 +1,6 @@
+const programGpaFilter = require("../utils/programGpaFilter");
+const programEnglishFilter = require("../utils/programEnglishFilter");
+const programAcademicLevelFilter = require("../utils/programAcademicLevelFilter");
 const Program = require("../models/Program");
 const mongoose = require("mongoose");
 
@@ -260,6 +263,34 @@ const getAllProgram = async (req, res) => {
         const limit = Number(req.query.limit ?? 60);
         const offset = Number(req.query.offset ?? 0);
         const seed = req.query.seed;
+        const gpa = Number(req.query.gpa ?? 0);
+        const location = req.query.location;
+        if (location !== undefined && (typeof location !== "string" || location.length > 300)) {
+            return res.status(400).json({ error: "Invalid program location" });
+        }
+        const locationFilter = location?.trim() ? {
+            campuses: { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
+        } : null;
+        const fieldOfStudy = req.query.fieldOfStudy;
+        if (fieldOfStudy !== undefined && fieldOfStudy !== "" &&
+            (typeof fieldOfStudy !== "string" || !VALID_FIELDS.includes(fieldOfStudy))) {
+            return res.status(400).json({ error: "Select a valid field of study" });
+        }
+        const fieldFilter = !fieldOfStudy ? null : fieldOfStudy === "Other"
+            ? { field: { $exists: true, $nin: [...VALID_FIELDS.filter(field => field !== "Other"), ""] } }
+            : { field: fieldOfStudy };
+        let englishFilter;
+        let academicLevelFilter;
+        try {
+            englishFilter = programEnglishFilter(req.query);
+            academicLevelFilter = programAcademicLevelFilter(req.query.academicLevel);
+        } catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
+        if (req.query.gpa !== undefined && (typeof req.query.gpa !== "string" ||
+            !req.query.gpa.trim() || !Number.isFinite(gpa) || gpa < 0 || gpa > 4)) {
+            return res.status(400).json({ error: "GPA must be a number between 0 and 4" });
+        }
         if (seed !== undefined && (typeof seed !== "string" || !/^[a-zA-Z0-9-]{1,64}$/.test(seed))) {
             return res.status(400).json({ error: "Invalid shuffle seed" });
         }
@@ -268,18 +299,29 @@ const getAllProgram = async (req, res) => {
             return res.status(400).json({ error: "Limit must be between 1 and 60 and offset must be a non-negative integer" });
         }
         let randomizedIds;
-        if (paginated && seed) {
-            // Hash the seed and ID to shuffle consistently across every batch in this visit.
-            randomizedIds = await Program.aggregate([
-                { $match: { isActive: true } },
+        let matchingTotal;
+        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || fieldFilter || locationFilter) {
+            const orderStages = seed ? [
                 { $project: {
                     _id: 1,
                     shuffleOrder: { $toHashedIndexKey: { $concat: [{ $literal: seed }, ":", { $toString: "$_id" }] } },
                 } },
                 { $sort: { shuffleOrder: 1, _id: 1 } },
-                { $skip: offset },
-                { $limit: limit },
+            ] : [{ $project: { _id: 1 } }, { $sort: { _id: 1 } }];
+            const [result] = await Program.aggregate([
+                { $match: { isActive: true } },
+                ...(locationFilter ? [{ $match: locationFilter }] : []),
+                ...(fieldFilter ? [{ $match: fieldFilter }] : []),
+                ...(academicLevelFilter ? [{ $match: academicLevelFilter }] : []),
+                ...(englishFilter ? [{ $match: englishFilter }] : []),
+                ...(gpa > 0 ? programGpaFilter(gpa) : []),
+                { $facet: {
+                    programs: [...orderStages, ...(paginated ? [{ $skip: offset }, { $limit: limit }] : [])],
+                    count: [{ $count: "total" }],
+                } },
             ]).allowDiskUse(true);
+            randomizedIds = result.programs;
+            matchingTotal = result.count[0]?.total || 0;
         }
         const query = Program.find({
             isActive: true,
@@ -313,9 +355,18 @@ const getAllProgram = async (req, res) => {
         }));
 
         if (paginated) {
-            const total = await Program.countDocuments({ isActive: true });
+            const total = matchingTotal;
+            const campusValues = await Program.distinct("campuses", { isActive: true });
+            const locationsByName = new Map();
+            campusValues.filter(value => typeof value === "string" && value.trim()).forEach(value => {
+                const location = value.trim();
+                const key = location.toLowerCase();
+                if (!locationsByName.has(key)) locationsByName.set(key, location);
+            });
+            const locations = [...locationsByName.values()].sort((a, b) => a.localeCompare(b));
             return res.status(200).json({
                 programs: allPrograms,
+                locations,
                 pagination: { total, offset, limit, hasMore: offset + programs.length < total },
             });
         }
