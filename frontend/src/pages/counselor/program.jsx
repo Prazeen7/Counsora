@@ -398,6 +398,7 @@ export default function Programs() {
                         toefl: toefl,
                         gpa: gpa,
                         entry_requirements: program.entry_requirements,
+                        specialization: program.specialization,
                         applicationFees: program.application_fees || institutionData?.applicationFee?.amount || "N/A",
                         requiredFunds: null, // will be calculated later
                         institutionData: {

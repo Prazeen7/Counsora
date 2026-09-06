@@ -26,6 +26,8 @@ import {
     CloudDownload as ImportIcon,
 } from "@mui/icons-material";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
+import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
+import ProgramDetailsTicker from "./ProgramDetailsTicker";
 
 const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== "";
 
@@ -631,11 +633,22 @@ export default function InstitutionTabsContent({
                                         label: `${test.testType || "Test"}${test.overall ? ` ${test.overall}` : ""}`,
                                         scores: getIndividualLanguageScores(test),
                                     }));
-                                const languageRequirements = languageRequirementItems.map((item) => item.label);
+                                const languageRequirements = languageRequirementItems.map((item) =>
+                                    formatLanguageRequirement(item.label, item.scores)
+                                );
                                 const languageRequirementsText = languageRequirements.join(" | ");
                                 const scrollLanguageRequirements = languageRequirementsText.length > 38;
 
                                 const showLanguage = languageRequirements.length > 0;
+
+                                const specializations = (
+                                    Array.isArray(program.specialization)
+                                        ? program.specialization
+                                        : [program.specialization]
+                                ).filter((value) => typeof value === "string" && value.trim())
+                                    .map((value) => value.trim());
+                                const specializationsText = specializations.join(" | ");
+                                const scrollSpecializations = specializationsText.length > 48;
 
                                 const rawAdditionalRequirements =
                                     program.entry_requirements
@@ -774,14 +787,54 @@ export default function InstitutionTabsContent({
                                                         {program.field_other || program.field}
                                                     </Typography>
                                                 )}
-                                                {program.specialization?.length > 0 && (
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                        sx={{ mt: 0.5, overflowWrap: "anywhere" }}
-                                                    >
-                                                        Specializations: {program.specialization.join(", ")}
-                                                    </Typography>
+                                                {specializations.length > 0 && (
+                                                    <Box sx={{ mt: 0.5, minWidth: 0 }}>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Specializations:
+                                                        </Typography>
+                                                        <Tooltip arrow placement="top" title={
+                                                            <Box component="ul" sx={{ m: 0, py: 0.5, pl: 2, overflowWrap: "anywhere" }}>
+                                                                {specializations.map((specialization, index) => (
+                                                                    <Typography component="li" variant="body2" key={index}
+                                                                        sx={{ mb: index < specializations.length - 1 ? 0.5 : 0 }}>
+                                                                        {specialization}
+                                                                    </Typography>
+                                                                ))}
+                                                            </Box>
+                                                        }>
+                                                            <Box tabIndex={0} sx={{
+                                                                width: "100%", overflow: "hidden", whiteSpace: "nowrap", cursor: "help",
+                                                                "@keyframes specializationsTicker": {
+                                                                    from: { transform: "translateX(0)" },
+                                                                    to: { transform: "translateX(-50%)" },
+                                                                },
+                                                                "&:hover .specializations-ticker, &:focus .specializations-ticker": {
+                                                                    animationPlayState: "paused",
+                                                                },
+                                                            }}>
+                                                                <Typography component="div" variant="body2" color="text.secondary"
+                                                                    className="specializations-ticker" sx={{
+                                                                        display: "inline-flex", width: "max-content",
+                                                                        ...(scrollSpecializations && {
+                                                                            animation: `specializationsTicker ${Math.max(22, specializationsText.length * 0.42)}s linear infinite`,
+                                                                        }),
+                                                                        "@media (prefers-reduced-motion: reduce)": {
+                                                                            animation: "none", width: "100%", whiteSpace: "normal", overflowWrap: "anywhere",
+                                                                            "& > [aria-hidden]": { display: "none" },
+                                                                        },
+                                                                    }}>
+                                                                    <Box component="span" sx={{ pr: scrollSpecializations ? 4 : 0 }}>
+                                                                        {specializationsText}{scrollSpecializations && " |"}
+                                                                    </Box>
+                                                                    {scrollSpecializations && (
+                                                                        <Box component="span" sx={{ pr: 4 }} aria-hidden="true">
+                                                                            {specializationsText} |
+                                                                        </Box>
+                                                                    )}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Tooltip>
+                                                    </Box>
                                                 )}
                                             </Box>
 
@@ -855,24 +908,7 @@ export default function InstitutionTabsContent({
                                                         Intakes
                                                     </Typography>
 
-                                                    <Box
-                                                        sx={{
-                                                            display: "flex",
-                                                            flexWrap: "wrap",
-                                                            gap: 0.5,
-                                                        }}
-                                                    >
-                                                        {sortIntakesByMonth(program.intakes).map(
-                                                            (intake, index) => (
-                                                                <Chip
-                                                                    key={index}
-                                                                    label={intake}
-                                                                    size="small"
-                                                                    variant="outlined"
-                                                                />
-                                                            )
-                                                        )}
-                                                    </Box>
+                                                    <ProgramDetailsTicker items={sortIntakesByMonth(program.intakes)} />
                                                 </Box>
                                             )}
 
@@ -1013,6 +1049,10 @@ export default function InstitutionTabsContent({
                                                                                         languageRequirementsText.length * 0.28
                                                                                     )}s linear infinite`,
                                                                                 }),
+                                                                                "@media (prefers-reduced-motion: reduce)": {
+                                                                                    animation: "none", width: "100%", whiteSpace: "normal", overflowWrap: "anywhere",
+                                                                                    "& > [aria-hidden]": { display: "none" },
+                                                                                },
                                                                             }}
                                                                         >
                                                                             <Box component="span" sx={{ pr: scrollLanguageRequirements ? 4 : 0 }}>

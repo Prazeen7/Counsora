@@ -1,14 +1,12 @@
-import { useState } from "react";
+import ProgramDetailsTicker from "./ProgramDetailsTicker";
+import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
 import {
     Avatar,
     Box,
     Button,
     Card,
     CardContent,
-    Chip,
-    Collapse,
     Divider,
-    IconButton,
     Tooltip,
     Typography,
 } from "@mui/material";
@@ -17,29 +15,41 @@ import {
     LocationOn as LocationIcon,
     AccessTime as TimeIcon,
     ArrowForward as ArrowIcon,
-    ExpandMore as ExpandMoreIcon,
-    ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 
 function ProgramCard({ program, institutionData }) {
-    const [isIntakesOpen, setIsIntakesOpen] = useState(false);
     const academic = program.entry_requirements?.academic;
     const additionalRequirements = (program.entry_requirements?.additional_requirements || [])
         .filter(requirement => typeof requirement === "string" && requirement.trim());
     const additionalRequirementsText = additionalRequirements.join(" | ");
     const scrollAdditionalRequirements = additionalRequirementsText.length > 48;
 
-    // Show first 2 intakes by default 
-    const visibleIntakes = program.intakes.slice(0, 2);
-    const hiddenIntakes = program.intakes.slice(2);
-    const hasMoreIntakes = hiddenIntakes.length > 0;
-
-    // Access language_requirements from the program object
-    const languageRequirements = {
-        IELTS: program.ielts,
-        TOEFL: program.toefl,
-        PTE: program.pte,
-    };
+    const specializations = (Array.isArray(program.specialization) ? program.specialization : [program.specialization])
+        .filter(value => typeof value === "string" && value.trim()).map(value => value.trim());
+    const language = program.entry_requirements?.language_requirements;
+    const hasScore = value => value !== undefined && value !== null && value !== "";
+    const languageRequirements = [
+        ["IELTS", language?.english?.ielts, program.ielts],
+        ["TOEFL", language?.english?.toefl, program.toefl],
+        ["PTE", language?.english?.pte, program.pte],
+        ["Duolingo", language?.english?.duolingo],
+        ["TestDaF", language?.german?.testdaf],
+        ["DSH", language?.german?.dsh],
+    ].map(([name, score, fallback]) => {
+        const overall = score?.overall ?? fallback;
+        const individual = ["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"]
+            .filter(key => hasScore(score?.[key]))
+            .map(key => `${key[0].toUpperCase()}${key.slice(1)}: ${score[key]}`);
+        if (!hasScore(overall) && !individual.length) return null;
+        return formatLanguageRequirement(`${name}${hasScore(overall) ? ` ${overall}` : ""}`, individual);
+    }).filter(Boolean);
+    [
+        ["Cambridge", language?.english?.cambridge],
+        ["English CEFR", language?.english?.cefr],
+        ["German CEFR", language?.german?.cefr],
+    ].forEach(([name, value]) => {
+        if (hasScore(value)) languageRequirements.push(`${name} ${value}`);
+    });
 
     // Avatar
     const avatarImage = institutionData?.profilePicture;
@@ -106,6 +116,13 @@ function ProgramCard({ program, institutionData }) {
                     </Box>
                 </Box>
 
+                {specializations.length > 0 && (
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>Specializations:</Typography>
+                        <ProgramDetailsTicker items={specializations} />
+                    </Box>
+                )}
+
                 <Divider />
 
                 {/* Level, Campus, and Duration in a Row */}
@@ -159,121 +176,24 @@ function ProgramCard({ program, institutionData }) {
                 {/* Program Details in Two Columns */}
                 <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2, "& > *": { minWidth: 0, overflowWrap: "anywhere" } }}>
                             {/* Intakes */}
-                            <Box>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                                    <Typography variant="body2" fontWeight="bold">
-                                        Intakes:
-                                    </Typography>
-                                    {hasMoreIntakes && (
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => setIsIntakesOpen(!isIntakesOpen)}
-                                            sx={{ p: 0 }}
-                                        >
-                                            {isIntakesOpen ? (
-                                                <ExpandLessIcon fontSize="small" color="action" />
-                                            ) : (
-                                                <ExpandMoreIcon fontSize="small" color="action" />
-                                            )}
-                                        </IconButton>
-                                    )}
-                                </Box>
-
-                                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                                    {visibleIntakes.map((intake, index) => (
-                                        <Chip
-                                            key={index}
-                                            label={intake}
-                                            size="small"
-                                            sx={{
-                                                borderRadius: 1,
-                                                backgroundColor: "#e0e7ff",
-                                                color: "#4f46e5",
-                                            }}
-                                        />
-                                    ))}
-                                    {!isIntakesOpen && hasMoreIntakes && (
-                                        <Chip
-                                            label={`+${hiddenIntakes.length} more`}
-                                            size="small"
-                                            variant="outlined"
-                                            onClick={() => setIsIntakesOpen(true)}
-                                            sx={{
-                                                borderRadius: 1,
-                                                cursor: "pointer",
-                                                "&:hover": {
-                                                    backgroundColor: "rgba(224, 231, 255, 0.5)",
-                                                },
-                                            }}
-                                        />
-                                    )}
-                                </Box>
-
-                                <Collapse in={isIntakesOpen}>
-                                    <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
-                                        {hiddenIntakes.map((intake, index) => (
-                                            <Chip
-                                                key={index}
-                                                label={intake}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 1,
-                                                    backgroundColor: "#e0e7ff",
-                                                    color: "#4f46e5",
-                                                }}
-                                            />
-                                        ))}
-                                    </Box>
-                                </Collapse>
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>Intakes:</Typography>
+                                {program.intakes?.length > 0 ? (
+                                    <ProgramDetailsTicker items={program.intakes} />
+                                ) : (
+                                    <Typography variant="body2">Not specified</Typography>
+                                )}
                             </Box>
-
                             {/* Language Requirements */}
                             <Box>
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
                                     Language Requirements:
                                 </Typography>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: 1,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    {languageRequirements.IELTS && (
-                                        <Chip
-                                            label={`IELTS: ${languageRequirements.IELTS}`}
-                                            size="small"
-                                            sx={{
-                                                borderRadius: 1,
-                                                backgroundColor: "#e0e7ff",
-                                                color: "#4f46e5",
-                                            }}
-                                        />
-                                    )}
-                                    {languageRequirements.TOEFL && (
-                                        <Chip
-                                            label={`TOEFL: ${languageRequirements.TOEFL}`}
-                                            size="small"
-                                            sx={{
-                                                borderRadius: 1,
-                                                backgroundColor: "#e0f2fe",
-                                                color: "#0369a1",
-                                            }}
-                                        />
-                                    )}
-                                    {languageRequirements.PTE && (
-                                        <Chip
-                                            label={`PTE: ${languageRequirements.PTE}`}
-                                            size="small"
-                                            sx={{
-                                                borderRadius: 1,
-                                                backgroundColor: "#f3e8ff",
-                                                color: "#7c3aed",
-                                            }}
-                                        />
-                                    )}
-                                </Box>
+                                {languageRequirements.length > 0 ? (
+                                    <ProgramDetailsTicker items={languageRequirements} />
+                                ) : (
+                                    <Typography variant="body2">Not specified</Typography>
+                                )}
                             </Box>
 
                             {/* Academic and field requirements */}
