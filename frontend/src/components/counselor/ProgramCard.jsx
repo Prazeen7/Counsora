@@ -250,9 +250,17 @@ function ProgramCard({ program, institutionData }) {
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
                                     Tuition Fees:
                                 </Typography>
-                                <Typography variant="body2" fontWeight="medium">
-                                    {parseInt(program.fees.replace("$", "")).toLocaleString()} per year
-                                </Typography>
+                                {program.tuition_fees?.length > 0 ? (
+                                    program.tuition_fees.map((fee, index) => (
+                                        <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
+                                            {fee?.credits}
+                                            {fee?.annual_fee_eur != null &&
+                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()} EUR`}
+                                        </Typography>
+                                    ))
+                                ) : (
+                                    <Typography variant="body2">Not specified</Typography>
+                                )}
                             </Box>
 
                             {/* Application Fees */}

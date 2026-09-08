@@ -366,6 +366,9 @@ export default function InstitutionList() {
                                                     sx={{
                                                         width: 56,
                                                         height: 56,
+                                                        backgroundColor: '#fff',
+                                                        border: `2px solid ${brandColor}`,
+                                                        boxSizing: 'border-box',
                                                         '& img': {
                                                             objectFit: 'contain',
                                                         },

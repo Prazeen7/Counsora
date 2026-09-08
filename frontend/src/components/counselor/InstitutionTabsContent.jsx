@@ -28,6 +28,8 @@ import {
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
+import ProgramDocumentRequirements from "./ProgramDocumentRequirements";
+import { getProgramAdditionalRequirements, hasDocumentRequirements } from "../../utils/documentRequirements";
 
 const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== "";
 
@@ -1295,7 +1297,43 @@ export default function InstitutionTabsContent({
             );
         }
 
-        case 4:
+        case 4: {
+            const hasInstitutionScholarshipValue = institution?.scholarships?.some(
+                (scholarship) => hasValue(scholarship.value)
+            );
+            const normalizeScholarship = (value) => String(value).trim().replace(/\s+/g, " ").toLowerCase();
+            const groupedScholarships = new Map();
+            (hasInstitutionScholarshipValue ? [] : programs).forEach((program) => {
+                if (!hasValue(program.scholarship?.description)) return;
+                const value = program.scholarship.description.trim();
+                const key = normalizeScholarship(value);
+                if (!groupedScholarships.has(key)) {
+                    groupedScholarships.set(key, {
+                        name: "Program scholarship",
+                        value,
+                        description: value,
+                        url: program.scholarship.url,
+                        programNames: [],
+                    });
+                }
+                const group = groupedScholarships.get(key);
+                if (hasValue(program.name) && !group.programNames.includes(program.name)) {
+                    group.programNames.push(program.name);
+                }
+                if (!group.url && program.scholarship.url) group.url = program.scholarship.url;
+            });
+            const programScholarships = [...groupedScholarships.values()];
+            const fallbackValue = programScholarships.map(({ value }) => value).join("; ");
+            const displayScholarships = institution?.scholarships?.length
+                ? institution.scholarships.map((scholarship) => ({
+                    ...scholarship,
+                    value: hasValue(scholarship.value) ? scholarship.value : fallbackValue,
+                    programNames: hasValue(scholarship.value)
+                        ? groupedScholarships.get(normalizeScholarship(scholarship.value))?.programNames || []
+                        : [...new Set(programScholarships.flatMap(({ programNames }) => programNames))],
+                }))
+                : programScholarships;
+
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}> <Typography variant="h5" fontWeight="bold" gutterBottom>
                     Scholarships </Typography>
@@ -1320,7 +1358,7 @@ export default function InstitutionTabsContent({
                             gap: 3,
                         }}
                     >
-                        {institution?.scholarships?.map((scholarship, index) => (
+                        {displayScholarships.map((scholarship, index) => (
                             <Card
                                 key={index}
                                 sx={{
@@ -1351,7 +1389,9 @@ export default function InstitutionTabsContent({
                                     </Typography>
 
                                     {scholarship.value && String(scholarship.value).length > 24 && (
+                                        <Tooltip title={String(scholarship.value)} arrow describeChild>
                                         <Box
+                                            tabIndex={0}
                                             aria-label={`Scholarship value: ${scholarship.value}`}
                                             sx={{
                                                 py: 0.75,
@@ -1364,7 +1404,7 @@ export default function InstitutionTabsContent({
                                                     from: { transform: "translateX(0)" },
                                                     to: { transform: "translateX(-50%)" },
                                                 },
-                                                "&:hover .scholarship-ticker": {
+                                                "&:hover .scholarship-ticker, &:focus .scholarship-ticker": {
                                                     animationPlayState: "paused",
                                                 },
                                             }}
@@ -1391,6 +1431,7 @@ export default function InstitutionTabsContent({
                                                 </Box>
                                             </Typography>
                                         </Box>
+                                        </Tooltip>
                                     )}
 
                                     {scholarship.value && String(scholarship.value).length <= 24 && (
@@ -1432,6 +1473,25 @@ export default function InstitutionTabsContent({
                                         >
                                             {scholarship.description}
                                         </Typography>
+                                        {scholarship.programNames.length > 0 && (
+                                            <Box sx={{ mt: 2 }}>
+                                                <Typography variant="subtitle2" gutterBottom>
+                                                    Programs ({scholarship.programNames.length})
+                                                </Typography>
+                                                <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                                                    {scholarship.programNames.map((name) => (
+                                                        <Typography
+                                                            component="li"
+                                                            key={name}
+                                                            variant="body2"
+                                                            sx={{ mb: 0.75, overflowWrap: "anywhere" }}
+                                                        >
+                                                            {name}
+                                                        </Typography>
+                                                    ))}
+                                                </Box>
+                                            </Box>
+                                        )}
                                     </Box>
 
                                     {scholarship.url && (
@@ -1456,6 +1516,7 @@ export default function InstitutionTabsContent({
             );
 
 
+        }
         case 5:
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
@@ -1663,13 +1724,18 @@ export default function InstitutionTabsContent({
             );
 
 
-        case 7:
+        case 7: {
+            const hasDocuments = hasDocumentRequirements(institution?.documents);
+            const programRequirements = hasDocuments ? [] : getProgramAdditionalRequirements(programs);
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                         Document Requirements
                     </Typography>
 
+                    {!hasDocuments ? (
+                        <ProgramDocumentRequirements requirements={programRequirements} totalPrograms={programs.length} />
+                    ) : (
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>
                             <Typography fontWeight="bold">Income Sources</Typography>
@@ -1744,8 +1810,10 @@ export default function InstitutionTabsContent({
                             </Box>
                         </Grid>
                     </Grid>
+                    )}
                 </Paper>
             );
+        }
 
         default:
             return null;

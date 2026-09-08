@@ -2,6 +2,7 @@ const programGpaFilter = require("../utils/programGpaFilter");
 const programEnglishFilter = require("../utils/programEnglishFilter");
 const programAcademicLevelFilter = require("../utils/programAcademicLevelFilter");
 const Program = require("../models/Program");
+const Institution = require("../models/Institution");
 const mongoose = require("mongoose");
 
 
@@ -281,7 +282,7 @@ const getAllProgram = async (req, res) => {
             return res.status(400).json({ error: "Invalid program location" });
         }
         const locationFilter = location?.trim() ? {
-            campuses: { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
+            "programInstitution.campuses.name": { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
         } : null;
         const searchFilter = search?.trim() ? {
             $or: [
@@ -349,11 +350,11 @@ const getAllProgram = async (req, res) => {
             ] : [{ $project: { _id: 1 } }, { $sort: { _id: 1 } }];
             const [result] = await Program.aggregate([
                 { $match: { isActive: true } },
-                ...(searchFilter ? [{ $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } }, { $unwind: { path: "$programInstitution", preserveNullAndEmptyArrays: true } }, { $match: searchFilter }] : []),
-                ...(countryFilter ? [
+                ...(searchFilter || countryFilter || locationFilter ? [
                     { $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } },
-                    { $match: countryFilter },
                 ] : []),
+                ...(searchFilter ? [{ $match: searchFilter }] : []),
+                ...(countryFilter ? [{ $match: countryFilter }] : []),
                 ...(programLevelFilter ? [{ $match: programLevelFilter }] : []),
                 ...(locationFilter ? [{ $match: locationFilter }] : []),
                 ...(fieldFilter ? [{ $match: fieldFilter }] : []),
@@ -401,7 +402,8 @@ const getAllProgram = async (req, res) => {
 
         if (paginated) {
             const total = matchingTotal;
-            const campusValues = await Program.distinct("campuses", { isActive: true });
+            const institutionIds = await Program.distinct("institutionId", { isActive: true });
+            const campusValues = await Institution.distinct("campuses.name", { _id: { $in: institutionIds } });
             const locationsByName = new Map();
             campusValues.filter(value => typeof value === "string" && value.trim()).forEach(value => {
                 const location = value.trim();

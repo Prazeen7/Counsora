@@ -350,15 +350,6 @@ export default function Programs() {
                         ? program.campuses.join(", ")
                         : "N/A";
 
-                    // Get first tuition fee (annual_fee_eur)
-                    let fees = "0";
-                    if (program.tuition_fees && program.tuition_fees.length > 0) {
-                        const feeObj = program.tuition_fees[0];
-                        if (feeObj.annual_fee_eur) {
-                            fees = `$${feeObj.annual_fee_eur}`;
-                        }
-                    }
-
                     // Extract language scores
                     const ielts = getLanguageScore(program.entry_requirements, 'ielts');
                     const pte = getLanguageScore(program.entry_requirements, 'pte');
@@ -391,7 +382,7 @@ export default function Programs() {
                         discipline: discipline,
                         duration: program.duration || "N/A",
                         intakes: program.intakes || [],
-                        fees: fees,
+                        tuition_fees: program.tuition_fees || [],
                         campus: campus,
                         ielts: ielts,
                         pte: pte,
@@ -447,7 +438,7 @@ export default function Programs() {
 
     // Calculate total required funds for a program
     const calculateTotalRequiredFunds = (program) => {
-        const firstYearFees = parseFloat(program.fees.replace(/[^0-9.]/g, "")) || 0;
+        const firstYearFees = Number(program.tuition_fees?.[0]?.annual_fee_eur) || 0;
         const livingExpenses = 29710; // AUD 29,710
         const travellingExpenses = 2500; // AUD 2,500
         const healthCover = 2500; // AUD 2,500
