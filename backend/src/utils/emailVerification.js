@@ -6,7 +6,7 @@ const verificationEmailTemplate = require("./verificationEmailTemplate");
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
-async function sendVerificationEmail(user) {
+async function sendVerificationEmail(user, { force = false } = {}) {
     const { SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_FROM, FRONTEND_URL } = process.env;
     if (!SMTP_HOST || !EMAIL_FROM || !FRONTEND_URL) {
         throw new Error("Email verification is not configured");
@@ -14,15 +14,16 @@ async function sendVerificationEmail(user) {
     const token = crypto.randomBytes(32).toString("hex");
     const now = new Date();
     // Atomically limit delivery attempts across concurrent requests and server instances.
-    const claimed = await User.findOneAndUpdate({
+    const deliveryFilter = {
         _id: user._id,
         email: user.email,
         isVerified: { $ne: true },
-        $or: [
+        ...(force ? {} : { $or: [
             { verificationEmailSentAt: { $exists: false } },
             { verificationEmailSentAt: { $lte: new Date(Date.now() - 60000) } },
-        ],
-    }, { $set: {
+        ] }),
+    };
+    const claimed = await User.findOneAndUpdate(deliveryFilter, { $set: {
         verificationTokenHash: hashToken(token),
         verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         verificationEmailSentAt: now,

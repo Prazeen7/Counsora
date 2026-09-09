@@ -15,7 +15,7 @@ function verificationSession(user) {
     return {
         token: jwt.sign({ id: user._id, role: user.role, email: user.email, sessionToken: user.sessionToken },
             process.env.JWT_SECRET, { expiresIn: "7d" }),
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: user.isVerified },
+        user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: user.isVerified, isApproved: user.isApproved },
     };
 }
 
@@ -129,24 +129,25 @@ const login = async (req, res) => {
         }
 
         if (existingUser.isVerified !== true) {
-            let message;
-            let emailSent = false;
-            try {
-                const delivery = await sendVerificationEmail(existingUser);
-                emailSent = delivery.sent;
-                message = emailSent
-                    ? "We sent you a verification email. Check your inbox to continue."
-                    : "A verification email was requested recently. Check your inbox, or wait a minute before resending.";
-            } catch (error) {
+            // Do not hold the login response open while SMTP connects. The user
+            // is sent to the verification route immediately; delivery continues
+            // in the background and failures are logged without exposing secrets.
+            sendVerificationEmail(existingUser, { force: true }).catch((error) => {
                 console.error("Automatic verification email failed", { code: error.code, responseCode: error.responseCode });
-                message = "We couldn't send your verification email. Please try resending it.";
-            }
+            });
             return res.status(403).json({
                 error: "Please verify your email before logging in",
                 code: "EMAIL_NOT_VERIFIED",
                 verificationStatusToken: createVerificationStatusToken(existingUser),
-                message,
-                emailSent,
+                message: "We sent a verification email. Check your inbox to continue.",
+                emailSent: true,
+            });
+        }
+
+        if (existingUser.isApproved !== true) {
+            return res.status(403).json({
+                error: "Your account is awaiting admin approval",
+                code: "ACCOUNT_NOT_APPROVED",
             });
         }
 
@@ -177,6 +178,7 @@ const login = async (req, res) => {
                 email: existingUser.email,
                 role: existingUser.role,
                 isVerified: existingUser.isVerified,
+                isApproved: existingUser.isApproved,
             }
         })
     } catch (error) {
@@ -247,7 +249,7 @@ const verificationStatus = async (req, res) => {
 };
 
 const updateVerificationEmail = async (req, res) => {
-    const { email, statusToken } = req.body;
+    const { email, statusToken, automatic = false } = req.body;
     let claims;
     try {
         claims = jwt.verify(statusToken, process.env.JWT_SECRET);
@@ -279,18 +281,16 @@ const updateVerificationEmail = async (req, res) => {
             }, { new: true, runValidators: true });
             if (!user) return res.status(409).json({ error: "Please wait one minute after the last email, then try again. The account may also have been updated in another tab." });
         }
-        let emailSent = false;
-        let message;
-        try {
-            const delivery = await sendVerificationEmail(user);
-            emailSent = delivery.sent;
-            message = emailSent ? "Verification email sent. Check your updated inbox."
-                : "A verification email was requested recently. Check your inbox or wait a minute before resending.";
-        } catch (error) {
-            console.error("Updated verification email delivery failed", { code: error.code, responseCode: error.responseCode });
-            message = "Your email address is saved, but delivery failed. Please try resending.";
-        }
-        return res.json({ email: user.email, emailSent, message });
+        sendVerificationEmail(user, { force: automatic === true }).catch((error) => {
+            console.error("Updated verification email delivery failed", {
+                code: error.code, command: error.command, responseCode: error.responseCode,
+            });
+        });
+        return res.json({
+            email: user.email,
+            emailSent: true,
+            message: "Verification email requested. Check your inbox shortly.",
+        });
     } catch (error) {
         if (error.code === 11000) return res.status(409).json({ error: "This email address is already registered." });
         return res.status(500).json({ error: "Unable to update your email. Please try again." });
@@ -322,7 +322,8 @@ const currentUser = (req, res) => {
     res.set("Cache-Control", "no-store");
     return res.json({ user: {
         id: user._id, name: user.name, email: user.email,
-        role: user.role, isVerified: user.isVerified,
+                role: user.role, isVerified: user.isVerified,
+        isApproved: user.isApproved,
     } });
 };
 

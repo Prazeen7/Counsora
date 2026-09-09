@@ -57,6 +57,7 @@ export default function Login() {
     const [alertMessage, setAlertMessage] = useState("");
     const [alertSeverity, setAlertSeverity] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [verificationDetails, setVerificationDetails] = useState(null);
 
     const handleForgotPasswordOpen = () => setOpen(true)
     const handleForgotPasswordClose = () => setOpen(false)
@@ -153,8 +154,23 @@ export default function Login() {
             clearForm(form);
             navigate("/");
         } catch (err) {
-            if (err.code === "EMAIL_NOT_VERIFIED") {
-                navigate("/verify-email", { replace: true, state: { flowId: startVerificationFlow(), email: credentials.email, message: err.verificationMessage, emailSent: err.emailSent, verificationStatusToken: err.verificationStatusToken } });
+            if (["EMAIL_NOT_VERIFIED", "ACCOUNT_NOT_APPROVED"].includes(err.code)) {
+                if (err.code === "EMAIL_NOT_VERIFIED") {
+                    navigate("/verify-email", {
+                        replace: true,
+                        state: {
+                            email: credentials.email,
+                            message: err.verificationMessage || err.message,
+                            emailSent: err.emailSent,
+                            verificationStatusToken: err.verificationStatusToken,
+                            flowId: startVerificationFlow(),
+                        },
+                    });
+                    return;
+                }
+                setAlertSeverity("error");
+                setAlertMessage(err.message);
+                setVerificationDetails(null);
                 return;
             }
             setAlertSeverity("error");
@@ -203,7 +219,12 @@ export default function Login() {
                     {/* Alert Message */}
                     {alertMessage && (
                         <Stack sx={{ width: '100%' }} spacing={2}>
-                            <Alert severity={alertSeverity}>{alertMessage}</Alert>
+                            <Alert severity={alertSeverity} action={verificationDetails && (
+                                <Button color="inherit" size="small" onClick={() => navigate("/verify-email", {
+                                    replace: true,
+                                    state: verificationDetails,
+                                })}>Verify email</Button>
+                            )}>{alertMessage}</Alert>
                         </Stack>
                     )}
 

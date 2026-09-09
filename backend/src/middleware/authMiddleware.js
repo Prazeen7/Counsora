@@ -37,6 +37,10 @@ const authMiddleware = async (req, res, next) => {
             return res.status(403).json({ error: "Please verify your email before continuing", code: "EMAIL_NOT_VERIFIED" });
         }
 
+        if (user.isApproved !== true) {
+            return res.status(403).json({ error: "Your account is awaiting admin approval", code: "ACCOUNT_NOT_APPROVED" });
+        }
+
         req.user = user;
         
 

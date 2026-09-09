@@ -38,6 +38,13 @@ export default function VerifyEmail() {
                     method: "POST", body: JSON.stringify({ statusToken }),
                 });
                 if (!cancelled && result.isVerified && result.token && result.user) {
+                    if (result.user.isApproved !== true) {
+                        endVerificationFlow();
+                        navigate("/login", { replace: true, state: {
+                            message: "Email verified successfully. Your account is awaiting superadmin approval.", severity: "info",
+                        } });
+                        return;
+                    }
                     login(result.token, result.user);
                     endVerificationFlow();
                     navigate(["admin", "superAdmin"].includes(result.user.role) ? "/admin/dashboard" : "/", { replace: true });
@@ -83,6 +90,13 @@ export default function VerifyEmail() {
             setMessage(result.message);
             setSeverity(result.emailSent === false ? "warning" : "success");
             if (verify) {
+                if (result.user?.isApproved !== true) {
+                    endVerificationFlow();
+                    navigate("/login", { replace: true, state: {
+                        message: "Email verified successfully. Your account is awaiting superadmin approval.", severity: "info",
+                    } });
+                    return;
+                }
                 login(result.token, result.user);
                 markEmailVerified(result.email);
                 endVerificationFlow();
