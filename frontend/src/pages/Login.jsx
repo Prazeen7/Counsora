@@ -145,6 +145,7 @@ export default function Login() {
             password: formData.get("password"),
         };
 
+        setIsLoading(true);
         try {
             const result = await loginUser(credentials);
 
@@ -175,6 +176,8 @@ export default function Login() {
             }
             setAlertSeverity("error");
             setAlertMessage(err.message);
+        } finally {
+            setIsLoading(false);
         }
 
     }

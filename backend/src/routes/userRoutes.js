@@ -2,6 +2,7 @@ const express = require("express");
 const User = require("../models/User");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { superAdminMiddleware } = require("../middleware/adminMiddleware");
+const { sendApprovalEmail } = require("../utils/emailVerification");
 const router = express.Router();
 
 router.get("/", authMiddleware, superAdminMiddleware, async (req, res) => {
@@ -42,6 +43,11 @@ router.patch("/:userId/approval", authMiddleware, superAdminMiddleware, async (r
             { new: true }
         ).select("name email role organizationName isVerified isApproved isActive createdAt").lean();
         if (!user) return res.status(409).json({ error: "Only verified users can be approved or rejected" });
+        if (approved) {
+            sendApprovalEmail(user).catch((error) => console.error("Approval email delivery failed", {
+                code: error.code, command: error.command, responseCode: error.responseCode,
+            }));
+        }
         return res.json({ user });
     } catch (error) {
         if (error.name === "CastError") return res.status(400).json({ error: "Invalid user id" });

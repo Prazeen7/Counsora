@@ -4,6 +4,31 @@ const User = require("../models/User");
 const path = require("path");
 const verificationEmailTemplate = require("./verificationEmailTemplate");
 
+async function sendApprovalEmail(user) {
+    const { SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_FROM, FRONTEND_URL } = process.env;
+    if (!SMTP_HOST || !EMAIL_FROM || !FRONTEND_URL) throw new Error("Email delivery is not configured");
+    const port = Number(process.env.SMTP_PORT || 587);
+    const transport = nodemailer.createTransport({
+        host: SMTP_HOST, port, secure: port === 465,
+        ...(SMTP_USER && { auth: { user: SMTP_USER, pass: SMTP_PASS } }),
+        connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
+    });
+    const dashboardUrl = new URL(user.role === "counselor" ? "/" : "/admin/dashboard", FRONTEND_URL).toString();
+    const safeName = String(user.name || "there").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const safeUrl = dashboardUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    try {
+        await transport.sendMail({
+            from: EMAIL_FROM, to: user.email,
+            subject: "Your Counsora account is active",
+            text: `Hi ${user.name || "there"}, your Counsora account has been approved. You can now use the service: ${dashboardUrl}`,
+            html: `<!doctype html><html><body style="margin:0;background:#f4f3ff;font-family:Arial,sans-serif;color:#201b3b"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px"><table width="560" style="max-width:560px;background:#fff;border-radius:20px;overflow:hidden"><tr><td style="height:6px;background:#4f46e5"></td></tr><tr><td style="padding:36px 32px"><img src="cid:counsora-logo" width="64" height="64" alt="Counsora logo" style="display:block;margin:auto"><h1 style="text-align:center;font-size:28px">Your account is active</h1><p style="font-size:16px;line-height:1.7">Hi ${safeName},</p><p style="font-size:16px;line-height:1.7;color:#6b6375">Your Counsora account has been approved. You can now use the service and access your dashboard.</p><p style="text-align:center;margin:30px 0"><a href="${safeUrl}" style="background:#4f46e5;color:#fff;padding:16px 30px;border-radius:10px;text-decoration:none;font-weight:700">Open Counsora</a></p><p style="font-size:13px;color:#6b6375;text-align:center">Welcome to Counsora.</p></td></tr></table></td></tr></table></body></html>`,
+            attachments: [{ filename: "counsora-logo.png", path: path.join(__dirname, "../assets/logo.png"), cid: "counsora-logo" }],
+        });
+    } finally {
+        transport.close();
+    }
+}
+
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 async function sendVerificationEmail(user, { force = false } = {}) {
@@ -58,4 +83,4 @@ async function sendVerificationEmail(user, { force = false } = {}) {
     }
 }
 
-module.exports = { hashToken, sendVerificationEmail };
+module.exports = { hashToken, sendVerificationEmail, sendApprovalEmail };
