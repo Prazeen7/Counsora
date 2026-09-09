@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    verificationTokenHash: { type: String, select: false },
+    verificationLoginSession: { type: String, default: null },
+    verificationTokenExpiresAt: { type: Date, select: false },
+    verificationEmailSentAt: { type: Date, select: false },
+
     isActive: {
       type: Boolean,
       default: true,

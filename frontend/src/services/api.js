@@ -40,7 +40,12 @@ export async function apiRequest(endpoint, options = {}) {
     }
 
     if (!response.ok) {
-        throw new Error(data.error || "Request failed");
+        const error = new Error(data.error || "Request failed");
+        error.code = data.code;
+        error.emailSent = data.emailSent;
+        error.verificationStatusToken = data.verificationStatusToken;
+        error.verificationMessage = data.message;
+        throw error;
     }
 
     return data;

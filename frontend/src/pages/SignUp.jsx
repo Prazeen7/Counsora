@@ -3,6 +3,7 @@ import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
 import { NavLink, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
+import { startVerificationFlow } from "../utils/verificationFlow";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -173,12 +174,12 @@ export default function SignUp() {
 
         // Signing up
         try {
-            await registerUser(data);
+            const result = await registerUser(data);
 
             setAlertSeverity("success");
             setAlertMessage("Successfully Registered");
             clearForm(form);
-            navigate("/login");
+            navigate("/verify-email", { replace: true, state: { flowId: startVerificationFlow(), email: data.email, message: result.message, emailSent: result.emailSent, verificationStatusToken: result.verificationStatusToken } });
         } catch (err) {
             setAlertSeverity("error");
             setAlertMessage(err.message);

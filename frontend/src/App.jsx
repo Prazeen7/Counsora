@@ -3,6 +3,7 @@ import "./App.css";
 
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
+import VerifyEmail from "./pages/VerifyEmail";
 import Institutions from "./pages/counselor/institutionsList";
 import Dashboard from "./pages/dashboard";
 import InstitutionPage from "./pages/counselor/institutionPage";
@@ -23,6 +24,7 @@ import StudyGuide from "./pages/counselor/studyGuide";
 function App() {
   return (
     <Routes>
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route
         path="/signup"
         element={

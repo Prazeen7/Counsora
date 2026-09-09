@@ -4,6 +4,7 @@ import PrimaryButton from '../components/auth/PrimaryButton';
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../services/authService";
+import { startVerificationFlow } from "../utils/verificationFlow";
 
 // MUI imports
 import { styled } from '@mui/material/styles';
@@ -68,7 +69,7 @@ export default function Login() {
         // Message passed through React Router
         if (location.state?.message) {
             setAlertMessage(location.state.message);
-            setAlertSeverity("warning");
+            setAlertSeverity(location.state.severity || "warning");
             return;
         }
 
@@ -152,6 +153,10 @@ export default function Login() {
             clearForm(form);
             navigate("/");
         } catch (err) {
+            if (err.code === "EMAIL_NOT_VERIFIED") {
+                navigate("/verify-email", { replace: true, state: { flowId: startVerificationFlow(), email: credentials.email, message: err.verificationMessage, emailSent: err.emailSent, verificationStatusToken: err.verificationStatusToken } });
+                return;
+            }
             setAlertSeverity("error");
             setAlertMessage(err.message);
         }
