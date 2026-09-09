@@ -23,6 +23,11 @@ const signUp = async (req, res) => {
     try {
         const { firstName, lastName, email, password, role, organizationName } = req.body;
 
+        // Superadmins are provisioned separately, never through public signup.
+        if (role !== undefined && !["admin", "counselor"].includes(role)) {
+            return res.status(400).json({ error: "Invalid signup role" });
+        }
+
         // Basic validation
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({
@@ -111,6 +116,10 @@ const login = async (req, res) => {
             });
         }
 
+        if (!["admin", "counselor", "superAdmin"].includes(existingUser.role)) {
+            return res.status(403).json({ error: "Invalid account role" });
+        }
+
         // password verification
         const passwordCheck = await comparePassword(password, existingUser.password);
         if (!passwordCheck) {
@@ -119,7 +128,7 @@ const login = async (req, res) => {
             })
         }
 
-        if (!existingUser.isVerified) {
+        if (existingUser.isVerified !== true) {
             let message;
             let emailSent = false;
             try {
@@ -308,7 +317,17 @@ const resendVerification = async (req, res) => {
     }
 };
 
+const currentUser = (req, res) => {
+    const user = req.user;
+    res.set("Cache-Control", "no-store");
+    return res.json({ user: {
+        id: user._id, name: user.name, email: user.email,
+        role: user.role, isVerified: user.isVerified,
+    } });
+};
+
 module.exports = {
+    currentUser,
     updateVerificationEmail,
     verificationStatus,
     verifyEmail,

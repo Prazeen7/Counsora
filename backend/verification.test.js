@@ -83,7 +83,7 @@ test("unverified users cannot create login sessions", async (t) => {
             assert.equal(mail.attachments[0].cid, "counsora-logo");
         }, close() {},
     }));
-    t.mock.method(User, "findOne", async () => ({ _id: "test-user", password: await hashPassword("Example!123"), isVerified: false }));
+    t.mock.method(User, "findOne", async () => ({ _id: "test-user", role: "counselor", password: await hashPassword("Example!123"), isVerified: false }));
     const res = response();
     await login({ body: { email: "person@example.com", password: "Example!123" } }, res);
     assert.equal(res.statusCode, 403);

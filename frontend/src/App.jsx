@@ -4,6 +4,7 @@ import "./App.css";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
+import Users from "./pages/admin/Users";
 import Institutions from "./pages/counselor/institutionsList";
 import Dashboard from "./pages/dashboard";
 import InstitutionPage from "./pages/counselor/institutionPage";
@@ -110,12 +111,13 @@ function App() {
 
       <Route
         element={
-          <RoleProtectedRoutes allowedRoles={["admin"]}>
+          <RoleProtectedRoutes allowedRoles={["admin", "superAdmin"]}>
             <AdminLayout />
           </RoleProtectedRoutes>
         }
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Users /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
         <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>

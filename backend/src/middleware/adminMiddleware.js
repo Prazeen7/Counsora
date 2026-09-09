@@ -1,5 +1,5 @@
 const adminMiddleware = (req, res, next) => {
-    if (req.user.role !== "admin") {
+    if (!["admin", "superAdmin"].includes(req.user?.role)) {
         return res.status(403).json({
             error: "Access denied. Admins only.",
         });
@@ -8,4 +8,9 @@ const adminMiddleware = (req, res, next) => {
     next();
 };
 
-module.exports = { adminMiddleware };
+const superAdminMiddleware = (req, res, next) => {
+    if (req.user?.role !== "superAdmin") return res.status(403).json({ error: "Access denied. Superadmins only." });
+    next();
+};
+
+module.exports = { adminMiddleware, superAdminMiddleware };

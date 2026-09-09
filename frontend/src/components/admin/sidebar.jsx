@@ -65,14 +65,13 @@ function Sidebar() {
     const [isOpen, setIsOpen] = useState(true);
     const toggle = () => setIsOpen((prev) => !prev);
     const isMobile = useMediaQuery(theme.breakpoints.down("lg"))
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-    const [isLoading, setIsLoading] = useState(true)
     const [countries, setCountries] = useState([]);
     const [countryAnchor, setCountryAnchor] = useState(null);
     const [regionSearch, setRegionSearch] = useState("");
 
     const { selectedCountry, setSelectedCountry } = useCountry();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+    const isSuperAdmin = user?.role === "superAdmin";
 
     useEffect(() => {
         const fetchCountries = async () => {
@@ -107,6 +106,7 @@ function Sidebar() {
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin/dashboard" },
         { text: "Institution Management", icon: <BusinessIcon />, path: "/admin/institutions" },
         { text: "Documents Management", icon: <DescriptionIcon />, path: "/admin/documents" },
+        ...(isSuperAdmin ? [{ text: "Users", icon: <PeopleIcon />, path: "/admin/users" }] : []),
     ]
 
     const handleLogout = () => {
@@ -244,10 +244,6 @@ function Sidebar() {
             </List>
             <Divider />
 
-            {/* Super Admin Menu */}
-            {!isLoading && <SuperAdminMenu isSuperAdmin={isSuperAdmin} />}
-
-            <Divider />
             {/* Logout Button */}
             <List>
                 <ListItem disablePadding>

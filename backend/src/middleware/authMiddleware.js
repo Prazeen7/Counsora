@@ -23,13 +23,17 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
+        if (!["admin", "counselor", "superAdmin"].includes(user.role)) {
+            return res.status(403).json({ error: "Invalid account role" });
+        }
+
         if (user.sessionToken !== decoded.sessionToken) {
             return res.status(401).json({
                 error: "You have been logged out because your account was used on another device.",
             });
         }
 
-        if (!user.isVerified) {
+        if (user.isVerified !== true) {
             return res.status(403).json({ error: "Please verify your email before continuing", code: "EMAIL_NOT_VERIFIED" });
         }
 

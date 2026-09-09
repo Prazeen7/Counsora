@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
     res.json({ message: "API is running"});
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/institution", institutionRoutes)
 app.use("/api/country", countryRoutes);
 app.use("/api/program", programRoutes);

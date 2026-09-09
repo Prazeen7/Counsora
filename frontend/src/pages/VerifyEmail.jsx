@@ -4,6 +4,7 @@ import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material"
 import Card from "../components/auth/AuthCard";
 import { apiRequest } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { hasVerifiedSession } from "../utils/authAccess";
 import { endVerificationFlow, isVerificationFlowActive, markEmailVerified } from "../utils/verificationFlow";
 
 export default function VerifyEmail() {
@@ -39,7 +40,7 @@ export default function VerifyEmail() {
                 if (!cancelled && result.isVerified && result.token && result.user) {
                     login(result.token, result.user);
                     endVerificationFlow();
-                    navigate(result.user.role === "admin" ? "/admin/dashboard" : "/", { replace: true });
+                    navigate(["admin", "superAdmin"].includes(result.user.role) ? "/admin/dashboard" : "/", { replace: true });
                 }
             } catch { /* Retry transient connection failures on the next check. */ }
             finally { checking = false; }
@@ -85,7 +86,7 @@ export default function VerifyEmail() {
                 login(result.token, result.user);
                 markEmailVerified(result.email);
                 endVerificationFlow();
-                navigate(result.user.role === "admin" ? "/admin/dashboard" : "/", { replace: true });
+                navigate(["admin", "superAdmin"].includes(result.user.role) ? "/admin/dashboard" : "/", { replace: true });
             } else {
                 setEmail(result.email);
                 navigate("/verify-email", { replace: true, state: {
@@ -100,7 +101,7 @@ export default function VerifyEmail() {
         }
     };
 
-    if (isLoggedIn) return <Navigate to={user?.role === "admin" ? "/admin/dashboard" : "/"} replace />;
+    if (hasVerifiedSession(isLoggedIn, user)) return <Navigate to={["admin", "superAdmin"].includes(user?.role) ? "/admin/dashboard" : "/"} replace />;
     if ((!token && !isVerificationFlowActive(location.state?.flowId)) || tokenStatus === "invalid") {
         return <Navigate to="/login" replace />;
     }
