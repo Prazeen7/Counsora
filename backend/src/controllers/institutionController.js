@@ -8,6 +8,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const { normalizeProgramsArray } = require('../utils/normalizeProgramData');
+const { readCompletedCrawl } = require('../utils/savedCrawl');
 
 const CRAWLER_API_URL = process.env.CRAWLER_API_URL || 'http://localhost:3000';
 
@@ -392,6 +393,34 @@ const crawlAndAddPrograms = async (req, res) => {
             });
         }
 
+        // The Programs tab can import completed disk results without waiting on an old crawl job.
+        const saved = readCompletedCrawl(
+            process.env.CRAWL_OUTPUT_DIR || path.join(__dirname, '../../../counsora-crawler/crawl-output'),
+            websiteUrl
+        );
+        if (saved) {
+            const { normalized } = normalizeProgramsArray(saved);
+            if (!normalized.length) throw new Error('Saved crawl contains no valid programs to review');
+            const existingPrograms = importMissingOnly
+                ? await Program.find({ institutionId }).select('degree_name').lean()
+                : [];
+            const pending = importMissingOnly ? keepMissingPrograms(normalized, existingPrograms) : normalized;
+            if (pending.length) {
+                const tempDir = path.join(__dirname, '../../temp-crawls');
+                fs.mkdirSync(tempDir, { recursive: true });
+                fs.writeFileSync(path.join(tempDir, `${institutionId}.json`), JSON.stringify(pending, null, 2));
+            }
+            institution.crawlStatus = pending.length ? 'pending_review' : 'completed';
+            institution.lastCrawled = new Date();
+            await institution.save();
+            return res.status(200).json({
+                message: pending.length ? 'Saved programs are ready for review' : 'No missing programs found',
+                shouldCrawl: false,
+                programCount: pending.length,
+                crawlStatus: institution.crawlStatus,
+            });
+        }
+
         if (institution.crawlStatus === "in_progress") {
             return res.status(200).json({
                 message: "A program crawl is already in progress",
@@ -439,7 +468,11 @@ const crawlInBackground = async (institutionId, websiteUrl, { importMissingOnly 
 
         // Call crawler API using axios
         console.log(`Calling crawler API...`);
+        const crawlInstitution = await Institution.findById(institutionId).populate('country', 'name');
+        if (!crawlInstitution?.country?.name) throw new Error('Institution must have a valid country before crawling');
         const crawlerResponse = await axios.post(`${CRAWLER_API_URL}/crawl`, {
+            countryName: crawlInstitution.country.name,
+            checkStructuredData: true,
             url: websiteUrl
         }, {
             headers: {
