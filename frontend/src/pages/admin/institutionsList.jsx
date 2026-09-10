@@ -30,6 +30,10 @@ import { getProgramsByInstitution } from "../../services/programService";
 
 function AdminInstitutions() {
     const { selectedCountry } = useCountry();
+    return <CountryInstitutions key={selectedCountry?._id || "worldwide"} selectedCountry={selectedCountry} />;
+}
+
+function CountryInstitutions({ selectedCountry }) {
 
     const [institutions, setInstitutions] = useState([]);
     const [totalInstitutions, setTotalInstitutions] = useState(0);

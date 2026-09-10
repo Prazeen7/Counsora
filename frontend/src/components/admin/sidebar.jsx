@@ -20,9 +20,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard"
 import BusinessIcon from "@mui/icons-material/Business"
 import DescriptionIcon from "@mui/icons-material/Description"
 import PeopleIcon from "@mui/icons-material/People"
-import HomeIcon from "@mui/icons-material/Home"
-import ArticleIcon from "@mui/icons-material/Article"
-import SettingsIcon from "@mui/icons-material/Settings"
 import LogoutIcon from "@mui/icons-material/Logout"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import {
@@ -33,6 +30,7 @@ import {
     Menu,
     MenuItem,
     Avatar,
+    Alert,
 } from "@mui/material";
 
 import { useCountry } from "../../context/CountryContext";
@@ -49,14 +47,14 @@ const DrawerHeader = styled("div")(({ theme }) => ({
     justifyContent: "flex-end",
 }))
 
-const StyledDrawer = styled(Drawer)(({ theme }) => ({
+const StyledDrawer = styled(Drawer)({
     width: drawerWidth,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
         width: drawerWidth,
         boxSizing: "border-box",
     },
-}))
+})
 
 function Sidebar() {
     const theme = useTheme()
@@ -68,26 +66,29 @@ function Sidebar() {
     const [countries, setCountries] = useState([]);
     const [countryAnchor, setCountryAnchor] = useState(null);
     const [regionSearch, setRegionSearch] = useState("");
+    const [countriesLoading, setCountriesLoading] = useState(false);
+    const [countriesError, setCountriesError] = useState("");
 
     const { selectedCountry, setSelectedCountry } = useCountry();
     const { logout, user } = useAuth();
     const isSuperAdmin = user?.role === "superAdmin";
 
     useEffect(() => {
-        const fetchCountries = async () => {
-            try {
-                const data = await getCountries();
-                setCountries(data);
-            } catch (err) {
-                console.error("Failed to fetch countries", err);
-                setCountries([]);
-            }
-        };
-
-        fetchCountries();
-    }, []);
+        if (!countryAnchor) return;
+        let cancelled = false;
+        getCountries().then((data) => {
+            if (!cancelled) setCountries(data);
+        }).catch((err) => {
+            if (!cancelled) setCountriesError(err.message);
+        }).finally(() => {
+            if (!cancelled) setCountriesLoading(false);
+        });
+        return () => { cancelled = true; };
+    }, [countryAnchor]);
 
     const handleCountryOpen = (event) => {
+        setCountriesLoading(true);
+        setCountriesError("");
         setCountryAnchor(event.currentTarget);
     };
 
@@ -107,6 +108,7 @@ function Sidebar() {
         { text: "Institution Management", icon: <BusinessIcon />, path: "/admin/institutions" },
         { text: "Documents Management", icon: <DescriptionIcon />, path: "/admin/documents" },
         ...(isSuperAdmin ? [{ text: "Users", icon: <PeopleIcon />, path: "/admin/users" }] : []),
+        ...(isSuperAdmin ? [{ text: "Countries", icon: <Public />, path: "/admin/countries" }] : []),
     ]
 
     const handleLogout = () => {
@@ -158,11 +160,11 @@ function Sidebar() {
                 anchorEl={countryAnchor}
                 open={Boolean(countryAnchor)}
                 onClose={handleCountryClose}
-                PaperProps={{
-                    sx: {
+                slotProps={{
+                    paper: { sx: {
                         width: 280,
                         maxHeight: 420,
-                    },
+                    } },
                 }}
             >
                 <Box sx={{ p: 1 }}>
@@ -170,6 +172,10 @@ function Sidebar() {
                         size="small"
                         fullWidth
                         placeholder="Search country..."
+                        slotProps={{ htmlInput: { "aria-label": "Search countries" } }}
+                        onKeyDown={(event) => {
+                            if (event.key !== "Escape" && event.key !== "Tab") event.stopPropagation();
+                        }}
                         value={regionSearch}
                         onChange={(e) => setRegionSearch(e.target.value)}
                     />
@@ -178,6 +184,7 @@ function Sidebar() {
                 <Divider />
 
                 <MenuItem
+                    selected={!selectedCountry}
                     onClick={() => {
                         setSelectedCountry(null);
                         handleCountryClose();
@@ -189,9 +196,13 @@ function Sidebar() {
                     <ListItemText primary="Worldwide" />
                 </MenuItem>
 
-                {filteredCountries.map((country) => (
+                {countriesLoading && <MenuItem disabled>Loading countries…</MenuItem>}
+                {countriesError && <Alert severity="error">{countriesError}</Alert>}
+                {!countriesLoading && !countriesError && !filteredCountries.length && <MenuItem disabled>No countries found.</MenuItem>}
+                {!countriesLoading && !countriesError && filteredCountries.map((country) => (
                     <MenuItem
-                        key={country.code}
+                        key={country._id}
+                        selected={selectedCountry?._id === country._id}
                         onClick={() => {
                             setSelectedCountry(country);
                             handleCountryClose();

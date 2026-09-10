@@ -5,6 +5,7 @@ import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import VerifyEmail from "./pages/VerifyEmail";
 import Users from "./pages/admin/Users";
+import Countries from "./pages/admin/Countries";
 import Institutions from "./pages/counselor/institutionsList";
 import Dashboard from "./pages/dashboard";
 import InstitutionPage from "./pages/counselor/institutionPage";
@@ -118,6 +119,7 @@ function App() {
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Users /></RoleProtectedRoutes>} />
+        <Route path="/admin/countries" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Countries /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
         <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>
