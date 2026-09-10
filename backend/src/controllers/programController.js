@@ -53,6 +53,8 @@ const VALID_FIELDS = [
     "Safety Sciences",
     "Science, Environment and Agriculture",
     "Service Industries",
+    "Sport, Recreation & Exercise",
+    "Cookery and Hotel Management",
     "Trades",
     "Other",
     null,
@@ -70,6 +72,7 @@ const sanitizeLanguageScore = (scoreObj) => {
     if (!scoreObj || typeof scoreObj !== "object") return {};
     return {
         overall: parseNumberOrNull(scoreObj.overall),
+        minimum_band: parseNumberOrNull(scoreObj.minimum_band),
         listening: parseNumberOrNull(scoreObj.listening),
         reading: parseNumberOrNull(scoreObj.reading),
         writing: parseNumberOrNull(scoreObj.writing),

@@ -26,7 +26,7 @@ import {
     CloudDownload as ImportIcon,
 } from "@mui/icons-material";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
-import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
+import { formatLanguageRequirement, hasLanguageScore } from "../../utils/formatLanguageRequirement";
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
 import ProgramDocumentRequirements from "./ProgramDocumentRequirements";
 import { getProgramAdditionalRequirements, hasDocumentRequirements } from "../../utils/documentRequirements";
@@ -88,7 +88,7 @@ const deriveLowestProgramRequirements = (programs, undergraduate) => {
     const languageRequirement = tests.flatMap(([testType, language, testKey]) => {
         const options = matchingPrograms
             .map((program) => program.entry_requirements?.language_requirements?.[language]?.[testKey])
-            .filter((test) => test && hasValue(test.overall))
+            .filter(hasLanguageScore)
             .map((test) => ({ test, numericOverall: Number.parseFloat(test.overall) }))
             .sort((a, b) => {
                 if (Number.isFinite(a.numericOverall) && Number.isFinite(b.numericOverall)) {
@@ -103,6 +103,7 @@ const deriveLowestProgramRequirements = (programs, undergraduate) => {
         return [{
             testType,
             overall: test.overall,
+            minimum_band: test.minimum_band,
             ...Object.fromEntries(individualFields.map((field) => [field, test[field]])),
             hasIndividualScores: individualFields.some((field) => hasValue(test[field])),
         }];
@@ -587,15 +588,15 @@ export default function InstitutionTabsContent({
 
                                 const hasProgramLanguage =
                                     !!(
-                                        programLanguage?.english?.ielts?.overall != null ||
-                                        programLanguage?.english?.toefl?.overall != null ||
-                                        programLanguage?.english?.pte?.overall != null ||
-                                        programLanguage?.english?.duolingo?.overall != null ||
+                                        hasLanguageScore(programLanguage?.english?.ielts) ||
+                                        hasLanguageScore(programLanguage?.english?.toefl) ||
+                                        hasLanguageScore(programLanguage?.english?.pte) ||
+                                        hasLanguageScore(programLanguage?.english?.duolingo) ||
                                         programLanguage?.english?.cambridge ||
                                         programLanguage?.english?.cefr ||
                                         programLanguage?.german?.cefr ||
-                                        programLanguage?.german?.testdaf?.overall != null ||
-                                        programLanguage?.german?.dsh?.overall != null
+                                        hasLanguageScore(programLanguage?.german?.testdaf) ||
+                                        hasLanguageScore(programLanguage?.german?.dsh)
                                     );
 
                                 const hasInstitutionAcademic =
@@ -607,6 +608,7 @@ export default function InstitutionTabsContent({
 
                                 const getIndividualLanguageScores = (score = {}) =>
                                     [
+                                        ["Minimum", score?.minimum_band],
                                         ["Listening", score?.listening],
                                         ["Reading", score?.reading],
                                         ["Writing", score?.writing],
@@ -621,15 +623,15 @@ export default function InstitutionTabsContent({
 
                                 const languageRequirementItems = hasProgramLanguage
                                     ? [
-                                        programLanguage?.english?.ielts?.overall != null && { label: `IELTS ${programLanguage.english.ielts.overall}`, scores: getIndividualLanguageScores(programLanguage.english.ielts) },
-                                        programLanguage?.english?.toefl?.overall != null && { label: `TOEFL ${programLanguage.english.toefl.overall}`, scores: getIndividualLanguageScores(programLanguage.english.toefl) },
-                                        programLanguage?.english?.pte?.overall != null && { label: `PTE ${programLanguage.english.pte.overall}`, scores: getIndividualLanguageScores(programLanguage.english.pte) },
-                                        programLanguage?.english?.duolingo?.overall != null && { label: `Duolingo ${programLanguage.english.duolingo.overall}`, scores: getIndividualLanguageScores(programLanguage.english.duolingo) },
+                                        hasLanguageScore(programLanguage?.english?.ielts) && { label: `IELTS ${programLanguage.english.ielts.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.ielts) },
+                                        hasLanguageScore(programLanguage?.english?.toefl) && { label: `TOEFL ${programLanguage.english.toefl.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.toefl) },
+                                        hasLanguageScore(programLanguage?.english?.pte) && { label: `PTE ${programLanguage.english.pte.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.pte) },
+                                        hasLanguageScore(programLanguage?.english?.duolingo) && { label: `Duolingo ${programLanguage.english.duolingo.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.duolingo) },
                                         programLanguage?.english?.cambridge && { label: `Cambridge ${programLanguage.english.cambridge}`, scores: [] },
                                         programLanguage?.english?.cefr && { label: `English CEFR ${programLanguage.english.cefr}`, scores: [] },
                                         programLanguage?.german?.cefr && { label: `German CEFR ${programLanguage.german.cefr}`, scores: [] },
-                                        programLanguage?.german?.testdaf?.overall != null && { label: `TestDaF ${programLanguage.german.testdaf.overall}`, scores: getIndividualLanguageScores(programLanguage.german.testdaf) },
-                                        programLanguage?.german?.dsh?.overall != null && { label: `DSH ${programLanguage.german.dsh.overall}`, scores: getIndividualLanguageScores(programLanguage.german.dsh) },
+                                        hasLanguageScore(programLanguage?.german?.testdaf) && { label: `TestDaF ${programLanguage.german.testdaf.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.german.testdaf) },
+                                        hasLanguageScore(programLanguage?.german?.dsh) && { label: `DSH ${programLanguage.german.dsh.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.german.dsh) },
                                     ].filter(Boolean)
                                     : institutionLanguage.map((test) => ({
                                         label: `${test.testType || "Test"}${test.overall ? ` ${test.overall}` : ""}`,
@@ -892,7 +894,7 @@ export default function InstitutionTabsContent({
                                                         <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
                                                             {fee?.credits}
                                                             {fee?.annual_fee_eur != null &&
-                                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()} EUR`}
+                                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()}${institution?.country?.currency ? ` ${institution.country.currency}` : ""}`}
                                                         </Typography>
                                                     ))}
                                                 </Box>

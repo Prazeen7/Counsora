@@ -432,6 +432,19 @@ function LanguageScoreInputGroup({ title, lang, test, data, onChange }) {
                             placeholder="e.g. 6.5"
                         />
                     </Grid>
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            size="small"
+                            fullWidth
+                            label="Minimum Band"
+                            type="number"
+                            slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                            value={scores.minimum_band ?? ""}
+                            onChange={(e) => onChange(lang, test, "minimum_band", e.target.value)}
+                            placeholder="e.g. 6.0"
+                            helperText="Minimum score required in each component"
+                        />
+                    </Grid>
                     <Grid item xs={6} sm={2}>
                         <TextField
                             size="small"
@@ -616,6 +629,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
             if (!obj || typeof obj !== "object") return {};
             return {
                 overall: parseScoreNumber(obj.overall),
+                minimum_band: parseScoreNumber(obj.minimum_band),
                 listening: parseScoreNumber(obj.listening),
                 reading: parseScoreNumber(obj.reading),
                 writing: parseScoreNumber(obj.writing),
@@ -2126,7 +2140,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             field: program.field || extractField(program.degree_name),
             tuitionFee: {
                 value: parseTuitionFee(program.tuition_fees),
-                currency: institution?.country?.currency || "USD",
+                currency: institution?.country?.currency || "",
             },
         }));
     }, [programs, institution?.country?.currency, extractLevel, extractField, parseTuitionFee]);

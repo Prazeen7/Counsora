@@ -1,3 +1,8 @@
+export function hasLanguageScore(score) {
+    return ["overall", "minimum_band", "listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"]
+        .some((key) => score?.[key] !== undefined && score[key] !== null && score[key] !== "");
+}
+
 export function formatLanguageRequirement(label, scores = []) {
     if (!scores.length) return label;
 
@@ -5,6 +10,8 @@ export function formatLanguageRequirement(label, scores = []) {
         const [name, value] = score.split(":");
         return { name: name.trim().toLowerCase(), value: value?.trim() };
     });
+    const minimum = bands.find((band) => band.name === "minimum" && band.value !== undefined && band.value !== "");
+    if (minimum) return `${label} (Minimum: ${minimum.value})`;
     const completeGroup = [
         ["listening", "reading", "writing", "speaking"],
         ["literacy", "comprehension", "conversation", "production"],
@@ -14,9 +21,8 @@ export function formatLanguageRequirement(label, scores = []) {
         value !== undefined && value !== "" && Number.isFinite(Number(value)) && Number(value) === Number(firstValue)
     );
 
-    // Only abbreviate a complete set of bands with an overall score.
-    if (completeGroup && allEqual && /\s\d+(?:\.\d+)?$/.test(label)) {
-        return `${label}/${firstValue}`;
+    if (completeGroup && allEqual) {
+        return `${label} (Minimum: ${firstValue})`;
     }
     return `${label} (${scores.join(", ")})`;
 }

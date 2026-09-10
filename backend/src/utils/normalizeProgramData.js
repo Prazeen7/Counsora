@@ -69,6 +69,7 @@ function normalizeLanguageScore(value) {
     if (!value || typeof value !== "object") {
         return {
             overall: null,
+            minimum_band: null,
             listening: null,
             reading: null,
             writing: null,
@@ -78,6 +79,7 @@ function normalizeLanguageScore(value) {
 
     return {
         overall: normalizeNumber(value.overall),
+        minimum_band: normalizeNumber(value.minimum_band),
         listening: normalizeNumber(value.listening),
         reading: normalizeNumber(value.reading),
         writing: normalizeNumber(value.writing),

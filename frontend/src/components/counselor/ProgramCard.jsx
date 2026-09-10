@@ -40,6 +40,7 @@ function ProgramCard({ program, institutionData }) {
         const individual = ["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"]
             .filter(key => hasScore(score?.[key]))
             .map(key => `${key[0].toUpperCase()}${key.slice(1)}: ${score[key]}`);
+        if (hasScore(score?.minimum_band)) individual.unshift(`Minimum: ${score.minimum_band}`);
         if (!hasScore(overall) && !individual.length) return null;
         return formatLanguageRequirement(`${name}${hasScore(overall) ? ` ${overall}` : ""}`, individual);
     }).filter(Boolean);

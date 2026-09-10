@@ -20,6 +20,7 @@ const academicRequirementSchema = new mongoose.Schema(
 const languageScoreSchema = new mongoose.Schema(
     {
         overall: { type: Number, default: null },
+        minimum_band: { type: Number, min: 0, default: null },
         listening: { type: Number, default: null },
         reading: { type: Number, default: null },
         writing: { type: Number, default: null },

@@ -51,6 +51,8 @@ const FIELD_OPTIONS = [
     "Safety Sciences",
     "Science, Environment and Agriculture",
     "Service Industries",
+    "Sport, Recreation & Exercise",
+    "Cookery and Hotel Management",
     "Trades",
     "Other",
 ];
