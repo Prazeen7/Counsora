@@ -2039,6 +2039,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const [selectedField, setSelectedField] = useState("all");
     const [selectedIntake, setSelectedIntake] = useState("all");
     const [selectedTuition, setSelectedTuition] = useState("all");
+    const [selectedStatus, setSelectedStatus] = useState("active");
 
     // Edit mode states
     const [editMode, setEditMode] = useState(false);
@@ -2071,7 +2072,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             try {
                 const [institutionData, programData] = await Promise.all([
                     getInstitutionById(institutionId),
-                    getProgramsByInstitution(institutionId),
+                    getProgramsByInstitution(institutionId, { includeInactive: true }),
                 ]);
 
                 setInstitution(institutionData);
@@ -2173,6 +2174,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
     const filteredPrograms = useMemo(() => {
         return transformedPrograms.filter((program) => {
+            const matchesStatus = selectedStatus === "active"
+                ? program.isActive !== false
+                : program.isActive === false;
             const matchesSearch = program.name
                 ?.toLowerCase()
                 .includes(searchQuery.toLowerCase());
@@ -2204,6 +2208,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 (selectedTuition === "above30000" && fee > 30000);
 
             return (
+                matchesStatus &&
                 matchesSearch &&
                 matchesLevel &&
                 matchesField &&
@@ -2211,7 +2216,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 matchesTuition
             );
         });
-    }, [transformedPrograms, searchQuery, selectedLevel, selectedField, selectedIntake, selectedTuition]);
+    }, [transformedPrograms, searchQuery, selectedLevel, selectedField, selectedIntake, selectedTuition, selectedStatus]);
 
     const displayCampuses = useMemo(() => getDisplayCampuses(institution, programs), [institution, programs]);
 
@@ -2715,10 +2720,16 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ websiteUrl: normalizedUrl, importMissingOnly: true }),
+                body: JSON.stringify({ websiteUrl: normalizedUrl, importMissingOnly: true, availableOnly: false }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to start program import");
+
+            if (data.crawlStatus === "completed") {
+                setProgramImporting(false);
+                setSnackbar({ open: true, message: data.message, severity: "info" });
+                return;
+            }
 
             if (data.crawlStatus === "pending_review") {
                 setProgramImporting(false);
@@ -2730,7 +2741,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 open: true,
                 message: data.crawlStatus === "in_progress"
                     ? "A website scan is already running. Waiting for it to finish."
-                    : "Website scan started. Only missing programs will be sent for review.",
+                    : "Checking saved programs and completing missing data. New programs will be ready for review when finished.",
                 severity: "info",
             });
             programImportPollRef.current = setTimeout(pollStatus, 3000);
@@ -3012,6 +3023,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 setSelectedIntake={setSelectedIntake}
                                 selectedTuition={selectedTuition}
                                 setSelectedTuition={setSelectedTuition}
+                                selectedStatus={selectedStatus}
+                                setSelectedStatus={setSelectedStatus}
                                 levels={levels}
                                 fields={fields}
                                 intakes={intakes}
@@ -3044,6 +3057,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         setSelectedIntake={setSelectedIntake}
                         selectedTuition={selectedTuition}
                         setSelectedTuition={setSelectedTuition}
+                        selectedStatus={selectedStatus}
+                        setSelectedStatus={setSelectedStatus}
                         levels={levels}
                         fields={fields}
                         intakes={intakes}

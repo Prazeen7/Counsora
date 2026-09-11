@@ -152,6 +152,8 @@ export default function InstitutionTabsContent({
     setSelectedIntake,
     selectedTuition,
     setSelectedTuition,
+    selectedStatus = "active",
+    setSelectedStatus,
     levels = [],
     fields = [],
     intakes = [],
@@ -434,7 +436,7 @@ export default function InstitutionTabsContent({
                                 xs: "1fr",
                                 sm: "repeat(2, 1fr)",
                                 md: "repeat(3, 1fr)",
-                                lg: "2fr 1fr 1fr 1fr 1fr",
+                                lg: isAdmin && setSelectedStatus ? "2fr repeat(5, 1fr)" : "2fr 1fr 1fr 1fr 1fr",
                             },
                             gap: 2,
                             mb: 3,
@@ -446,6 +448,18 @@ export default function InstitutionTabsContent({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                        {isAdmin && setSelectedStatus && (
+                            <TextField
+                                select
+                                fullWidth
+                                label="Program Status"
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                            >
+                                <MenuItem value="active">Active</MenuItem>
+                                <MenuItem value="inactive">Not Active</MenuItem>
+                            </TextField>
+                        )}
 
                         <TextField
                             select

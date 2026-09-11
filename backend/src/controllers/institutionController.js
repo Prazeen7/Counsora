@@ -11,6 +11,7 @@ const { normalizeProgramsArray } = require('../utils/normalizeProgramData');
 const { readCompletedCrawl } = require('../utils/savedCrawl');
 
 const CRAWLER_API_URL = process.env.CRAWLER_API_URL || 'http://localhost:3000';
+const activeCrawls = new Set();
 
 const programIdentity = (program) => String(program?.degree_name || program?.name || "")
     .normalize("NFKD")
@@ -321,7 +322,7 @@ const addInstitution = async (req, res) => {
 const crawlAndAddPrograms = async (req, res) => {
     try {
         const { institutionId } = req.params;
-        const { websiteUrl, importMissingOnly = false } = req.body;
+        const { websiteUrl, importMissingOnly = false, availableOnly = false } = req.body;
 
         console.log(`\n=== Crawl Request Received ===`);
         console.log(`Institution ID: ${institutionId}`);
@@ -345,59 +346,12 @@ const crawlAndAddPrograms = async (req, res) => {
 
         console.log(`✓ Institution found: ${institution.name}`);
 
-        // Check crawl status
-        const existingProgramCount = await Program.countDocuments({
-            institutionId,
-            isActive: true,
-        });
-
-        if (institution.crawlStatus === "completed" && !importMissingOnly) {
-            console.log(
-                `✓ Programs already approved (${existingProgramCount} programs)`
-            );
-
-            return res.status(200).json({
-                message: "Programs already exist and are approved for this institution",
-                shouldCrawl: false,
-                programCount: existingProgramCount,
-                lastCrawled: institution.lastCrawled,
-                crawlStatus: institution.crawlStatus,
-            });
-        }
-
-        if (institution.crawlStatus === "pending_review") {
-            console.log("✓ Programs awaiting review");
-
-            const tempFilePath = path.join(
-                __dirname,
-                "../../temp-crawls",
-                `${institutionId}.json`
-            );
-
-            let programCount = 0;
-
-            if (fs.existsSync(tempFilePath)) {
-                const tempData = JSON.parse(
-                    fs.readFileSync(tempFilePath, "utf8")
-                );
-
-                programCount = tempData.length;
-            }
-
-            return res.status(200).json({
-                message: "Programs are pending review",
-                shouldCrawl: false,
-                programCount,
-                lastCrawled: institution.lastCrawled,
-                crawlStatus: institution.crawlStatus,
-            });
-        }
-
-        // The Programs tab can import completed disk results without waiting on an old crawl job.
-        const saved = readCompletedCrawl(
+        // Individual local results are importable even if the final crawl checkpoint is missing.
+        const saved = availableOnly ? readCompletedCrawl(
             process.env.CRAWL_OUTPUT_DIR || path.join(__dirname, '../../../counsora-crawler/crawl-output'),
-            websiteUrl
-        );
+            websiteUrl,
+            { includePartial: true }
+        ) : null;
         if (saved) {
             const { normalized } = normalizeProgramsArray(saved);
             if (!normalized.length) throw new Error('Saved crawl contains no valid programs to review');
@@ -409,6 +363,9 @@ const crawlAndAddPrograms = async (req, res) => {
                 const tempDir = path.join(__dirname, '../../temp-crawls');
                 fs.mkdirSync(tempDir, { recursive: true });
                 fs.writeFileSync(path.join(tempDir, `${institutionId}.json`), JSON.stringify(pending, null, 2));
+            } else {
+                const tempFilePath = path.join(__dirname, '../../temp-crawls', `${institutionId}.json`);
+                if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
             }
             institution.crawlStatus = pending.length ? 'pending_review' : 'completed';
             institution.lastCrawled = new Date();
@@ -421,16 +378,25 @@ const crawlAndAddPrograms = async (req, res) => {
             });
         }
 
-        if (institution.crawlStatus === "in_progress") {
+        if (availableOnly) {
+            return res.status(200).json({
+                message: 'No local structured program files are available to import',
+                shouldCrawl: false,
+                programCount: 0,
+                crawlStatus: 'completed',
+            });
+        }
+
+        if (activeCrawls.has(institutionId)) {
             return res.status(200).json({
                 message: "A program crawl is already in progress",
                 shouldCrawl: false,
-                programCount: existingProgramCount,
+                programCount: 0,
                 crawlStatus: institution.crawlStatus,
             });
         }
 
-        console.log(`No existing approved programs found, starting crawl...`);
+        console.log(`Checking and completing missing program extraction steps...`);
         // Update institution crawl status
         institution.crawlStatus = "in_progress";
         await institution.save();
@@ -448,7 +414,9 @@ const crawlAndAddPrograms = async (req, res) => {
         console.log(`✓ Response sent to client, starting background crawl...`);
 
         // Start crawler in background (non-blocking)
-        crawlInBackground(institutionId, websiteUrl, { importMissingOnly });
+        activeCrawls.add(institutionId);
+        crawlInBackground(institutionId, websiteUrl, { importMissingOnly })
+            .finally(() => activeCrawls.delete(institutionId));
 
     } catch (error) {
         console.error('Error initiating crawl:', error);
@@ -483,6 +451,11 @@ const crawlInBackground = async (institutionId, websiteUrl, { importMissingOnly 
         console.log(`Crawler API response status: ${crawlerResponse.status}`);
         console.log(`Crawler API success: ${crawlerResponse.data.success}`);
         console.log(`Programs found: ${crawlerResponse.data.data?.length || 0}`);
+
+        if (crawlerResponse.data.complete === false ||
+            crawlerResponse.data.steps?.some((step) => ['incomplete', 'failed'].includes(step.status))) {
+            throw new Error('Crawler still has programs missing structured data; finish extraction before review');
+        }
 
         if (crawlerResponse.data.success && crawlerResponse.data.data) {
             const crawledPrograms = crawlerResponse.data.data;
@@ -608,44 +581,31 @@ const getCrawlStatus = async (req, res) => {
             });
         }
 
-        const approvedProgramCount = await Program.countDocuments({
-            institutionId,
-            isActive: true,
-        });
-
-        console.log(`\n=== Get Crawl Status for ${institutionId} ===`);
-        console.log(`DB Status: ${institution.crawlStatus}`);
-        console.log(`DB Approved Program Count: ${approvedProgramCount}`);
-
-        // If status is pending_review, get count from temp file
-        let programCount = approvedProgramCount;
-
-        if (institution.crawlStatus === "pending_review") {
-            const tempFilePath = path.join(
-                __dirname,
-                "../../temp-crawls",
-                `${institutionId}.json`
+        const tempFilePath = path.join(__dirname, '../../temp-crawls', institutionId + '.json');
+        let programCount = 0;
+        if (institution.crawlStatus === 'pending_review' && fs.existsSync(tempFilePath)) {
+            const pending = JSON.parse(fs.readFileSync(tempFilePath, 'utf8'));
+            programCount = Array.isArray(pending) ? pending.length : 0;
+        } else if (req.query?.availableOnly === 'true' && institution.crawlStatus !== 'completed') {
+            const saved = readCompletedCrawl(
+                process.env.CRAWL_OUTPUT_DIR || path.join(__dirname, '../../../counsora-crawler/crawl-output'),
+                institution.website,
+                { includePartial: true }
             );
-
-            if (fs.existsSync(tempFilePath)) {
-                try {
-                    const tempData = JSON.parse(
-                        fs.readFileSync(tempFilePath, "utf8")
-                    );
-
-                    programCount = tempData.length;
-                } catch (err) {
-                    console.error(
-                        "Error reading temp file:",
-                        err
-                    );
+            if (saved) {
+                const { normalized } = normalizeProgramsArray(saved);
+                programCount = normalized.length;
+                if (programCount) {
+                    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+                    fs.writeFileSync(tempFilePath, JSON.stringify(normalized, null, 2));
                 }
             }
         }
-
-        console.log(
-            `Returning status: ${institution.crawlStatus}, count: ${programCount}`
-        );
+        if (programCount && institution.crawlStatus !== 'pending_review') {
+            institution.crawlStatus = 'pending_review';
+            await institution.save();
+        }
+        console.log('Local import status:', institution.crawlStatus, 'program count:', programCount);
 
         return res.status(200).json({
             status: institution.crawlStatus,

@@ -919,35 +919,6 @@ export default function AddInstitution({ onClose }) {
             const token = localStorage.getItem('token');
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            // Check crawl status first
-            const statusResponse = await fetch(
-                `${apiUrl}/institution/${useInstId}/crawl-status`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                }
-            );
-
-            const statusData = await statusResponse.json();
-
-            // Check if programs are pending review
-            if (statusData.status === 'pending_review' && statusData.programCount > 0) {
-                setCrawlStatus('pending_review');
-                setCrawlMessage(`Programs are awaiting review (${statusData.programCount} programs). Redirecting...`);
-                setTimeout(() => {
-                    window.location.href = `/admin/institutions/${useInstId}/review-programs`;
-                }, 1500);
-                return;
-            }
-
-            // Check if programs are already completed/approved
-            if (statusData.status === 'completed' && statusData.programCount > 0) {
-                setCrawlStatus('completed');
-                setCrawlMessage(`Programs already exist and are approved (${statusData.programCount} programs found). No need to crawl.`);
-                return;
-            }
-
             // Start crawling
             setCrawlStatus('crawling');
             setCrawlMessage('Crawling website... This may take several minutes. You can continue working.');
@@ -960,19 +931,19 @@ export default function AddInstitution({ onClose }) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ websiteUrl: validUrl }),
+                    body: JSON.stringify({ websiteUrl: validUrl, availableOnly: false }),
                 }
             );
 
             const crawlData = await crawlResponse.json();
 
             if (crawlResponse.ok) {
-                if (crawlData.shouldCrawl === false) {
+                if (crawlData.shouldCrawl === false && crawlData.crawlStatus === 'completed') {
                     setCrawlStatus('completed');
                     setCrawlMessage(`Programs already exist (${crawlData.programCount} programs). Skipped crawling.`);
                 } else {
                     setCrawlStatus('crawling');
-                    setCrawlMessage('Crawl started successfully! Programs will be added automatically when ready.');
+                    setCrawlMessage('Completing missing program data. Existing structured files will be reused; programs will be ready for review when finished.');
 
                     // Poll for status every 10 seconds
                     const pollInterval = setInterval(async () => {

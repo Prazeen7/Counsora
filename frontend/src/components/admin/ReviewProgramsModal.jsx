@@ -53,6 +53,8 @@ const FIELD_OPTIONS = [
     "Service Industries",
     "Sport, Recreation & Exercise",
     "Cookery and Hotel Management",
+    "Hair, Beauty and Makeup",
+    "Travel and Tourism",
     "Trades",
     "Other",
 ];

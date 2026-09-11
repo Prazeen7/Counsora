@@ -7,7 +7,7 @@ const normalizeUrl = (value) => {
     return url.hostname.toLowerCase().replace(/^www\./, '') + url.pathname.replace(/\/+$/, '') + url.search;
 };
 
-function readCompletedCrawl(root, website) {
+function readCompletedCrawl(root, website, { includePartial = false } = {}) {
     if (!website || !fs.existsSync(root)) return null;
     let requested;
     try { requested = normalizeUrl(website); } catch { return null; }
@@ -19,6 +19,25 @@ function readCompletedCrawl(root, website) {
             try {
                 const metadata = JSON.parse(fs.readFileSync(path.join(candidate, 'metadata.json'), 'utf8'));
                 if (![metadata.url, metadata.finalUrl].filter(Boolean).some((url) => normalizeUrl(url) === requested)) continue;
+                if (includePartial) {
+                    const records = [];
+                    const programRoot = path.join(candidate, 'programs');
+                    if (fs.existsSync(programRoot)) {
+                        for (const entry of fs.readdirSync(programRoot, { withFileTypes: true })) {
+                            if (!entry.isDirectory()) continue;
+                            try {
+                                const record = JSON.parse(fs.readFileSync(path.join(programRoot, entry.name, 'structured-data.json'), 'utf8'));
+                                if (record && !Array.isArray(record) && (record.degree_name || record.name)) records.push(record);
+                            } catch { /* A program may still be extracting or writing its result. */ }
+                        }
+                    }
+                    if (records.length) return records;
+                    try {
+                        const data = JSON.parse(fs.readFileSync(path.join(candidate, 'all-programs-structured.json'), 'utf8'));
+                        if (Array.isArray(data) && data.length) return data;
+                    } catch { /* No aggregate result is available yet. */ }
+                    continue;
+                }
                 const checkpoint = JSON.parse(fs.readFileSync(path.join(candidate, 'crawl-checkpoint.json'), 'utf8'));
                 if (!checkpoint.completedSteps?.includes('stage5_data_extraction')) continue;
                 // Older crawls incorrectly excluded certificate qualifications.

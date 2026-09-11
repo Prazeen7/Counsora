@@ -17,9 +17,11 @@ const getProgramsByInstitution = async (req, res) => {
             });
         }
 
+        const includeInactive = req.query.includeInactive === "true" &&
+            ["admin", "superAdmin"].includes(req.user?.role);
         const programs = await Program.find({
             institutionId,
-            isActive: true,
+            ...(includeInactive ? {} : { isActive: true }),
         }).lean();
 
         return res.status(200).json({
@@ -55,6 +57,8 @@ const VALID_FIELDS = [
     "Service Industries",
     "Sport, Recreation & Exercise",
     "Cookery and Hotel Management",
+    "Hair, Beauty and Makeup",
+    "Travel and Tourism",
     "Trades",
     "Other",
     null,
