@@ -21,6 +21,7 @@ import AdminLayout from "./layouts/adminLayout";
 import ReviewPrograms from "./pages/admin/ReviewPrograms";
 import Programs from "./pages/counselor/program";
 import Documents from "./pages/counselor/documents";
+import DocumentsPage from "./components/DocumentsPage";
 import StudyGuide from "./pages/counselor/studyGuide";
 
 function App() {
@@ -105,7 +106,7 @@ function App() {
 
       <Route
         path="/documents"
-        element={<><Navbar /><RoleProtectedRoutes allowedRoles={["counselor"]}><Documents /></RoleProtectedRoutes></>}
+        element={<RoleProtectedRoutes allowedRoles={["counselor", "admin", "superAdmin"]}><Documents /></RoleProtectedRoutes>}
       />
       <Route path="/study-guide" element={<><Navbar /><RoleProtectedRoutes allowedRoles={["counselor"]}><StudyGuide /></RoleProtectedRoutes></>} />
 
@@ -121,6 +122,7 @@ function App() {
         <Route path="/admin/users" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Users /></RoleProtectedRoutes>} />
         <Route path="/admin/countries" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Countries /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
+        <Route path="/admin/documents" element={<DocumentsPage isAdmin />} />
         <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>
     </Routes >

@@ -24,5 +24,6 @@ app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/institution", institutionRoutes)
 app.use("/api/country", countryRoutes);
 app.use("/api/program", programRoutes);
+app.use("/api/documents", require("./routes/documentRoutes"));
 
 module.exports = app;

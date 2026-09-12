@@ -21,6 +21,7 @@ export async function apiRequest(endpoint, options = {}) {
         ...options,
     });
 
+    if (response.ok && options.responseType === "blob") return response.blob();
     const data = await response.json().catch(() => ({}));
 
     // Handle unauthorized globally

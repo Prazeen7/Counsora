@@ -1,6 +1,7 @@
 const Country = require("../models/Country");
 const mongoose = require("mongoose");
 const Institution = require("../models/Institution");
+const Document = require("../models/Document");
 
 const getCountries = async (req, res) => {
     try {
@@ -71,6 +72,7 @@ const deleteCountry = async (req, res) => {
     if (!mongoose.isObjectIdOrHexString(req.params.id)) return res.status(400).json({ error: "Invalid country ID" });
     try {
         if (await Institution.exists({ country: req.params.id })) return res.status(409).json({ error: "This country is used by institutions. Reassign them before deleting it." });
+        if (await Document.exists({ country: req.params.id })) return res.status(409).json({ error: "This country is used by documents. Reassign or delete those documents first." });
         const country = await Country.findByIdAndDelete(req.params.id);
         if (!country) return res.status(404).json({ error: "Country not found" });
         res.json({ message: "Country deleted" });

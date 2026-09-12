@@ -1,0 +1,122 @@
+[
+  {
+    "title": "Valid passport",
+    "source": "Passport issuing authority",
+    "details": "Personal documents: Passport issued within the last 10 years, with at least 2 empty pages.",
+    "section": "Personal Documents"
+  },
+  {
+    "title": "Visa application form and Section 54 declaration",
+    "source": "Applicant / German embassy",
+    "details": "Personal documents: Completed and signed visa application form and declaration under Section 54 of the Residence Act. Submit 2 copies.",
+    "section": "Personal Documents"
+  },
+  {
+    "title": "Additional contact and legal representation declaration",
+    "source": "Applicant / German embassy",
+    "details": "Personal documents: Declaration for additional contact and legal representation information. Submit 2 copies.",
+    "section": "Personal Documents"
+  },
+  {
+    "title": "Biometric passport photos",
+    "source": "Applicant / photo studio",
+    "details": "Personal documents: 3 identical, recent biometric passport photos.",
+    "section": "Personal Documents"
+  },
+  {
+    "title": "Passport data page copies",
+    "source": "Applicant",
+    "details": "Personal documents: 2 copies of the passport data page, in A4 size.",
+    "section": "Personal Documents"
+  },
+  {
+    "title": "Admission proof",
+    "source": "University / Studienkolleg / language school",
+    "details": "Letter of admission from a German university OR admission to a preparatory college (Studienkolleg) OR registration for a language course.\nThe letter must include the language of instruction and confirmation if a non-German degree will be awarded.",
+    "section": "Admission Proof"
+  },
+  {
+    "title": "Blocked account (Sperrkonto)",
+    "source": "Blocked account provider",
+    "details": "Proof of financial means. The checklist states a required amount of €11,904, with an approximate €992/month withdrawal limit.\nThe checklist recommends opening the blocked account only after instruction/request from the embassy.",
+    "section": "Proof of Financial Means"
+  },
+  {
+    "title": "Sponsor income proof (if applicable)",
+    "source": "Sponsor / employer / bank",
+    "details": "The checklist states that the sponsor must demonstrate stable annual income of at least NPR 25 to 30 lakhs.\nAcceptable income sources listed: salary (employment income), business income, house rent, and land lease income.\nSupporting documents: proof of income such as salary slips, business registration, rental agreements, etc.; and the last 6 months of bank statements.",
+    "section": "Proof of Financial Means"
+  },
+  {
+    "title": "Bank balance / savings proof",
+    "source": "Bank / applicant",
+    "details": "Must show sufficient funds equivalent to living costs in Germany.\nThe checklist gives this fund calculation: tuition + living cost (€12,000) + travel cost.\nInclude the last 6 months of bank statements.",
+    "section": "Proof of Financial Means"
+  },
+  {
+    "title": "Alternative financial proof (if applicable)",
+    "source": "Sponsor in Germany / scholarship provider",
+    "details": "The checklist lists a formal obligation letter (Verpflichtungserklärung) from a sponsor in Germany, and proof of a German/EU scholarship or stipend, as alternative financial proof if applicable.",
+    "section": "Proof of Financial Means"
+  },
+  {
+    "title": "Academic qualifications — Bachelor’s applicants",
+    "source": "School / examining board",
+    "details": "10th and 12th mark sheets.\nDiploma/degree certificates, if applicable.",
+    "section": "Academic Qualifications"
+  },
+  {
+    "title": "Academic qualifications — Master’s applicants",
+    "source": "University",
+    "details": "Bachelor’s degree certificate and other relevant academic documents.",
+    "section": "Academic Qualifications"
+  },
+  {
+    "title": "Academic qualifications — PhD/Postdoc applicants",
+    "source": "University / research institution",
+    "details": "Master’s degree and additional qualifications.",
+    "section": "Academic Qualifications"
+  },
+  {
+    "title": "Language proficiency proof",
+    "source": "Language test provider",
+    "details": "Required unless confirmed in the admission letter. The checklist states that the proof must not be older than 1 year.\nEnglish: TOEFL, IELTS, Cambridge.\nGerman: Goethe-Institut, ÖSD, TestDaF, DSH.",
+    "section": "Language Proficiency"
+  },
+  {
+    "title": "Proof of tuition fee payment (if applicable)",
+    "source": "University / payment provider",
+    "details": "Additional documents: Proof of tuition fee payment, if applicable.",
+    "section": "Additional Documents"
+  },
+  {
+    "title": "Curriculum Vitae (CV)",
+    "source": "Applicant",
+    "details": "Additional documents: Curriculum Vitae (CV).",
+    "section": "Additional Documents"
+  },
+  {
+    "title": "Signed motivation letter / Statement of Purpose",
+    "source": "Applicant",
+    "details": "Additional documents: Signed motivation letter / Statement of Purpose.",
+    "section": "Additional Documents"
+  },
+  {
+    "title": "Travel health insurance",
+    "source": "Travel health insurer",
+    "details": "Additional documents: Travel health insurance covering the first 90 days from the entry date.",
+    "section": "Additional Documents"
+  },
+  {
+    "title": "Visa fee payment receipt",
+    "source": "Visa fee payment provider",
+    "details": "Additional documents: Visa fee payment receipt.",
+    "section": "Additional Documents"
+  },
+  {
+    "title": "Document submission notes",
+    "source": "Applicant / German embassy",
+    "details": "Submit two identical sets of documents, using A4-size copies only.\nBring all original documents to the visa appointment.\nThe checklist states a processing time of 6–8 weeks.\nThe embassy may request additional documents or verification.\nSubmission of documents does not guarantee visa approval.\nProviding false information or incomplete documents may result in rejection.",
+    "section": "Important Notes"
+  }
+]
