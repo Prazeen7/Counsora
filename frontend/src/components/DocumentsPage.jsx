@@ -14,6 +14,8 @@ export default function DocumentsPage({ isAdmin = false }) {
     const [countryError, setCountryError] = useState("");
     const [type, setType] = useState("required_documents");
     const [documents, setDocuments] = useState([]);
+    const [stageDocuments, setStageDocuments] = useState([]);
+    const [processStages, setProcessStages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [version, setVersion] = useState(0);
@@ -23,6 +25,7 @@ export default function DocumentsPage({ isAdmin = false }) {
     const [deleteBusy, setDeleteBusy] = useState(false);
     const [deleteError, setDeleteError] = useState("");
     const process = type === "process_flow";
+    const byStage = type === "by_stage";
     const sections = [...new Set(documents.map((record) => record.section?.trim() || "General"))];
 
     useEffect(() => {
@@ -38,20 +41,29 @@ export default function DocumentsPage({ isAdmin = false }) {
         let active = true;
         setLoading(true);
         setError("");
-        getDocuments({ country: countryId, type }).then((data) => {
-            if (active) setDocuments(data.documents);
+        const request = byStage || type === "required_documents"
+            ? Promise.all([getDocuments({ country: countryId, type: "required_documents" }), getDocuments({ country: countryId, type: "process_flow" })])
+            : getDocuments({ country: countryId, type });
+        request.then((data) => {
+            if (!active) return;
+            if (byStage || type === "required_documents") {
+                setStageDocuments(data[0].documents);
+                setProcessStages(data[1].documents);
+                if (type === "required_documents") setDocuments(data[0].documents);
+            }
+            else setDocuments(data.documents);
         }).catch((err) => { if (active) setError(err.message); })
             .finally(() => { if (active) setLoading(false); });
         return () => { active = false; };
-    }, [countryId, type, version]);
+    }, [countryId, type, version, byStage]);
 
     const remove = async () => {
         setDeleteBusy(true);
         setDeleteError("");
         try {
             await deleteDocument(deleting._id);
+            setDocuments((current) => current.filter((record) => record._id !== deleting._id));
             setDeleting(null);
-            setVersion((value) => value + 1);
         } catch (err) { setDeleteError(err.message); }
         finally { setDeleteBusy(false); }
     };
@@ -62,18 +74,26 @@ export default function DocumentsPage({ isAdmin = false }) {
                 <Typography variant="h4" fontWeight={700}>Documents</Typography>
                 <Typography color="text.secondary">Required documents and process stages by country.</Typography>
             </Box>
-            {isAdmin && <Button variant="contained" startIcon={<Add />} onClick={() => setEditor({ record: null })} disabled={!countries.length}>
+            {isAdmin && !byStage && <Button size="small" variant="outlined" startIcon={<Add sx={{ fontSize: 15 }} />} onClick={() => setEditor({ record: null })} disabled={!countries.length} sx={{ minWidth: 0, height: 30, px: 1, py: 0, borderRadius: 1.25, fontSize: "0.75rem", lineHeight: 1, whiteSpace: "nowrap", "& .MuiButton-startIcon": { mr: 0.5 } }}>
                 {process ? "Add stage" : "Add document"}
             </Button>}
         </Stack>
         {countryError && <Alert severity="error" sx={{ mb: 2 }} action={<Button onClick={() => setVersion((value) => value + 1)}>Retry</Button>}>{countryError}</Alert>}
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
             <Tabs value={type} onChange={(_event, value) => setType(value)} variant="scrollable" allowScrollButtonsMobile aria-label="Document type">
-                <Tab label="Required Documents" value="required_documents" />
                 <Tab label="Stage / Process Flow" value="process_flow" />
+                <Tab label="Required Documents" value="required_documents" />
+                <Tab label="Required Documents by Stage" value="by_stage" />
             </Tabs>
             {loading ? <Box sx={{ p: 5, textAlign: "center" }}><CircularProgress aria-label="Loading documents" /></Box> : error ?
                 <Alert severity="error" action={<Button onClick={() => setVersion((value) => value + 1)}>Retry</Button>}>{error}</Alert> :
+                byStage ? <Box sx={{ p: { xs: 1, md: 2 } }}>{(processStages.length ? processStages : [{ _id: "unassigned", title: "Process stages have not been added yet" }]).map((stage, stageIndex) => {
+                    const items = stageDocuments.filter((document) => document.stage?.trim() === stage.title);
+                    return <Accordion key={stage._id} defaultExpanded={stageIndex === 0} disableGutters sx={{ mb: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "12px !important", boxShadow: "none", "&:before": { display: "none" } }}>
+                        <AccordionSummary expandIcon={<ExpandMore />}><Stack direction="row" spacing={1.5} alignItems="center"><Typography fontWeight={600}>{stageIndex + 1}. {stage.title}</Typography><Chip size="small" label={items.length} /></Stack></AccordionSummary>
+                        <AccordionDetails sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>{items.length ? items.map((item) => <Box key={item._id} sx={{ py: 1, borderBottom: "1px solid", borderColor: "divider" }}><Typography fontWeight={600}>{item.title}</Typography><Typography variant="body2" color="text.secondary">{item.details || item.source || "No additional details"}</Typography></Box>) : <Typography color="text.secondary">No required documents assigned to this stage yet.</Typography>}</AccordionDetails>
+                    </Accordion>;
+                })}</Box> :
                 !documents.length ? <Box sx={{ p: 5, textAlign: "center" }}>
                     <Typography color="text.secondary">No {process ? "process stages" : "required documents"} have been added{selectedCountry ? ` for ${selectedCountry.name}` : ""} yet.</Typography>
                     {isAdmin && <Typography variant="body2" sx={{ mt: 1 }}>Add an entry and choose its country to get started.</Typography>}
@@ -88,7 +108,7 @@ export default function DocumentsPage({ isAdmin = false }) {
                             </Stack>
                         </AccordionSummary>
                         <AccordionDetails sx={{ p: 0, borderTop: "1px solid", borderColor: "divider" }}>
-                            {isAdmin && <Box sx={{ p: 1, textAlign: "right" }}><Button size="small" startIcon={<Add />}
+                            {isAdmin && <Box sx={{ p: 1, textAlign: "right" }}><Button size="small" variant="outlined" startIcon={<Add sx={{ fontSize: 14 }} />} sx={{ minHeight: 26, px: 1, py: 0.15, borderRadius: 1, fontSize: "0.72rem" }}
                                 onClick={() => setEditor({ record: null, section: section === "General" ? "" : section })}>
                                 {process ? "Add stage" : "Add document"}
                             </Button></Box>}
@@ -108,7 +128,7 @@ export default function DocumentsPage({ isAdmin = false }) {
                                     <Typography variant="body2" color="text.secondary">{record.details || "No additional details"}</Typography>
                                 </Stack>
                             </TableCell>
-                            <TableCell><Tooltip title={record.preview ? "Open preview" : "No preview available"}><span><IconButton size="small" disabled={!record.preview} aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></span></Tooltip></TableCell>
+                            <TableCell>{(() => { const hasPreview = Array.isArray(record.preview) ? record.preview.length > 0 : Boolean(record.preview); return <Tooltip title={hasPreview ? "Open preview" : "No preview available"}><span><IconButton size="small" disabled={!hasPreview} aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></span></Tooltip>; })()}</TableCell>
                             {isAdmin && <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                                 <Tooltip title="Edit"><IconButton size="small" aria-label={`Edit ${record.title}`} onClick={() => setEditor({ record })}><EditOutlined fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.title}`} onClick={() => { setDeleteError(""); setDeleting(record); }}><DeleteOutline fontSize="small" /></IconButton></Tooltip>
@@ -120,9 +140,14 @@ export default function DocumentsPage({ isAdmin = false }) {
                     </Accordion>;
                 })}</Box>}
         </Paper>
-        {editor && <DocumentEditor record={editor.record} countries={countries} defaultCountry={countryId} defaultType={type}
+        {editor && <DocumentEditor record={editor.record} countries={countries} stages={processStages} defaultCountry={countryId} defaultType={type}
             sections={sections.filter((section) => section !== "General")} defaultSection={editor.section || ""}
-            onClose={() => setEditor(null)} onSaved={() => { setEditor(null); setVersion((value) => value + 1); }} />}
+            onClose={() => setEditor(null)} onSaved={(saved) => {
+                setDocuments((current) => editor.record
+                    ? current.map((record) => record._id === saved._id ? saved : record)
+                    : [...current, saved].sort((a, b) => (a.order || 0) - (b.order || 0)));
+                setEditor(null);
+            }} />}
         {preview && <DocumentPreview key={preview._id} record={preview} onClose={() => setPreview(null)} />}
         <Dialog open={Boolean(deleting)} onClose={deleteBusy ? undefined : () => setDeleting(null)}>
             <DialogTitle>Delete entry?</DialogTitle>

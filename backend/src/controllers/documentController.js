@@ -31,9 +31,9 @@ async function saveDocument(req, res) {
         const record = updating ? await Document.findById(req.params.id) : new Document();
         if (!record) throw fail("Document not found.", 404);
         const body = req.body || {};
-        const allowed = ["country", "type", "title", "section", "source", "timeline", "details", "order", "removePreview", "removePreviewIndexes"];
+        const allowed = ["country", "type", "title", "section", "stage", "source", "timeline", "details", "order", "removePreview", "removePreviewIndexes"];
         if (Object.keys(body).some((field) => !allowed.includes(field))) throw fail("Unsupported document field.");
-        for (const field of ["country", "type", "title", "section", "source", "timeline", "details"]) {
+        for (const field of ["country", "type", "title", "section", "stage", "source", "timeline", "details"]) {
             if (body[field] !== undefined) {
                 if (typeof body[field] !== "string") throw fail(`${field} must be text.`);
                 record[field] = body[field].trim();

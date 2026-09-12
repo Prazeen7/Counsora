@@ -3,12 +3,13 @@ import { Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent,
 import { Close } from "@mui/icons-material";
 import { getDocumentPreview, saveDocument } from "../../services/documentService";
 
-export default function DocumentEditor({ record, countries, defaultCountry, defaultType, sections = [], defaultSection = "", onClose, onSaved }) {
+export default function DocumentEditor({ record, countries, defaultCountry, defaultType, sections = [], stages = [], defaultSection = "", onClose, onSaved }) {
     const [fields, setFields] = useState({
         country: record?.country?._id || defaultCountry || "",
         type: record?.type || defaultType,
         title: record?.title || "",
         section: record ? record.section || "" : defaultSection,
+        stage: record?.stage || "",
         source: record?.source || "",
         timeline: record?.timeline || "",
         details: record?.details || "",
@@ -52,8 +53,8 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
         setSaving(true);
         setError("");
         try {
-            await saveDocument(record?._id, { ...fields, removePreviewIndexes: JSON.stringify(removedExistingIndexes) }, files);
-            onSaved();
+            const saved = await saveDocument(record?._id, { ...fields, removePreviewIndexes: JSON.stringify(removedExistingIndexes) }, files);
+            onSaved(saved);
         } catch (err) { setError(err.message); }
         finally { setSaving(false); }
     };
@@ -76,6 +77,10 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
                         onInputChange={(_event, value) => setFields((current) => ({ ...current, section: value }))}
                         renderInput={(params) => <TextField {...params} label="Main section" helperText="Choose an existing heading or type a new one. Leave blank for General."
                             slotProps={{ htmlInput: { ...params.inputProps, maxLength: 200 } }} />} />
+                    {fields.type === "required_documents" && <TextField select label="Process stage (optional)" value={fields.stage} onChange={change("stage")} disabled={saving} helperText="Assign this document to a process-flow stage for the Required Documents by Stage tab.">
+                        <MenuItem value="">Unassigned</MenuItem>
+                        {stages.map((stage) => <MenuItem key={stage._id} value={stage.title}>{stage.title}</MenuItem>)}
+                    </TextField>}
                     <TextField label={process ? "Timeline" : "Source"} value={process ? fields.timeline : fields.source} onChange={change(process ? "timeline" : "source")} disabled={saving} slotProps={{ htmlInput: { maxLength: 1000 } }} />
                     <TextField label="Details" multiline minRows={4} value={fields.details} onChange={change("details")} disabled={saving} slotProps={{ htmlInput: { maxLength: 20000 } }} />
                     <TextField label="Display order" type="number" value={fields.order} onChange={change("order")} disabled={saving} required slotProps={{ htmlInput: { min: 0, step: 1 } }} helperText="Lower numbers appear first. Use this to arrange stages in sequence." />

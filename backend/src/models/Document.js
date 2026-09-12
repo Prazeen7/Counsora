@@ -5,6 +5,7 @@ const documentSchema = new mongoose.Schema({
     type: { type: String, enum: ["required_documents", "process_flow"], required: true },
     title: { type: String, required: true, trim: true, maxlength: 300 },
     section: { type: String, trim: true, default: "", maxlength: 200 },
+    stage: { type: String, trim: true, default: "", maxlength: 300 },
     source: { type: String, trim: true, default: "", maxlength: 1000 },
     timeline: { type: String, trim: true, default: "", maxlength: 1000 },
     details: { type: String, trim: true, default: "", maxlength: 20000 },

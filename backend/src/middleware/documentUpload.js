@@ -4,7 +4,7 @@ const path = require("path");
 const formats = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".pdf": "application/pdf" };
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024, files: 5, fields: 10, fieldSize: 100000 },
+    limits: { fileSize: 5 * 1024 * 1024, files: 5, fields: 30, fieldSize: 100000 },
     fileFilter(_req, file, cb) {
         const expected = formats[path.extname(file.originalname).toLowerCase()];
         cb(expected && expected === file.mimetype ? null : new Error("Choose a JPG, JPEG, PNG, or PDF file."), Boolean(expected && expected === file.mimetype));
