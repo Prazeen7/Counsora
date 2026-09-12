@@ -196,6 +196,15 @@ const institutionSchema = new mongoose.Schema(
             trim: true,
         },
 
+        whyUniversity: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+
+        isPinned: { type: Boolean, default: false },
+        isDimmed: { type: Boolean, default: false },
+
         isActive: {
             type: Boolean,
             default: true,

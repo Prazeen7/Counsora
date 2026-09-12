@@ -57,8 +57,13 @@ function ProgramCard({ program, institutionData }) {
 
     return (
         <Card
+            inert={Boolean(program.isDimmed)}
+            aria-disabled={Boolean(program.isDimmed)}
             variant="outlined"
             sx={{
+                opacity: program.isDimmed ? 0.45 : 1,
+                filter: program.isDimmed ? "grayscale(1)" : "none",
+                pointerEvents: program.isDimmed ? "none" : "auto",
                 width: '100%',
                 height: '100%',
                 minHeight: 550,

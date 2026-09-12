@@ -377,6 +377,8 @@ export default function Programs() {
                     return {
                         id: `${program.institutionId || program.institution}-${program._id}`,
                         program: program.degree_name || "N/A",
+                        isPinned: Boolean(program.isPinned),
+                        isDimmed: Boolean(program.isDimmed || institutionData?.isDimmed),
                         institution: program.institutionName || "N/A",
                         level: level,
                         discipline: discipline,

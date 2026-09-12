@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ListingFlags from "../admin/ListingFlags";
 import {
     Box,
     Typography,
@@ -138,6 +139,7 @@ const resolveEntryRequirement = (institutionEntry, programFallback) => {
 };
 
 export default function InstitutionTabsContent({
+    onProgramFlagsSaved,
     activeTab,
     institution,
     programs = [],
@@ -198,6 +200,15 @@ export default function InstitutionTabsContent({
         case 0:
             return (
                 <>
+                    <Paper sx={{ p: 4, borderRadius: 3, mb: 3 }}>
+                        <Typography variant="h5" fontWeight="bold" gutterBottom>
+                            Why {institution?.name || "this university"}?
+                        </Typography>
+                        <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                            {institution?.whyUniversity?.trim() || "Reasons to choose this university have not been added yet."}
+                        </Typography>
+                    </Paper>
+
                     {/* About Section */}
                     <Paper sx={{ p: 4, borderRadius: 3, mb: 3 }}>
                         <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -549,7 +560,10 @@ export default function InstitutionTabsContent({
                                 gap: 3,
                             }}
                         >
-                            {filteredPrograms.map((program) => {
+                            {[...filteredPrograms].sort((a, b) =>
+                                Number(Boolean(a.isDimmed)) - Number(Boolean(b.isDimmed)) ||
+                                Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned))
+                            ).map((program) => {
                                 /*
                                  * Each `program` is now an individual
                                  * Program MongoDB document.
@@ -693,7 +707,11 @@ export default function InstitutionTabsContent({
                                 return (
                                     <Card
                                         key={program._id}
+                                        inert={!isAdmin && Boolean(program.isDimmed || institution?.isDimmed)}
+                                        aria-disabled={!isAdmin && Boolean(program.isDimmed || institution?.isDimmed)}
                                         sx={{
+                                            opacity: !isAdmin && (program.isDimmed || institution?.isDimmed) ? 0.45 : 1,
+                                            pointerEvents: !isAdmin && (program.isDimmed || institution?.isDimmed) ? "none" : "auto",
                                             borderRadius: 3,
                                             height: "100%",
                                             display: "flex",
@@ -706,6 +724,11 @@ export default function InstitutionTabsContent({
                                             },
                                         }}
                                     >
+                                        {isAdmin && onProgramFlagsSaved && (
+                                            <Box sx={{ p: 1, pr: isEditMode && onEditProgram && onDeleteProgram ? 11 : 1 }}>
+                                            <ListingFlags item={program} resource="program" onSaved={onProgramFlagsSaved} />
+                                            </Box>
+                                        )}
                                         {/* Admin actions */}
                                         {isAdmin &&
                                             isEditMode &&

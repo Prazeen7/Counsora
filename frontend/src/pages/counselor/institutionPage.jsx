@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
     Box,
+    Button,
     Container,
     Typography,
     Avatar,
@@ -219,6 +220,13 @@ export default function InstitutionPage() {
 
     if (!institution) {
         return <Loading loading={true} />;
+    }
+
+    if (institution?.isDimmed) {
+        return <Box sx={{ p: 4 }}>
+            <Typography>This institution is currently unavailable.</Typography>
+            <Button href="/institutions">Back to institutions</Button>
+        </Box>;
     }
 
     return (

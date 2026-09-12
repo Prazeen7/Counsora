@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Box,
     Paper,
@@ -21,6 +21,7 @@ import {
 import { Add, Search } from "@mui/icons-material";
 
 import PageHeader from "../../components/admin/PageHeader";
+import ListingFlags from "../../components/admin/ListingFlags";
 import AddInstitution from "../../components/admin/AddInstitutions";
 import AdminInstitutionsPage from "./InstitutionPage";
 
@@ -49,12 +50,14 @@ function CountryInstitutions({ selectedCountry }) {
 
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const requestVersion = useRef(0);
 
     useEffect(() => {
         fetchInstitutions();
     }, [searchTerm, selectedCountry, page, rowsPerPage, order, orderBy]);
 
     const fetchInstitutions = async () => {
+        const version = ++requestVersion.current;
         try {
             const response = await getInstitutions({
                 search: searchTerm,
@@ -65,11 +68,21 @@ function CountryInstitutions({ selectedCountry }) {
                 sortOrder: order,
             });
 
+            if (version !== requestVersion.current) return;
             setInstitutions(response.institutions || []);
             setTotalInstitutions(response.pagination?.total || 0);
         } catch (error) {
             console.error("Error fetching institutions:", error);
         }
+    };
+
+    const handleFlagsSaved = (updated) => {
+        // Invalidate earlier reads so they cannot restore an outdated flag state.
+        requestVersion.current += 1;
+        setInstitutions((items) => items.map((item) => item._id === updated._id
+            ? { ...item, isPinned: updated.isPinned, isDimmed: updated.isDimmed }
+            : item));
+        // Keep rows in place; apply the saved ordering when the list is reloaded.
     };
 
     const handleRequestSort = (property) => {
@@ -174,6 +187,7 @@ function CountryInstitutions({ selectedCountry }) {
                                         </TableCell>
                                         <TableCell>Country</TableCell>
                                         <TableCell>Type</TableCell>
+                                        <TableCell align="right" sx={{ width: 88, whiteSpace: "nowrap" }}>Pin / Dim</TableCell>
                                         <TableCell align="right">Programs</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -198,6 +212,10 @@ function CountryInstitutions({ selectedCountry }) {
 
                                             {/* Type */}
                                             <TableCell>{institution.type || "N/A"}</TableCell>
+                                            <TableCell>
+                                                <ListingFlags item={institution} resource="institution"
+                                                    onSaved={handleFlagsSaved} />
+                                            </TableCell>
 
                                             {/* Programs */}
                                             <TableCell align="right">

@@ -202,6 +202,8 @@ const updateProgram = async (req, res) => {
         }
 
         const updateData = sanitizeProgramData(req.body);
+        if (updateData.isDimmed === true) updateData.isPinned = false;
+        else if (updateData.isPinned === true) updateData.isDimmed = false;
 
         const program = await Program.findByIdAndUpdate(
             programId,
@@ -339,7 +341,7 @@ const getAllProgram = async (req, res) => {
         }
         let randomizedIds;
         let matchingTotal;
-        if (paginated || gpa > 0 || englishFilter || academicLevelFilter || programLevelFilter || fieldFilter || locationFilter || countryFilter || searchFilter) {
+        {
             const orderStages = sortOrder ? [
                 { $addFields: {
                     sortFee: { $convert: {
@@ -347,19 +349,26 @@ const getAllProgram = async (req, res) => {
                         to: "double", onError: 0, onNull: 0,
                     } },
                 } },
-                { $sort: { sortFee: sortOrder === "highToLow" ? -1 : 1, _id: 1 } },
+                { $sort: { listingRank: 1, sortFee: sortOrder === "highToLow" ? -1 : 1, _id: 1 } },
             ] : seed ? [
                 { $project: {
                     _id: 1,
+                    listingRank: 1,
                     shuffleOrder: { $toHashedIndexKey: { $concat: [{ $literal: seed }, ":", { $toString: "$_id" }] } },
                 } },
-                { $sort: { shuffleOrder: 1, _id: 1 } },
-            ] : [{ $project: { _id: 1 } }, { $sort: { _id: 1 } }];
+                { $sort: { listingRank: 1, shuffleOrder: 1, _id: 1 } },
+            ] : [{ $project: { _id: 1, listingRank: 1 } }, { $sort: { listingRank: 1, _id: 1 } }];
             const [result] = await Program.aggregate([
                 { $match: { isActive: true } },
-                ...(searchFilter || countryFilter || locationFilter ? [
-                    { $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } },
-                ] : []),
+                { $lookup: { from: "institutions", localField: "institutionId", foreignField: "_id", as: "programInstitution" } },
+                { $addFields: { listingRank: { $cond: [
+                    { $or: [
+                        { $eq: ["$isDimmed", true] },
+                        { $eq: [{ $arrayElemAt: ["$programInstitution.isDimmed", 0] }, true] },
+                    ] },
+                    2,
+                    { $cond: [{ $eq: ["$isPinned", true] }, 0, 1] },
+                ] } } },
                 ...(searchFilter ? [{ $match: searchFilter }] : []),
                 ...(countryFilter ? [{ $match: countryFilter }] : []),
                 ...(programLevelFilter ? [{ $match: programLevelFilter }] : []),
@@ -384,7 +393,7 @@ const getAllProgram = async (req, res) => {
         let programs = await query
             .populate({
                 path: "institutionId",
-                select: "name country logo campuses entryRequirements applicationFee documents",
+                select: "name country logo campuses entryRequirements applicationFee documents isDimmed",
                 populate: {
                     path: "country",
                     select: "name code currency",

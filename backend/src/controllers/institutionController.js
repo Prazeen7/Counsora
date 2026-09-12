@@ -112,10 +112,12 @@ const getInstitutions = async (req, res) => {
                         scholarships: 1,
                         applicationFee: 1,
                         programCount: 1,
+                        isPinned: { $ifNull: ["$isPinned", false] },
+                        isDimmed: { $ifNull: ["$isDimmed", false] },
                     },
                 },
 
-                { $sort: { name: 1 } },
+                { $sort: { isDimmed: 1, isPinned: -1, name: 1, _id: 1 } },
                 { $skip: skip },
                 { $limit: limitNumber },
 
@@ -145,6 +147,8 @@ const getInstitutions = async (req, res) => {
                         scholarships: 1,
                         applicationFee: 1,
                         programCount: 1,
+                        isPinned: 1,
+                        isDimmed: 1,
                         country: {
                             _id: "$country._id",
                             code: "$country.code",
@@ -804,6 +808,9 @@ const updateInstitution = async (req, res) => {
             }
         }
 
+        if (updateData.isDimmed === true) updateData.isPinned = false;
+        else if (updateData.isPinned === true) updateData.isDimmed = false;
+
         // Normalize legacy embedded records before running update validators.
         // Older campuses may predate the required address field, and edit-mode
         // client identifiers must never be persisted.
@@ -821,6 +828,28 @@ const updateInstitution = async (req, res) => {
             updateData.scholarships = updateData.scholarships
                 .filter((scholarship) => scholarship && typeof scholarship === "object" && !scholarship.markedForDeletion)
                 .map(({ _clientId, markedForDeletion, ...scholarship }) => scholarship);
+        }
+
+        if (Array.isArray(updateData.awards)) {
+            const invalidAward = updateData.awards.find((award) =>
+                award?.year != null && String(award.year).trim() !== '' &&
+                !/^\d{4}$/.test(String(award.year).trim())
+            );
+            if (invalidAward) {
+                return res.status(400).json({
+                    error: 'Award year must be a four-digit year (for example, 2026) or left blank.',
+                });
+            }
+            updateData.awards = updateData.awards.map((award) => {
+                if (!award || typeof award !== 'object') return award;
+                const { _clientId, ...savedAward } = award;
+                if (typeof savedAward._id === 'string' && savedAward._id.startsWith('temp_')) {
+                    delete savedAward._id;
+                }
+                savedAward.year = award.year == null || String(award.year).trim() === ''
+                    ? null : Number(award.year);
+                return savedAward;
+            });
         }
 
         // Handle logo upload if file is provided

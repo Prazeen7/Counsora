@@ -348,8 +348,13 @@ export default function InstitutionList() {
                             {institutions.map((institution) => (
                                 <Grid key={institution._id} xs={12} sm={6} md={4} lg={3}>
                                     <Card
+                                        inert={Boolean(institution.isDimmed)}
+                                        aria-disabled={Boolean(institution.isDimmed)}
                                         variant="outlined"
                                         sx={{
+                                            opacity: institution.isDimmed ? 0.45 : 1,
+                                            filter: institution.isDimmed ? "grayscale(1)" : "none",
+                                            pointerEvents: institution.isDimmed ? "none" : "auto",
                                             height: "100%",
                                             transition: "transform 0.2s, box-shadow 0.2s",
                                             "&:hover": {

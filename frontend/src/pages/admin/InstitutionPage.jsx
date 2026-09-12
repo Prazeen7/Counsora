@@ -1361,6 +1361,16 @@ const OverviewEditTab = React.memo(({ editedInstitution, onChange, onAwardsChang
                     onChange={(e) => onChange("description", e.target.value)}
                 />
 
+                <TextField
+                    label="Why this university"
+                    fullWidth
+                    multiline
+                    rows={6}
+                    value={editedInstitution?.whyUniversity || ""}
+                    onChange={(e) => onChange("whyUniversity", e.target.value)}
+                    helperText="Explain what makes this university a good choice for students."
+                />
+
                 <Divider sx={{ my: 2 }} />
 
                 <Typography variant="subtitle1" fontWeight="bold">
@@ -1372,7 +1382,7 @@ const OverviewEditTab = React.memo(({ editedInstitution, onChange, onAwardsChang
                     startIcon={<AddIcon />}
                     onClick={() => {
                         const newAward = {
-                            _id: `temp_${Date.now()}_${Math.random()}`,
+                            _clientId: `temp_${Date.now()}_${Math.random()}`,
                             title: "",
                             issuer: "",
                             year: "",
@@ -1386,7 +1396,7 @@ const OverviewEditTab = React.memo(({ editedInstitution, onChange, onAwardsChang
 
                 {editedInstitution?.awards?.map((award, index) => (
                     <Box
-                        key={award._id || `award_${index}`}
+                        key={award._id || award._clientId || `award_${index}`}
                         sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2, position: "relative" }}
                     >
                         <IconButton
@@ -1436,6 +1446,10 @@ const OverviewEditTab = React.memo(({ editedInstitution, onChange, onAwardsChang
                                 <TextField
                                     fullWidth
                                     label="Year"
+                                    type="number"
+                                    slotProps={{ htmlInput: { min: 1000, max: 9999, step: 1 } }}
+                                    error={Boolean(award.year) && !/^\d{4}$/.test(String(award.year))}
+                                    helperText="Enter a four-digit year or leave blank"
                                     value={award.year || ""}
                                     onChange={(e) => {
                                         const val = e.target.value;
@@ -3030,6 +3044,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 intakes={intakes}
                                 navigate={navigate}
                                 isAdmin={true}
+                                onProgramFlagsSaved={(updated) => setPrograms((items) => items.map((item) => item._id === updated._id ? { ...item, isPinned: updated.isPinned, isDimmed: updated.isDimmed } : item))}
                                 isEditMode={true}
                                 onEditProgram={openProgramDialog}
                                 onDeleteProgram={(program) => {
@@ -3064,6 +3079,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         intakes={intakes}
                         navigate={navigate}
                         isAdmin={true}
+                        onProgramFlagsSaved={(updated) => setPrograms((items) => items.map((item) => item._id === updated._id ? { ...item, isPinned: updated.isPinned, isDimmed: updated.isDimmed } : item))}
                         isEditMode={editMode}
                         onEditProgram={openProgramDialog}
                         onDeleteProgram={(program) => {

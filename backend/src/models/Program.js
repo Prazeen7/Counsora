@@ -174,6 +174,9 @@ const programSchema = new mongoose.Schema(
             trim: true,
             default: null,
         },
+        isPinned: { type: Boolean, default: false },
+        isDimmed: { type: Boolean, default: false },
+
         isActive: {
             type: Boolean,
             default: true,
