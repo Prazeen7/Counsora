@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
-import { saveDocument } from "../../services/documentService";
+import { useEffect, useState } from "react";
+import { Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Close } from "@mui/icons-material";
+import { getDocumentPreview, saveDocument } from "../../services/documentService";
 
 export default function DocumentEditor({ record, countries, defaultCountry, defaultType, sections = [], defaultSection = "", onClose, onSaved }) {
     const [fields, setFields] = useState({
@@ -14,11 +15,33 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
         order: record?.order ?? 0,
         removePreview: false,
     });
-    const [file, setFile] = useState(null);
+    const [files, setFiles] = useState([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [fileError, setFileError] = useState("");
+    const [selectedPreviewUrls, setSelectedPreviewUrls] = useState([]);
+    const [existingPreviewUrls, setExistingPreviewUrls] = useState([]);
+    const [removedExistingIndexes, setRemovedExistingIndexes] = useState([]);
     const process = fields.type === "process_flow";
+    const existingPreview = Array.isArray(record?.preview) ? record.preview[0] : record?.preview;
+    const existingPreviews = Array.isArray(record?.preview) ? record.preview : (record?.preview ? [record.preview] : []);
+    useEffect(() => {
+        const urls = files.map((file) => file.type.startsWith("image/") ? URL.createObjectURL(file) : "");
+        setSelectedPreviewUrls(urls);
+        return () => urls.forEach((url) => url && URL.revokeObjectURL(url));
+    }, [files]);
+    useEffect(() => {
+        let active = true;
+        const urls = [];
+        Promise.all(existingPreviews.map(async (_preview, index) => {
+            try {
+                const blob = await getDocumentPreview(record._id, index);
+                const url = URL.createObjectURL(blob);
+                urls[index] = url;
+            } catch { urls[index] = ""; }
+        })).then(() => { if (active) setExistingPreviewUrls(urls); });
+        return () => { active = false; urls.forEach((url) => url && URL.revokeObjectURL(url)); };
+    }, [record?._id, existingPreviews.length]);
     const countryOptions = record?.country?._id && !countries.some((country) => country._id === record.country._id)
         ? [...countries, record.country] : countries;
     const change = (field) => (event) => setFields((current) => ({ ...current, [field]: event.target.value }));
@@ -29,7 +52,7 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
         setSaving(true);
         setError("");
         try {
-            await saveDocument(record?._id, fields, file);
+            await saveDocument(record?._id, { ...fields, removePreviewIndexes: JSON.stringify(removedExistingIndexes) }, files);
             onSaved();
         } catch (err) { setError(err.message); }
         finally { setSaving(false); }
@@ -59,28 +82,43 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 1 }}>Preview attachment</Typography>
                         <Button component="label" variant="outlined" disabled={saving}>
-                            {file || (record?.preview && !fields.removePreview) ? "Replace file" : "Upload file"}
-                            <input hidden type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(event) => {
-                                const selected = event.target.files?.[0];
+                            {files.length || (existingPreview && !fields.removePreview) ? "Choose other files" : "Upload files"}
+                            <input hidden multiple type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(event) => {
+                                const selected = [...(event.target.files || [])];
                                 event.target.value = "";
-                                if (!selected) return;
-                                if (selected.size > 5 * 1024 * 1024 || !/\.(jpg|jpeg|png|pdf)$/i.test(selected.name)) {
-                                    setFileError("Choose a JPG, JPEG, PNG, or PDF file up to 5 MB.");
+                                if (!selected.length) return;
+                                const combined = [...files, ...selected];
+                                if (combined.length > 5 || combined.some((file) => file.size > 5 * 1024 * 1024 || !/\.(jpg|jpeg|png|pdf)$/i.test(file.name))) {
+                                    setFileError("Choose up to 5 JPG, JPEG, PNG, or PDF files. Each must be 5 MB or smaller.");
                                     return;
                                 }
-                                setFile(selected);
+                                setFiles(combined);
                                 setFileError("");
                                 setFields((current) => ({ ...current, removePreview: false }));
                             }} />
                         </Button>
-                        {(file || (record?.preview && !fields.removePreview)) && <Button disabled={saving} onClick={() => {
-                            setFile(null);
+                        {(files.length || (existingPreview && !fields.removePreview)) && <Button disabled={saving} onClick={() => {
+                            setFiles([]);
                             setFileError("");
                             setFields((current) => ({ ...current, removePreview: true }));
                         }}>Remove file</Button>}
                         <Typography variant="body2" sx={{ mt: 1, overflowWrap: "anywhere" }}>
-                            {file?.name || (!fields.removePreview && record?.preview?.name) || "Optional: JPG, JPEG, PNG, or PDF, up to 5 MB."}
+                            {files.length ? `${files.length} file(s) selected` : (existingPreview?.name || "Optional: up to 5 JPG, JPEG, PNG, or PDF files.")}
                         </Typography>
+                        {files.length > 0 && <Stack spacing={1} sx={{ mt: 1 }}>
+                            {files.map((file, index) => <Stack key={`${file.name}-${file.lastModified}-${index}`} direction="row" spacing={1} alignItems="center" sx={{ p: 0.75, border: "1px solid", borderColor: "divider", borderRadius: 1, maxWidth: 420 }}>
+                                {selectedPreviewUrls[index] ? <Box component="img" src={selectedPreviewUrls[index]} alt={`Selected preview ${index + 1}`} sx={{ width: 56, height: 44, objectFit: "contain" }} /> : <Typography variant="caption" sx={{ width: 56, textAlign: "center" }}>PDF</Typography>}
+                                <Typography variant="body2" sx={{ flex: 1, overflowWrap: "anywhere" }}>{file.name}</Typography>
+                                <IconButton size="small" aria-label={`Remove ${file.name}`} disabled={saving} onClick={() => setFiles((current) => current.filter((_item, itemIndex) => itemIndex !== index))}><Close fontSize="small" /></IconButton>
+                            </Stack>)}
+                        </Stack>}
+                        {files.length === 0 && existingPreviews.length > 0 && <Stack spacing={1} sx={{ mt: 1 }}>
+                            {existingPreviews.map((preview, index) => removedExistingIndexes.includes(index) ? null : <Stack key={`${preview.name}-${index}`} direction="row" spacing={1} alignItems="center" sx={{ p: 0.75, border: "1px solid", borderColor: "divider", borderRadius: 1, maxWidth: 420 }}>
+                                {existingPreviewUrls[index] && preview.mimeType?.startsWith("image/") ? <Box component="img" src={existingPreviewUrls[index]} alt={`Uploaded preview ${index + 1}`} sx={{ width: 56, height: 44, objectFit: "contain" }} /> : <Typography variant="caption" sx={{ width: 56, textAlign: "center" }}>{preview.mimeType === "application/pdf" ? "PDF" : "FILE"}</Typography>}
+                                <Typography variant="body2" sx={{ flex: 1, overflowWrap: "anywhere" }}>{preview.name}</Typography>
+                                <IconButton size="small" aria-label={`Remove ${preview.name}`} disabled={saving} onClick={() => setRemovedExistingIndexes((current) => [...new Set([...current, index])])}><Close fontSize="small" /></IconButton>
+                            </Stack>)}
+                        </Stack>}
                         {fileError && <Alert severity="error" onClose={() => setFileError("")} sx={{ mt: 1 }}>{fileError}</Alert>}
                     </Box>
                 </Stack>

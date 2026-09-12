@@ -31,7 +31,7 @@ async function saveDocument(req, res) {
         const record = updating ? await Document.findById(req.params.id) : new Document();
         if (!record) throw fail("Document not found.", 404);
         const body = req.body || {};
-        const allowed = ["country", "type", "title", "section", "source", "timeline", "details", "order", "removePreview"];
+        const allowed = ["country", "type", "title", "section", "source", "timeline", "details", "order", "removePreview", "removePreviewIndexes"];
         if (Object.keys(body).some((field) => !allowed.includes(field))) throw fail("Unsupported document field.");
         for (const field of ["country", "type", "title", "section", "source", "timeline", "details"]) {
             if (body[field] !== undefined) {
@@ -51,12 +51,22 @@ async function saveDocument(req, res) {
         if (record.type === "required_documents") record.timeline = "";
         else record.source = "";
         if (body.removePreview === true || body.removePreview === "true") {
-            record.preview = null;
+            record.preview = [];
             record.previewData = undefined;
         }
-        if (req.file) {
-            record.preview = { name: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size };
-            record.previewData = req.file.buffer;
+        if (body.removePreviewIndexes !== undefined && !req.files?.length) {
+            let indexes;
+            try { indexes = typeof body.removePreviewIndexes === "string" ? JSON.parse(body.removePreviewIndexes) : body.removePreviewIndexes; } catch { throw fail("Invalid preview removal list."); }
+            if (!Array.isArray(indexes) || indexes.some((index) => !Number.isInteger(Number(index)) || Number(index) < 0)) throw fail("Invalid preview removal list.");
+            const remove = new Set(indexes.map(Number));
+            const previews = Array.isArray(record.preview) ? record.preview : (record.preview ? [record.preview] : []);
+            const buffers = Array.isArray(record.previewData) ? record.previewData : (record.previewData ? [record.previewData] : []);
+            record.preview = previews.filter((_preview, index) => !remove.has(index));
+            record.previewData = buffers.filter((_buffer, index) => !remove.has(index));
+        }
+        if (req.files?.length) {
+            record.preview = req.files.map((file) => ({ name: file.originalname, mimeType: file.mimetype, size: file.size }));
+            record.previewData = req.files.map((file) => file.buffer);
         }
         await record.save();
         await record.populate("country", "name code");
@@ -68,13 +78,17 @@ async function previewDocument(req, res) {
     try {
         if (!mongoose.isObjectIdOrHexString(req.params.id)) throw fail("Invalid document ID.");
         const record = await Document.findById(req.params.id).select("preview +previewData");
-        if (!record?.preview || !record.previewData) throw fail("Preview not found.", 404);
+        const previews = Array.isArray(record?.preview) ? record.preview : (record?.preview ? [record.preview] : []);
+        const index = Math.max(0, Math.min(Number(req.query.index) || 0, previews.length - 1));
+        const previewBuffers = Array.isArray(record?.previewData) ? record.previewData : (record?.previewData ? [record.previewData] : []);
+        if (!record || !previews.length || !previewBuffers[index]) throw fail("Preview not found.", 404);
+        const preview = previews[index];
         res.set({
-            "Content-Type": record.preview.mimeType,
-            "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(record.preview.name)}`,
+            "Content-Type": preview.mimeType,
+            "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(preview.name)}`,
             "Cache-Control": "private, no-store",
             "X-Content-Type-Options": "nosniff",
-        }).send(record.previewData);
+        }).send(previewBuffers[index]);
     } catch (error) { respondError(res, error); }
 }
 

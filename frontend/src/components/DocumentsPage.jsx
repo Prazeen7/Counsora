@@ -93,19 +93,22 @@ export default function DocumentsPage({ isAdmin = false }) {
                                 {process ? "Add stage" : "Add document"}
                             </Button></Box>}
                             <TableContainer>
-                    <Table sx={{ minWidth: 760, "& td": { verticalAlign: "top" } }}>
+                    <Table sx={{ minWidth: 620, "& td": { verticalAlign: "top" } }}>
                         <TableHead><TableRow>
-                            <TableCell>#</TableCell><TableCell>{process ? "Stage" : "Documents"}</TableCell><TableCell>Country</TableCell>
-                            <TableCell>{process ? "Timeline" : "Source"}</TableCell><TableCell>Details</TableCell><TableCell>Preview</TableCell>
+                            <TableCell width="48">#</TableCell><TableCell>{process ? "Stage" : "Document"}</TableCell><TableCell>Information</TableCell><TableCell width="100">Preview</TableCell>
                             {isAdmin && <TableCell align="right">Actions</TableCell>}
                         </TableRow></TableHead>
                         <TableBody>{sectionDocuments.map((record, index) => <TableRow key={record._id} hover>
                             <TableCell>{index + 1}</TableCell>
-                            <TableCell sx={{ fontWeight: 600, minWidth: 150, maxWidth: 260, overflowWrap: "anywhere" }}>{record.title}</TableCell>
-                            <TableCell>{record.country?.name || "Country unavailable"}</TableCell>
-                            <TableCell sx={{ minWidth: 110, maxWidth: 230, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{(process ? record.timeline : record.source) || "—"}</TableCell>
-                            <TableCell sx={{ minWidth: 200, maxWidth: 460, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{record.details || "—"}</TableCell>
-                            <TableCell><Button size="small" startIcon={<VisibilityOutlined />} disabled={!record.preview} onClick={() => setPreview(record)}>Preview</Button></TableCell>
+                            <TableCell sx={{ fontWeight: 600, minWidth: 170, maxWidth: 280, overflowWrap: "anywhere" }}>{record.title}</TableCell>
+                            <TableCell sx={{ minWidth: 220, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                                <Stack spacing={0.75}>
+                                    {process && record.timeline && <Chip size="small" label={record.timeline} sx={{ alignSelf: "flex-start" }} />}
+                                    {!process && record.source && <Typography variant="body2" color="primary" fontWeight={600}>{record.source}</Typography>}
+                                    <Typography variant="body2" color="text.secondary">{record.details || "No additional details"}</Typography>
+                                </Stack>
+                            </TableCell>
+                            <TableCell><Tooltip title={record.preview ? "Open preview" : "No preview available"}><span><IconButton size="small" disabled={!record.preview} aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></span></Tooltip></TableCell>
                             {isAdmin && <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                                 <Tooltip title="Edit"><IconButton size="small" aria-label={`Edit ${record.title}`} onClick={() => setEditor({ record })}><EditOutlined fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.title}`} onClick={() => { setDeleteError(""); setDeleting(record); }}><DeleteOutline fontSize="small" /></IconButton></Tooltip>

@@ -9,16 +9,14 @@ const documentSchema = new mongoose.Schema({
     timeline: { type: String, trim: true, default: "", maxlength: 1000 },
     details: { type: String, trim: true, default: "", maxlength: 20000 },
     order: { type: Number, default: 0, min: 0, validate: Number.isInteger },
-    preview: {
-        type: new mongoose.Schema({
+    preview: [{
             name: String,
             mimeType: { type: String, enum: ["image/jpeg", "image/png", "application/pdf"] },
             size: Number,
-        }, { _id: false }),
-        default: null,
-    },
+        _id: false,
+    }],
     // Keep small previews with their record, but never include bytes in list responses.
-    previewData: { type: Buffer, select: false },
+    previewData: { type: [Buffer], select: false },
 }, { timestamps: true, toJSON: { transform(_doc, result) { delete result.previewData; return result; } } });
 
 documentSchema.index({ country: 1, type: 1, order: 1, createdAt: 1 });

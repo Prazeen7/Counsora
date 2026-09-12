@@ -6,12 +6,12 @@ export function getDocuments({ country, type }) {
     return apiRequest(`/documents?${params}`);
 }
 
-export function saveDocument(id, fields, file) {
+export function saveDocument(id, fields, files) {
     const body = new FormData();
     Object.entries(fields).forEach(([key, value]) => body.append(key, value));
-    if (file) body.append("preview", file);
+    (Array.isArray(files) ? files : files ? [files] : []).forEach((file) => body.append("previews", file));
     return apiRequest(`/documents${id ? `/${id}` : ""}`, { method: id ? "PUT" : "POST", body, isFormData: true });
 }
 
 export const deleteDocument = (id) => apiRequest(`/documents/${id}`, { method: "DELETE" });
-export const getDocumentPreview = (id) => apiRequest(`/documents/${id}/preview`, { responseType: "blob" });
+export const getDocumentPreview = (id, index = 0) => apiRequest(`/documents/${id}/preview?index=${index}`, { responseType: "blob" });
