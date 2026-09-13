@@ -12,7 +12,7 @@ export default function DocumentsPage({ isAdmin = false }) {
     const countryId = selectedCountry?._id || "";
     const [countries, setCountries] = useState([]);
     const [countryError, setCountryError] = useState("");
-    const [type, setType] = useState("required_documents");
+    const [type, setType] = useState("process_flow");
     const [documents, setDocuments] = useState([]);
     const [stageDocuments, setStageDocuments] = useState([]);
     const [processStages, setProcessStages] = useState([]);
@@ -68,6 +68,7 @@ export default function DocumentsPage({ isAdmin = false }) {
         finally { setDeleteBusy(false); }
     };
 
+    if (!selectedCountry) return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 5 } }}><Alert severity="info">Select a country from the navigation menu to view its required documents and process stages.</Alert></Box>;
     return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 3 } }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="space-between" alignItems={{ sm: "center" }} sx={{ mb: 3 }}>
             <Box>

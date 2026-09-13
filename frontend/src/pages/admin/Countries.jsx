@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { getAllCountries, createCountry, updateCountry, deleteCountry } from "../../services/countryService";
 
-const schemaFields = ["_id", "code", "name", "currency", "isActive", "createdAt", "updatedAt", "__v"];
+const schemaFields = ["code", "name", "currency", "isActive"];
 
 function displayValue(value) {
     if (value === undefined) return "—";
@@ -34,7 +34,7 @@ export default function Countries() {
         setSaving(true);
         setActionError("");
         try {
-            const changes = Object.fromEntries(schemaFields.filter((field) => field !== "_id" && editing[field] !== undefined).map((field) => [field, field === "__v" ? Number(editing[field]) : editing[field]]));
+            const changes = Object.fromEntries(schemaFields.filter((field) => editing[field] !== undefined).map((field) => [field, editing[field]]));
             const updated = isCreating ? await createCountry(changes) : await updateCountry(editing._id, changes);
             setCountries((items) => (isCreating ? [...items, updated] : items.map((item) => item._id === updated._id ? updated : item)).sort((a, b) => a.name.localeCompare(b.name)));
             setEditing(null);
@@ -74,18 +74,18 @@ export default function Countries() {
         setRetry((value) => value + 1);
     };
 
-    const fields = [...new Set([...schemaFields, ...countries.flatMap((country) => Object.keys(country))])];
+    const fields = schemaFields;
 
     return <Box sx={{ p: { xs: 2, md: 4 }, mt: { xs: 7, lg: 0 } }}>
         <Typography variant="h4" component="h1" fontWeight="bold" mb={1}>Countries</Typography>
-        <Typography color="text.secondary" mb={3}>All countries, including inactive records, with every database field.</Typography>
+        <Typography color="text.secondary" mb={3}>Manage country code, name, currency, and active status.</Typography>
         <Button variant="contained" sx={{ mb: 3 }} disabled={loading || Boolean(error)} onClick={() => { setActionError(""); setEditing({ code: "", name: "", currency: "", isActive: true }); }}>Add country</Button>
         {error ? <Alert severity="error" action={<Button onClick={retryFetch}>Retry</Button>}>{error}</Alert>
             : loading ? <CircularProgress aria-label="Loading countries" />
                 : <>
                     <Typography mb={2}>{countries.length} countries</Typography>
                     <TableContainer component={Paper}>
-                        <Table aria-label="All country database fields">
+                        <Table aria-label="Countries">
                             <TableHead>
                                 <TableRow>{fields.map((field) => <TableCell key={field} sx={{ fontWeight: "bold" }}>{field}</TableCell>)}<TableCell>Actions</TableCell></TableRow>
                             </TableHead>
@@ -107,8 +107,7 @@ export default function Countries() {
                 <DialogTitle>{isCreating ? "Add country" : "Edit country"}</DialogTitle>
                 <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {actionError && <Alert severity="error">{actionError}</Alert>}
-                    {!isCreating && <TextField label="_id" value={editing?._id || ""} slotProps={{ input: { readOnly: true } }} margin="dense" />}
-                    {(isCreating ? ["code", "name", "currency"] : schemaFields.filter((field) => field !== "_id" && field !== "isActive")).map((field) => <TextField
+                    {schemaFields.filter((field) => field !== "isActive").map((field) => <TextField
                         key={field} label={field} value={editing?.[field] ?? ""} disabled={saving}
                         required={field === "name" || field === "code"}
                         type={field === "__v" ? "number" : "text"}

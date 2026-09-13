@@ -910,7 +910,37 @@ const updateInstitution = async (req, res) => {
     }
 };
 
+const deleteInstitution = async (req, res) => {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'Invalid institution ID' });
+    }
+
+    try {
+        const result = await mongoose.connection.transaction(async (session) => {
+            const institution = await Institution.findByIdAndDelete(id, { session });
+            if (!institution) return null;
+
+            // Include inactive programs as well as active programs.
+            const programs = await Program.deleteMany({ institutionId: institution._id }, { session });
+            return { deletedProgramCount: programs.deletedCount };
+        });
+
+        if (!result) {
+            return res.status(404).json({ error: 'Institution not found' });
+        }
+        return res.status(200).json({
+            message: 'Institution and associated programs deleted successfully',
+            ...result,
+        });
+    } catch (error) {
+        console.error('Error deleting institution:', error);
+        return res.status(500).json({ error: 'Failed to delete institution and associated programs' });
+    }
+};
+
 module.exports = {
+    deleteInstitution,
     getInstitutions,
     getInstitutionById,
     addInstitution,

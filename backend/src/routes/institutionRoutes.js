@@ -4,6 +4,7 @@ const {
     getInstitutionById, 
     addInstitution,
     updateInstitution,
+    deleteInstitution,
     crawlAndAddPrograms,
     getCrawlStatus,
     getPendingPrograms,
@@ -35,5 +36,6 @@ router.post("/:institutionId/programs/reject", authMiddleware, adminMiddleware, 
 // Generic ID routes come last
 router.get("/:id", authMiddleware, getInstitutionById);
 router.put("/:id", authMiddleware, adminMiddleware, upload.single('logo'), updateInstitution);
+router.delete("/:id", authMiddleware, adminMiddleware, deleteInstitution);
 
 module.exports = router;

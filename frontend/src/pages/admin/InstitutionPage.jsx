@@ -44,7 +44,7 @@ import {
 } from "@mui/icons-material";
 import Loading from "../../components/Loading";
 import InstitutionTabsContent from "../../components/counselor/InstitutionTabsContent";
-import { getInstitutionById } from "../../services/institutionService";
+import { getInstitutionById, deleteInstitution } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 import LanguageRequirementFields from "../../components/admin/LanguageRequirementFields";
@@ -2059,6 +2059,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const [editMode, setEditMode] = useState(false);
     const [editedInstitution, setEditedInstitution] = useState(null);
     const [saving, setSaving] = useState(false);
+    const deletingInstitutionRef = useRef(false);
     const [pendingDeletions, setPendingDeletions] = useState({
         locations: [],
         programs: [],
@@ -2765,15 +2766,26 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         }
     }, [institution, institutionId, navigate]);
 
-    const handleDeleteInstitution = useCallback(() => {
+    const handleDeleteInstitution = useCallback(async () => {
+        if (deletingInstitutionRef.current) return;
         if (
             confirm(
-                `Are you sure you want to delete ${institution?.name}?\n\nThis will permanently delete:\n• Institution details\n• All programs (${programs.length} programs)\n• All related data\n\nThis action cannot be undone.`
+                `Are you sure you want to delete ${institution?.name}?\n\nThis will permanently delete the institution and all its associated programs, including inactive programs.\n\nThis action cannot be undone.`
             )
         ) {
-            alert("Delete functionality will be implemented soon.");
+            deletingInstitutionRef.current = true;
+            try {
+                await deleteInstitution(institutionId);
+                if (programImportPollRef.current) clearTimeout(programImportPollRef.current);
+                if (onClose) onClose();
+                else navigate("/admin/institutions", { replace: true });
+            } catch (error) {
+                setSnackbar({ open: true, message: error.message || "Failed to delete institution", severity: "error" });
+            } finally {
+                deletingInstitutionRef.current = false;
+            }
         }
-    }, [institution?.name, programs.length]);
+    }, [institution?.name, institutionId, navigate, onClose]);
 
     const handleAddPrograms = useCallback(() => {
         openProgramDialog();

@@ -12,6 +12,11 @@ export function getInstitutionById(id) {
     return apiRequest(`/institution/${id}`);
 };
 
+// Delete an institution and all associated programs.
+export function deleteInstitution(id) {
+    return apiRequest(`/institution/${id}`, { method: "DELETE" });
+}
+
 // Create a new institution with optional logo file
 export function addInstitution(institutionData, logoFile = null) {
     const formData = new FormData();

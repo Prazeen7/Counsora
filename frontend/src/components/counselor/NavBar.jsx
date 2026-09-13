@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect } from "react"
 import "./NavBar.css"
 import Logo from "../../assets/Logo.png"
 import hamBurger from "../../assets/ham.png"

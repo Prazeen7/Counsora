@@ -2,6 +2,7 @@ import { FIELD_OPTIONS } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
     Box,
+    Alert,
     Button,
     Card,
     CardContent,
@@ -29,6 +30,7 @@ import {
     createTheme,
     ThemeProvider,
     Pagination,
+    Snackbar,
 } from "@mui/material";
 import {
     FilterList as FilterListIcon,
@@ -171,6 +173,7 @@ export default function Programs() {
         educationLoanBank: "",
         incomeSources: [{ incomeSourceType: "", totalIncome: null, sourceOwner: "" }],
     });
+    const [scoreWarning, setScoreWarning] = useState("");
     const [appliedFilters, setAppliedFilters] = useState({
         gpa: 0,
         englishTest: "",
@@ -650,6 +653,7 @@ export default function Programs() {
 
     const handleFilterChange = (event) => {
         const { name, value } = event.target;
+        if (name === "englishTest" || name.endsWith("Score")) setScoreWarning("");
         setTempFilters((prev) => ({
             ...prev,
             [name]: value,
@@ -677,6 +681,20 @@ export default function Programs() {
     };
 
     const handleApplyFilters = () => {
+        const individualKeys = ["listeningScore", "readingScore", "writingScore", "speakingScore"];
+        const individual = individualKeys
+            .filter((key) => tempFilters[key] !== "" && tempFilters[key] !== null && tempFilters[key] !== undefined)
+            .map((key) => Number(tempFilters[key]))
+            .filter(Number.isFinite);
+        if (tempFilters.testScore !== "" && individual.length === 4) {
+            const calculated = Math.round((individual.reduce((sum, score) => sum + score, 0) / 4) * 2) / 2;
+            const entered = Number(tempFilters.testScore);
+            if (Math.abs(calculated - entered) > 0.001) {
+                setScoreWarning(`The overall score should be ${calculated.toFixed(1)} according to the four individual scores.`);
+                return;
+            }
+        }
+        setScoreWarning("");
         setAppliedFilters(tempFilters);
         setCurrentPage(1);
         setFilterOpen(false);
@@ -1184,6 +1202,9 @@ export default function Programs() {
                     </Box>
                 </Dialog>
             </Box>
+            <Snackbar open={Boolean(scoreWarning)} autoHideDuration={6000} onClose={() => setScoreWarning("")} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+                <Alert onClose={() => setScoreWarning("")} severity="warning" variant="filled" sx={{ width: "100%" }}>{scoreWarning}</Alert>
+            </Snackbar>
         </ThemeProvider>
     );
 }
