@@ -11,6 +11,7 @@ import { estimateCosts, getCostSheet } from "../services/costEstimationService";
 
 const currencyCode = (currency = "NPR") => ({ euro: "EUR", euros: "EUR", dollar: "USD", dollars: "USD", pound: "GBP", pounds: "GBP" }[String(currency).trim().toLowerCase()] || currency);
 const money = (amount, currency = "NPR") => {
+    if (amount === null || amount === undefined) return "Conversion unavailable";
     const label = String(currency || "NPR").trim();
     const code = currencyCode(label);
     if (/^[A-Z]{3}$/.test(String(code))) return new Intl.NumberFormat("en-NP", { style: "currency", currency: code, maximumFractionDigits: 2 }).format(amount);
@@ -167,7 +168,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                                 <Box sx={{ color: stageColors[index % 3], mb: 1 }}>{stageIcons[index % 3]}</Box>
                                 <Typography variant="overline" color="text.secondary">Stage {index + 1}</Typography>
                                 <Button onClick={() => setActiveStage(index)} sx={{ p: 0, textAlign: "left", justifyContent: "flex-start", textTransform: "none", color: stageColors[index % 3] }}>{item.title}</Button>
-                                <Typography variant="h6" fontWeight={700}>{money(item.subtotal, item.items[0]?.currency)}</Typography>
+                                <Typography variant="h6" fontWeight={700}>{money(item.subtotalNpr ?? item.subtotal, "NPR")}</Typography>
                                 {!item.isComplete && <Typography variant="caption">Missing amounts</Typography>}
                             </Paper>)}
                         </Box>
@@ -180,18 +181,20 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                                     {result.stages.map((group, index) => <Fragment key={group.key}>
                                         {group.items.map((item, itemIndex) => <TableRow key={item.key} sx={{ bgcolor: `${stageColors[index % 3]}08` }}>
                                             {itemIndex === 0 && <TableCell rowSpan={group.items.length} sx={{ verticalAlign: "top", fontWeight: 600, width: "25%" }}>{group.title}</TableCell>}
-                                            <TableCell>{item.label}{item.note && <Typography variant="caption" display="block" color="text.secondary">{item.note}</Typography>}</TableCell>
-                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : money(item.amount, item.currency)}</TableCell>
+                                            <TableCell>{item.label}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : item.currency?.toLowerCase() !== 'npr' && item.convertedNpr !== null ? <>{money(item.convertedNpr, "NPR")} <Typography component="span" variant="caption" color="text.secondary">({money(item.amount, item.currency)})</Typography></> : money(item.amount, item.currency)}</TableCell>
                                         </TableRow>)}
                                     </Fragment>)}
                                     <TableRow sx={{ bgcolor: `${primaryColor}12` }}>
                                         <TableCell colSpan={2} align="right" sx={{ fontWeight: 700 }}>{result.isComplete ? "TOTAL ESTIMATED COST" : "PARTIAL ESTIMATED COST"}</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: "1.25rem", color: primaryColor, whiteSpace: "nowrap" }}>{money(result.total)}</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: "1.25rem", color: primaryColor, whiteSpace: "nowrap" }}>{result.totalNpr === null ? "Conversion unavailable" : money(result.totalNpr ?? result.total, "NPR")}</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
                         </TableContainer>
                         {!result.isComplete && <Alert severity="warning" sx={{ my: 2 }}>Still needed: {allItems.filter((item) => result.missingFields.includes(item.key)).map((item) => item.label).join(", ")}. These amounts are excluded from the total.</Alert>}
+                        {result.forex?.date && <Typography variant="caption" color="text.secondary" display="block">Converted to NPR using NRB rates for {result.forex.date}{result.forex.unavailable ? " (rates unavailable)" : ""}.</Typography>}
+                        {result.forex?.rates?.length > 0 && <Alert severity="info" sx={{ mt: 2 }}>Today&apos;s {result.forex.source || "NRB"} rate for {result.forex.currency}: {result.forex.rates.map((rate) => `${rate.currency?.iso3 || rate.currency?.ISO3 || rate.currency?.name}: NPR ${Number(rate.sell).toFixed(2)}/${rate.currency?.unit || 1}`).join(" · ")}</Alert>}
                     </Box>
                 </CardContent>
                 <CardActions sx={{ p: 3, gap: 2, flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', '& > :not(style) ~ :not(style)': { ml: 0 }, borderTop: "1px solid #e0e7ff", background: "linear-gradient(to right, #eef2ff, #faf5ff)" }}>

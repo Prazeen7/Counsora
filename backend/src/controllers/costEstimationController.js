@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Country = require("../models/Country");
 const CostSheet = require("../models/CostSheet");
 const { calculateEstimate, validateCostSheet } = require("../utils/costEstimation");
+const { getTodayRates, findRate, getFallbackRate } = require("../utils/nrbForex");
 
 async function findCountry(req, res) {
     if (!mongoose.isObjectIdOrHexString(req.params.countryId)) {
@@ -22,7 +23,30 @@ async function respondWithEstimate(req, res, values) {
         let estimate;
         try { estimate = calculateEstimate(sheet, values); }
         catch (err) { return res.status(400).json({ error: err.message }); }
-        res.json({ countryId: country._id, country, templateSource: "database", ...estimate });
+        let forex = null;
+        try {
+            const today = await getTodayRates();
+            let currentRate = findRate(today.rates, country.currency);
+            let source = "NRB";
+            if (!currentRate) { currentRate = await getFallbackRate(country.currency); source = currentRate ? "open.er-api.com" : "NRB"; }
+            forex = { ...today, rates: currentRate ? [currentRate] : [], currency: country.currency,
+                source, unavailable: !currentRate };
+        } catch { forex = { date: new Date().toISOString().slice(0, 10), rates: [], currency: country.currency, unavailable: true }; }
+        let totalNpr = 0;
+        let conversionMissing = false;
+        const stagesWithConversion = estimate.stages.map((stage) => {
+            let stageTotalNpr = 0;
+            const items = stage.items.map((item) => {
+            if (item.amount === null) return item;
+            const rate = findRate(forex.rates, item.currency);
+            const convertedNpr = rate ? item.amount * rate.sell / (Number(rate.currency?.unit) || 1) : null;
+            if (convertedNpr !== null) { totalNpr += convertedNpr; stageTotalNpr += convertedNpr; }
+            else if (item.currency?.toLowerCase() !== "npr") { conversionMissing = true; }
+            return { ...item, forexRate: rate ? { buy: rate.buy, sell: rate.sell, unit: rate.currency?.unit || 1, date: rate.date } : null, convertedNpr };
+            });
+            return { ...stage, items, subtotalNpr: stageTotalNpr || (items.some((item) => item.amount !== null && item.currency?.toLowerCase() !== "npr" && item.convertedNpr === null) ? null : stageTotalNpr) };
+        });
+        res.json({ countryId: country._id, country, templateSource: "database", forex, ...estimate, stages: stagesWithConversion, totalNpr: conversionMissing ? null : totalNpr });
     } catch (err) {
         res.status(500).json({ error: "Unable to load cost estimation" });
     }
