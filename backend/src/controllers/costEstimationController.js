@@ -18,7 +18,7 @@ async function respondWithEstimate(req, res, values) {
         const country = await findCountry(req, res);
         if (!country) return;
         const sheet = await CostSheet.findOne({ country: country._id }).lean();
-        if (!sheet) return res.status(404).json({ error: "No cost sheet configured for this country" });
+        if (!sheet) return res.status(404).json({ error: "No cost sheet configured for this country", code: "COST_SHEET_NOT_FOUND" });
         let estimate;
         try { estimate = calculateEstimate(sheet, values); }
         catch (err) { return res.status(400).json({ error: err.message }); }
@@ -52,4 +52,15 @@ async function saveCostSheet(req, res) {
     }
 }
 
-module.exports = { getCostSheet, estimateCosts, saveCostSheet };
+async function deleteCostSheet(req, res) {
+    if (!mongoose.isObjectIdOrHexString(req.params.countryId)) return res.status(400).json({ error: "Invalid country ID" });
+    try {
+        const sheet = await CostSheet.findOneAndDelete({ country: req.params.countryId });
+        if (!sheet) return res.status(404).json({ error: "Cost sheet not found" });
+        res.json({ message: "Cost sheet deleted" });
+    } catch {
+        res.status(500).json({ error: "Unable to delete cost sheet" });
+    }
+}
+
+module.exports = { getCostSheet, estimateCosts, saveCostSheet, deleteCostSheet };

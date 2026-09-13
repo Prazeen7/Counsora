@@ -4,6 +4,8 @@ import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Containe
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { Calculate, Download, RestartAlt, School, AccountBalance, Flight, ArrowForward, Description } from "@mui/icons-material";
 import { useCountry } from "../context/CountryContext";
+import { useAuth } from "../context/AuthContext";
+import CostSheetManager from "./admin/CostSheetManager";
 
 import { estimateCosts, getCostSheet } from "../services/costEstimationService";
 
@@ -12,7 +14,7 @@ const primaryColor = "#4f46e5";
 const stageColors = [primaryColor, "#0284c7", "#d97706"];
 const stageIcons = [<School />, <AccountBalance />, <Flight />];
 
-function CountryEstimate({ countryId }) {
+function CountryEstimate({ countryId, countryName, canManage }) {
     const [sheet, setSheet] = useState(null);
     const [values, setValues] = useState({});
     const [result, setResult] = useState(null);
@@ -22,6 +24,7 @@ function CountryEstimate({ countryId }) {
     const [calculating, setCalculating] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [attempt, setAttempt] = useState(0);
+    const [missingSheet, setMissingSheet] = useState(false);
     const request = useRef(null);
     const revision = useRef(0);
     const resultsRef = useRef(null);
@@ -41,7 +44,7 @@ function CountryEstimate({ countryId }) {
         getCostSheet(countryId, abort.signal).then((data) => {
             setSheet(data);
             setResult(null);
-        }).catch((err) => { if (!abort.signal.aborted) setError(err.message); })
+        }).catch((err) => { if (!abort.signal.aborted) { setError(err.message); setMissingSheet(err.code === 'COST_SHEET_NOT_FOUND'); } })
             .finally(() => { if (!abort.signal.aborted) setLoading(false); });
         return () => { abort.abort(); request.current?.abort(); };
     }, [countryId, attempt]);
@@ -80,14 +83,20 @@ function CountryEstimate({ countryId }) {
         finally { if (!abort.signal.aborted) setCalculating(false); }
     };
 
-    if (loading) return <><Box sx={{ py: 8, textAlign: "center" }} role="status"><CircularProgress /><Typography>Loading cost sheet…</Typography></Box></>;
-    if (!sheet) return <Stack spacing={3}><Alert severity="info" action={<Button onClick={() => { setLoading(true); setError(""); setAttempt((value) => value + 1); }}>Retry</Button>}>{error || "No cost sheet available for this country."}</Alert></Stack>;
+    const reload = () => {
+        revision.current += 1; request.current?.abort(); setCalculating(false);
+        setLoading(true); setSheet(null); setResult(null); setValues({}); setActiveStage(0);
+        setMissingSheet(false); setError(''); setAttempt((value) => value + 1);
+    };
+    const management = canManage && (sheet || missingSheet) ? <CostSheetManager countryId={countryId} countryName={countryName} sheet={sheet} onChanged={reload} /> : null;
+    if (loading) return <Box sx={{ py: 8, textAlign: "center" }} role="status"><CircularProgress /><Typography>Loading cost sheet…</Typography></Box>;
+    if (!sheet) return <Stack spacing={3}>{management}<Alert severity="info" action={<Button onClick={reload}>Retry</Button>}>{error || "No cost sheet available for this country."}</Alert></Stack>;
 
     const allItems = sheet.stages.flatMap((stage) => stage.items);
     const filled = allItems.filter((item) => (values[item.key] !== undefined && values[item.key] !== "") || item.defaultAmount !== null).length;
     const stage = sheet.stages[activeStage];
     const progress = Math.round((activeStage + 1) / sheet.stages.length * 100);
-    return <Box ref={formRef} component="form" onSubmit={calculate} noValidate sx={{ scrollMarginTop: '90px' }}>
+    return <>{management}<Box ref={formRef} component="form" onSubmit={calculate} noValidate sx={{ scrollMarginTop: '90px' }}>
         <Paper elevation={3} sx={{ bgcolor: primaryColor, color: "white", p: { xs: 2.5, sm: 3 }, borderRadius: 2, mb: 4 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
                 <Calculate sx={{ fontSize: 32 }} />
@@ -195,14 +204,15 @@ function CountryEstimate({ countryId }) {
             </Card>}
         </Box>
         <Typography color="text.secondary" variant="body2" sx={{ mt: 3 }}>Planning estimates include blocked funds, deposits and travel cash. Confirm fees before payment. Your changes apply to this estimate only and are cleared when you switch countries or leave the page.</Typography>
-    </Box>;
+    </Box></>;
 }
 
 export default function CostEstimationPage() {
     const { selectedCountry } = useCountry();
+    const { user } = useAuth();
     return <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, mt: { xs: 5, lg: 0 }, "& .MuiButton-containedPrimary": { bgcolor: primaryColor }, "& .MuiTextField-root .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor } }}>
         {selectedCountry?._id
-            ? <CountryEstimate key={selectedCountry._id} countryId={selectedCountry._id} />
+            ? <CountryEstimate key={selectedCountry._id} countryId={selectedCountry._id} countryName={selectedCountry.name} canManage={['admin', 'superAdmin'].includes(user?.role)} />
             : <Alert severity="info">Select a country from the navigation menu to view its cost estimate.</Alert>}
     </Container>;
 }
