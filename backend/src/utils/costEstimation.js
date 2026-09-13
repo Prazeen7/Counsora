@@ -3,12 +3,15 @@ const isObject = (value) => value !== null && typeof value === "object" && !Arra
 const isAmount = (value) => typeof value === "number" && Number.isFinite(value)
     && value >= 0 && value <= MAX_AMOUNT && Number(value.toFixed(2)) === value;
 
-function validateCostSheet(sheet) {
+function validateCostSheet(sheet, options = {}) {
     const fail = (message) => { throw new Error(message); };
     const keysOnly = (value, allowed) => isObject(value) && Object.keys(value).every((key) => allowed.includes(key));
     const text = (value) => typeof value === "string" && value.trim().length > 0 && value.length <= 500;
     const key = (value) => typeof value === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(value);
-    if (!keysOnly(sheet, ["title", "currency", "stages"]) || !text(sheet.title) || sheet.currency !== "NPR") fail("Provide title, currency (NPR), and stages only.");
+    const allowedCurrencies = new Set(["NPR", ...(options.countryCurrency ? [options.countryCurrency] : [])].map((value) => String(value).trim().toLowerCase()));
+    // `currency` is accepted transiently for backwards compatibility with
+    // older clients, but it is ignored; currency belongs to each field.
+    if (!keysOnly(sheet, ["title", "stages", "currency"]) || !text(sheet.title)) fail("Provide a valid sheet title and stages.");
     if (!Array.isArray(sheet.stages) || !sheet.stages.length || sheet.stages.length > 20) fail("Provide between 1 and 20 stages.");
     const stageKeys = new Set();
     const itemKeys = new Set();
@@ -17,7 +20,7 @@ function validateCostSheet(sheet) {
         stageKeys.add(stage.key);
         if (!Array.isArray(stage.items) || !stage.items.length || stage.items.length > 50) fail("Each stage needs between 1 and 50 items.");
         for (const item of stage.items) {
-            if (!keysOnly(item, ["key", "label", "amount", "note"]) || !key(item.key) || !text(item.label) || itemKeys.has(item.key)) fail("Items require globally unique keys and labels.");
+            if (!keysOnly(item, ["key", "label", "amount", "note", "currency"]) || !key(item.key) || !text(item.label) || itemKeys.has(item.key) || typeof item.currency !== "string" || !/^[A-Za-z][A-Za-z0-9 ._-]{0,31}$/.test(item.currency.trim()) || !allowedCurrencies.has(item.currency.trim().toLowerCase())) fail(`Each cost field requires a currency of NPR or the selected country's currency${options.countryCurrency ? ` (${options.countryCurrency})` : ""}.`);
             itemKeys.add(item.key);
             if (item.amount !== null && !isAmount(item.amount)) fail("Amounts must be null or non-negative numbers with at most two decimal places, up to 1 trillion.");
             if (item.note !== undefined && (typeof item.note !== "string" || item.note.length > 1000)) fail("Item notes must be text of at most 1000 characters.");
@@ -41,7 +44,7 @@ function calculateEstimate(sheet, values = {}) {
             const amount = supplied ? values[item.key] : item.amount;
             if (amount === null) missingFields.push(item.key);
             else subtotalCents += Math.round(amount * 100);
-            return { ...item, defaultAmount: item.amount, amount, editable: true,
+            return { ...item, currency: item.currency || "NPR", defaultAmount: item.amount, amount, editable: true,
                 requiresInput: amount === null, source: supplied ? "user" : amount === null ? "missing" : "default" };
         });
         totalCents += subtotalCents;
@@ -52,7 +55,7 @@ function calculateEstimate(sheet, values = {}) {
         return { ...stage, title, items: resolvedItems, subtotal: subtotalCents / 100,
             isComplete: resolvedItems.every((item) => !item.requiresInput) };
     });
-    return { title: sheet.title, currency: sheet.currency, stages, total: totalCents / 100,
+    return { title: sheet.title, stages, total: totalCents / 100,
         isComplete: missingFields.length === 0, missingFields };
 }
 

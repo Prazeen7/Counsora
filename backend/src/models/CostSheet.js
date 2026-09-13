@@ -5,6 +5,7 @@ const itemSchema = new mongoose.Schema({
     key: { type: String, required: true },
     label: { type: String, required: true },
     amount: { type: Number, default: null, validate: (value) => value === null || isAmount(value) },
+    currency: { type: String, required: true, trim: true, maxlength: 32 },
     note: String,
 }, { _id: false });
 const stageSchema = new mongoose.Schema({
@@ -15,11 +16,12 @@ const stageSchema = new mongoose.Schema({
 const costSheetSchema = new mongoose.Schema({
     country: { type: mongoose.Schema.Types.ObjectId, ref: "Country", required: true, unique: true },
     title: { type: String, required: true },
-    currency: { type: String, enum: ["NPR"], default: "NPR" },
     stages: [stageSchema],
 }, { timestamps: true });
 costSheetSchema.pre("validate", function () {
-    validateCostSheet({ title: this.title, currency: this.currency, stages: this.stages.toObject() });
+    // Country-specific currency authorization is enforced by the controller;
+    // the model validates shape and allows the selected currency through.
+    validateCostSheet({ title: this.title, stages: this.stages.toObject() });
 });
 
 module.exports = mongoose.model("CostSheet", costSheetSchema);

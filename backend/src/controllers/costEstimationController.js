@@ -38,13 +38,13 @@ const estimateCosts = (req, res) => {
 };
 
 async function saveCostSheet(req, res) {
-    try { validateCostSheet(req.body); }
-    catch (err) { return res.status(400).json({ error: err.message }); }
     try {
         const country = await findCountry(req, res);
         if (!country) return;
+        try { validateCostSheet(req.body, { countryCurrency: country.currency }); }
+        catch (err) { return res.status(400).json({ error: err.message }); }
         const sheet = await CostSheet.findOneAndUpdate({ country: country._id },
-            { $set: { title: req.body.title, currency: req.body.currency, stages: req.body.stages } },
+            { $set: { title: req.body.title, stages: req.body.stages }, $unset: { currency: 1 } },
             { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true });
         res.json(sheet);
     } catch (err) {

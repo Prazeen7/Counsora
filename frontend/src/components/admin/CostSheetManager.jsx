@@ -1,29 +1,29 @@
 import { useState } from "react";
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { Add, Delete as DeleteOutline, Edit } from "@mui/icons-material";
 import { saveCostSheet, deleteCostSheet } from "../../services/costEstimationService";
 
 const newKey = (prefix) => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
-const newItem = () => ({ key: newKey('cost'), label: '', amount: '', note: '' });
+const newItem = () => ({ key: newKey('cost'), label: '', amount: '', currency: 'NPR', note: '' });
 const newStage = () => ({ key: newKey('stage'), title: '', items: [newItem()] });
 
-export default function CostSheetManager({ countryId, countryName, sheet, onChanged }) {
+export default function CostSheetManager({ countryId, countryName, countryCurrency, sheet, onChanged }) {
     const [draft, setDraft] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const openEditor = () => {
         setError('');
-        setDraft(sheet ? { title: sheet.title, currency: 'NPR', stages: sheet.stages.map((stage) => ({
+        setDraft(sheet ? { title: sheet.title, stages: sheet.stages.map((stage) => ({
             key: stage.key, title: stage.title, items: stage.items.map((item) => ({
-                key: item.key, label: item.label, amount: item.defaultAmount ?? '', note: item.note || '',
+                key: item.key, label: item.label, amount: item.defaultAmount ?? '', currency: item.currency || 'NPR', note: item.note || '',
             })),
-        })) } : { title: `${countryName} Cost Sheet`, currency: 'NPR', stages: [newStage()] });
+        })) } : { title: `${countryName} Cost Sheet`, stages: [newStage()] });
     };
     const updateStage = (index, changes) => setDraft((previous) => ({ ...previous, stages: previous.stages.map((stage, i) => i === index ? { ...stage, ...changes } : stage) }));
     const submit = async (event) => {
         event.preventDefault();
-        const payload = { ...draft, title: draft.title.trim(), stages: draft.stages.map((stage) => ({ ...stage, title: stage.title.trim(), items: stage.items.map((item) => ({ ...item, label: item.label.trim(), amount: item.amount === '' ? null : Number(item.amount) })) })) };
+        const payload = { title: draft.title.trim(), stages: draft.stages.map((stage) => ({ key: stage.key, title: stage.title.trim(), items: stage.items.map((item) => ({ key: item.key, label: item.label.trim(), currency: item.currency || 'NPR', note: item.note || '', amount: item.amount === '' ? null : Number(item.amount) })) })) };
         if (!payload.title || !payload.stages.length || payload.stages.some((stage) => !stage.title || !stage.items.length || stage.items.some((item) => !item.label || (item.amount !== null && (!Number.isFinite(item.amount) || item.amount < 0 || item.amount > 1e12 || Number(item.amount.toFixed(2)) !== item.amount))))) {
             setError('Provide a sheet title, stage names, and field labels. Amounts must be blank or non-negative numbers with up to two decimal places (maximum NPR 1 trillion).');
             return;
@@ -44,7 +44,7 @@ export default function CostSheetManager({ countryId, countryName, sheet, onChan
                 <DialogContent dividers>
                     <Box component="fieldset" disabled={busy} sx={{ m: 0, p: 0, border: 0, minWidth: 0 }}>
                         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                        <Alert severity="info" sx={{ mb: 3 }}>These defaults are shared with all counselors. Leave an amount blank when the user needs to enter it. All amounts are in NPR.</Alert>
+                        <Alert severity="info" sx={{ mb: 3 }}>These defaults are shared with all counselors. Leave an amount blank when the user needs to enter it.</Alert>
                         <TextField fullWidth required label="Cost sheet title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} slotProps={{ htmlInput: { maxLength: 500 } }} />
                         {draft.stages.map((stage, index) => <Paper key={stage.key} variant="outlined" sx={{ my: 3, p: 2 }}>
                             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -55,7 +55,8 @@ export default function CostSheetManager({ countryId, countryName, sheet, onChan
                             {stage.items.map((item, fieldIndex) => <Box key={item.key} sx={{ borderTop: '1px solid #e2e8f0', py: 2 }}>
                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                                     <TextField fullWidth required label="Field label" value={item.label} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, label: event.target.value } : field) })} slotProps={{ htmlInput: { maxLength: 500 } }} />
-                                    <TextField label="Default amount (NPR)" type="number" value={item.amount} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, amount: event.target.value } : field) })} slotProps={{ htmlInput: { min: 0, max: 1e12, step: '0.01' } }} />
+                                    <TextField select label="Currency" value={item.currency || 'NPR'} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, currency: event.target.value } : field) })} sx={{ minWidth: 150 }}><MenuItem value="NPR">NPR</MenuItem>{countryCurrency && countryCurrency !== 'NPR' && <MenuItem value={countryCurrency}>{countryCurrency}</MenuItem>}</TextField>
+                                    <TextField label={`Default amount (${item.currency || 'NPR'})`} type="number" value={item.amount} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, amount: event.target.value } : field) })} slotProps={{ htmlInput: { min: 0, max: 1e12, step: '0.01' } }} />
                                     <IconButton aria-label={`Remove field ${fieldIndex + 1} from stage ${index + 1}`} disabled={stage.items.length === 1} onClick={() => updateStage(index, { items: stage.items.filter((_, i) => i !== fieldIndex) })}><DeleteOutline /></IconButton>
                                 </Stack>
                                 <TextField fullWidth size="small" label="Note (optional)" value={item.note} sx={{ mt: 2 }} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, note: event.target.value } : field) })} slotProps={{ htmlInput: { maxLength: 1000 } }} />

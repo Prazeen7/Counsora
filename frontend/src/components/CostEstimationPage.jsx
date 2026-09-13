@@ -9,12 +9,18 @@ import CostSheetManager from "./admin/CostSheetManager";
 
 import { estimateCosts, getCostSheet } from "../services/costEstimationService";
 
-const money = (amount) => new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR", maximumFractionDigits: 2 }).format(amount);
+const currencyCode = (currency = "NPR") => ({ euro: "EUR", euros: "EUR", dollar: "USD", dollars: "USD", pound: "GBP", pounds: "GBP" }[String(currency).trim().toLowerCase()] || currency);
+const money = (amount, currency = "NPR") => {
+    const label = String(currency || "NPR").trim();
+    const code = currencyCode(label);
+    if (/^[A-Z]{3}$/.test(String(code))) return new Intl.NumberFormat("en-NP", { style: "currency", currency: code, maximumFractionDigits: 2 }).format(amount);
+    return `${label} ${Number(amount).toLocaleString("en-NP", { maximumFractionDigits: 2 })}`;
+};
 const primaryColor = "#4f46e5";
 const stageColors = [primaryColor, "#0284c7", "#d97706"];
 const stageIcons = [<School />, <AccountBalance />, <Flight />];
 
-function CountryEstimate({ countryId, countryName, canManage }) {
+function CountryEstimate({ countryId, countryName, countryCurrency, canManage }) {
     const [sheet, setSheet] = useState(null);
     const [values, setValues] = useState({});
     const [result, setResult] = useState(null);
@@ -88,7 +94,7 @@ function CountryEstimate({ countryId, countryName, canManage }) {
         setLoading(true); setSheet(null); setResult(null); setValues({}); setActiveStage(0);
         setMissingSheet(false); setError(''); setAttempt((value) => value + 1);
     };
-    const management = canManage && (sheet || missingSheet) ? <CostSheetManager countryId={countryId} countryName={countryName} sheet={sheet} onChanged={reload} /> : null;
+    const management = canManage && (sheet || missingSheet) ? <CostSheetManager countryId={countryId} countryName={countryName} countryCurrency={sheet?.country?.currency || countryCurrency} sheet={sheet} onChanged={reload} /> : null;
     if (loading) return <Box sx={{ py: 8, textAlign: "center" }} role="status"><CircularProgress /><Typography>Loading cost sheet…</Typography></Box>;
     if (!sheet) return <Stack spacing={3}>{management}<Alert severity="info" action={<Button onClick={reload}>Retry</Button>}>{error || "No cost sheet available for this country."}</Alert></Stack>;
 
@@ -138,11 +144,11 @@ function CountryEstimate({ countryId, countryName, canManage }) {
                             value={values[item.key] ?? (item.defaultAmount ?? "")}
                             onChange={(event) => changeValue(item.key, event.target.value)}
                             type="number" onFocus={(event) => event.target.select()} onWheel={(event) => event.target.blur()}
-                            slotProps={{ inputLabel: { shrink: true }, input: { startAdornment: <InputAdornment position="start">NPR</InputAdornment> }, htmlInput: { "aria-label": item.label, min: 0, max: 1e12, step: "0.01" } }}
-                            helperText={[item.note, item.defaultAmount === null ? "Enter your amount; zero is allowed." : `Suggested: ${money(item.defaultAmount)}`].filter(Boolean).join(" · ")} />
+                            slotProps={{ inputLabel: { shrink: true }, input: { startAdornment: <InputAdornment position="start">{item.currency || "NPR"}</InputAdornment> }, htmlInput: { "aria-label": `${item.label} (${item.currency || "NPR"})`, min: 0, max: 1e12, step: "0.01" } }}
+                            helperText={[item.note, item.defaultAmount === null ? "Enter your amount; zero is allowed." : `Suggested: ${money(item.defaultAmount, item.currency)}`].filter(Boolean).join(" · ")} />
                         </Paper>)}
                     </Box>
-                    <Alert severity="info" sx={{ mt: 3, bgcolor: `${primaryColor}08` }}>{filled} of {allItems.length} amounts available. All amounts are in Nepalese rupees (NPR).</Alert>
+                    <Alert severity="info" sx={{ mt: 3, bgcolor: `${primaryColor}08` }}>{filled} of {allItems.length} amounts available. Each field uses its configured currency.</Alert>
                 </CardContent>
                 <CardActions sx={{ bgcolor: "#f8f9fb", p: 2, justifyContent: "space-between", borderTop: "1px solid #e5e7eb" }}>
                         <Button disabled={activeStage === 0} onClick={() => setActiveStage((value) => value - 1)}>Previous stage</Button>
@@ -161,7 +167,7 @@ function CountryEstimate({ countryId, countryName, canManage }) {
                                 <Box sx={{ color: stageColors[index % 3], mb: 1 }}>{stageIcons[index % 3]}</Box>
                                 <Typography variant="overline" color="text.secondary">Stage {index + 1}</Typography>
                                 <Button onClick={() => setActiveStage(index)} sx={{ p: 0, textAlign: "left", justifyContent: "flex-start", textTransform: "none", color: stageColors[index % 3] }}>{item.title}</Button>
-                                <Typography variant="h6" fontWeight={700}>{money(item.subtotal)}</Typography>
+                                <Typography variant="h6" fontWeight={700}>{money(item.subtotal, item.items[0]?.currency)}</Typography>
                                 {!item.isComplete && <Typography variant="caption">Missing amounts</Typography>}
                             </Paper>)}
                         </Box>
@@ -175,7 +181,7 @@ function CountryEstimate({ countryId, countryName, canManage }) {
                                         {group.items.map((item, itemIndex) => <TableRow key={item.key} sx={{ bgcolor: `${stageColors[index % 3]}08` }}>
                                             {itemIndex === 0 && <TableCell rowSpan={group.items.length} sx={{ verticalAlign: "top", fontWeight: 600, width: "25%" }}>{group.title}</TableCell>}
                                             <TableCell>{item.label}{item.note && <Typography variant="caption" display="block" color="text.secondary">{item.note}</Typography>}</TableCell>
-                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : money(item.amount)}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : money(item.amount, item.currency)}</TableCell>
                                         </TableRow>)}
                                     </Fragment>)}
                                     <TableRow sx={{ bgcolor: `${primaryColor}12` }}>
@@ -212,7 +218,7 @@ export default function CostEstimationPage() {
     const { user } = useAuth();
     return <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, mt: { xs: 5, lg: 0 }, "& .MuiButton-containedPrimary": { bgcolor: primaryColor }, "& .MuiTextField-root .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor } }}>
         {selectedCountry?._id
-            ? <CountryEstimate key={selectedCountry._id} countryId={selectedCountry._id} countryName={selectedCountry.name} canManage={['admin', 'superAdmin'].includes(user?.role)} />
+            ? <CountryEstimate key={selectedCountry._id} countryId={selectedCountry._id} countryName={selectedCountry.name} countryCurrency={selectedCountry.currency} canManage={['admin', 'superAdmin'].includes(user?.role)} />
             : <Alert severity="info">Select a country from the navigation menu to view its cost estimate.</Alert>}
     </Container>;
 }
