@@ -23,6 +23,8 @@ import Programs from "./pages/counselor/program";
 import Documents from "./pages/counselor/documents";
 import DocumentsPage from "./components/DocumentsPage";
 import StudyGuide from "./pages/counselor/studyGuide";
+import CostEstimation from "./pages/counselor/costEstimation";
+import CostEstimationPage from "./components/CostEstimationPage";
 
 function App() {
   return (
@@ -109,6 +111,7 @@ function App() {
         element={<RoleProtectedRoutes allowedRoles={["counselor", "admin", "superAdmin"]}><Documents /></RoleProtectedRoutes>}
       />
       <Route path="/study-guide" element={<><Navbar /><RoleProtectedRoutes allowedRoles={["counselor"]}><StudyGuide /></RoleProtectedRoutes></>} />
+      <Route path="/cost-estimation" element={<RoleProtectedRoutes allowedRoles={["counselor", "admin", "superAdmin"]}><CostEstimation /></RoleProtectedRoutes>} />
 
 
       <Route
@@ -123,6 +126,7 @@ function App() {
         <Route path="/admin/countries" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Countries /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
         <Route path="/admin/documents" element={<DocumentsPage isAdmin />} />
+        <Route path="/admin/cost-estimation" element={<CostEstimationPage />} />
         <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>
     </Routes >

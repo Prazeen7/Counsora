@@ -25,5 +25,6 @@ app.use("/api/institution", institutionRoutes)
 app.use("/api/country", countryRoutes);
 app.use("/api/program", programRoutes);
 app.use("/api/documents", require("./routes/documentRoutes"));
+app.use("/api/cost-estimation", require("./routes/costEstimationRoutes"));
 
 module.exports = app;

@@ -19,6 +19,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import DashboardIcon from "@mui/icons-material/Dashboard"
 import BusinessIcon from "@mui/icons-material/Business"
 import DescriptionIcon from "@mui/icons-material/Description"
+import CalculateIcon from "@mui/icons-material/Calculate"
 import PeopleIcon from "@mui/icons-material/People"
 import LogoutIcon from "@mui/icons-material/Logout"
 import useMediaQuery from "@mui/material/useMediaQuery"
@@ -107,6 +108,7 @@ function Sidebar() {
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin/dashboard" },
         { text: "Institution Management", icon: <BusinessIcon />, path: "/admin/institutions" },
         { text: "Documents Management", icon: <DescriptionIcon />, path: "/admin/documents" },
+        { text: "Cost Estimation", icon: <CalculateIcon />, path: "/admin/cost-estimation" },
         ...(isSuperAdmin ? [{ text: "Users", icon: <PeopleIcon />, path: "/admin/users" }] : []),
         ...(isSuperAdmin ? [{ text: "Countries", icon: <Public />, path: "/admin/countries" }] : []),
     ]

@@ -2,6 +2,7 @@ const Country = require("../models/Country");
 const mongoose = require("mongoose");
 const Institution = require("../models/Institution");
 const Document = require("../models/Document");
+const CostSheet = require("../models/CostSheet");
 
 const getCountries = async (req, res) => {
     try {
@@ -73,6 +74,7 @@ const deleteCountry = async (req, res) => {
     try {
         if (await Institution.exists({ country: req.params.id })) return res.status(409).json({ error: "This country is used by institutions. Reassign them before deleting it." });
         if (await Document.exists({ country: req.params.id })) return res.status(409).json({ error: "This country is used by documents. Reassign or delete those documents first." });
+        if (await CostSheet.exists({ country: req.params.id })) return res.status(409).json({ error: "This country is used by a cost sheet. Remove or reassign the cost sheet before deleting it." });
         const country = await Country.findByIdAndDelete(req.params.id);
         if (!country) return res.status(404).json({ error: "Country not found" });
         res.json({ message: "Country deleted" });
