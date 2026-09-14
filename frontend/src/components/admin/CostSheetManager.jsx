@@ -17,13 +17,16 @@ export default function CostSheetManager({ countryId, countryName, countryCurren
         setDraft(sheet ? { title: sheet.title, stages: sheet.stages.map((stage) => ({
             key: stage.key, title: stage.title, items: stage.items.map((item) => ({
                 key: item.key, label: item.label, amount: item.defaultAmount ?? '', currency: item.currency || 'NPR', note: item.note || '',
+                ...(item.unit !== undefined ? { unit: item.unit } : {}),
+                ...(item.includeInTotal !== undefined ? { includeInTotal: item.includeInTotal } : {}),
+                ...(item.calculation ? { calculation: item.calculation } : {}),
             })),
         })) } : { title: `${countryName} Cost Sheet`, stages: [newStage()] });
     };
     const updateStage = (index, changes) => setDraft((previous) => ({ ...previous, stages: previous.stages.map((stage, i) => i === index ? { ...stage, ...changes } : stage) }));
     const submit = async (event) => {
         event.preventDefault();
-        const payload = { title: draft.title.trim(), stages: draft.stages.map((stage) => ({ key: stage.key, title: stage.title.trim(), items: stage.items.map((item) => ({ key: item.key, label: item.label.trim(), currency: item.currency || 'NPR', note: item.note || '', amount: item.amount === '' ? null : Number(item.amount) })) })) };
+        const payload = { title: draft.title.trim(), stages: draft.stages.map((stage) => ({ key: stage.key, title: stage.title.trim(), items: stage.items.map((item) => ({ ...item, label: item.label.trim(), currency: item.currency || 'NPR', note: item.note || '', amount: item.calculation || item.amount === '' ? null : Number(item.amount) })) })) };
         if (!payload.title || !payload.stages.length || payload.stages.some((stage) => !stage.title || !stage.items.length || stage.items.some((item) => !item.label || (item.amount !== null && (!Number.isFinite(item.amount) || item.amount < 0 || item.amount > 1e12 || Number(item.amount.toFixed(2)) !== item.amount))))) {
             setError('Provide a sheet title, stage names, and field labels. Amounts must be blank or non-negative numbers with up to two decimal places (maximum NPR 1 trillion).');
             return;
@@ -56,7 +59,7 @@ export default function CostSheetManager({ countryId, countryName, countryCurren
                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                                     <TextField fullWidth required label="Field label" value={item.label} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, label: event.target.value } : field) })} slotProps={{ htmlInput: { maxLength: 500 } }} />
                                     <TextField select label="Currency" value={item.currency || 'NPR'} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, currency: event.target.value } : field) })} sx={{ minWidth: 150 }}><MenuItem value="NPR">NPR</MenuItem>{countryCurrency && countryCurrency !== 'NPR' && <MenuItem value={countryCurrency}>{countryCurrency}</MenuItem>}</TextField>
-                                    <TextField label={`Default amount (${item.currency || 'NPR'})`} type="number" value={item.amount} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, amount: event.target.value } : field) })} slotProps={{ htmlInput: { min: 0, max: 1e12, step: '0.01' } }} />
+                                    <TextField label={item.calculation ? 'Calculated amount' : `Default ${item.unit === 'percent' ? 'rate (%)' : `amount (${item.currency || 'NPR'})`}`} disabled={Boolean(item.calculation)} type="number" value={item.amount} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, amount: event.target.value } : field) })} slotProps={{ htmlInput: { min: 0, max: item.unit === 'percent' ? 100 : 1e12, step: '0.01' } }} />
                                     <IconButton aria-label={`Remove field ${fieldIndex + 1} from stage ${index + 1}`} disabled={stage.items.length === 1} onClick={() => updateStage(index, { items: stage.items.filter((_, i) => i !== fieldIndex) })}><DeleteOutline /></IconButton>
                                 </Stack>
                                 <TextField fullWidth size="small" label="Note (optional)" value={item.note} sx={{ mt: 2 }} onChange={(event) => updateStage(index, { items: stage.items.map((field, i) => i === fieldIndex ? { ...field, note: event.target.value } : field) })} slotProps={{ htmlInput: { maxLength: 1000 } }} />

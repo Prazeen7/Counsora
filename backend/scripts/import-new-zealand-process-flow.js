@@ -9,7 +9,7 @@ const Document = require("../src/models/Document");
 const stages = [
     { title: "Offer Application", details: "Prepare the required documents and apply for an offer from the institution." },
     { title: "Visa Documentation", details: "Prepare the visa documents, medical examination results, and police clearance report before lodging the visa application." },
-    { title: "Visa Lodgement", details: "Submit the visa application with the prepared supporting documents." },
+    { title: "Visa Lodgement", details: "Submit the visa application online with the prepared supporting documents. The Fee Paying Student Visa application cost starts from NZD 850, payable at lodgement. Confirm the total for your nationality and application location at payment; additional charges may apply. Medical checks, police certificates, translations and insurance are separate costs. Tuition payment after AIP is separate from the visa application fee." },
     { title: "Interview (if required)", details: "Attend an interview if requested. Some applicants may not require an interview." },
     { title: "Approval in Principle (AIP)", details: "Receive Approval in Principle (AIP) before proceeding with tuition fee payment." },
     { title: "Tuition Fee Payment", details: "Pay the tuition fee after Approval in Principle (AIP) is approved." },

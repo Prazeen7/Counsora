@@ -1,0 +1,182 @@
+[
+  {
+    "label": "Qualifications & providers",
+    "title": "Choose your course",
+    "category": "Explore your options",
+    "description": "Understand the levels and choose a suitable provider.",
+    "introduction": "Compare the course, fees and campus before you apply.",
+    "sections": [
+      {
+        "title": "Qualification levels 1–10",
+        "content": "New Zealand qualifications have 10 levels:\n\n- Level 1: Certificate\n- Level 2: Certificate\n- Level 3: Certificate\n- Level 4: Certificate\n- Level 5: Certificate or diploma\n- Level 6: Certificate or diploma\n- Level 7: Diploma, bachelor's degree, graduate certificate or graduate diploma\n- Level 8: Bachelor honours degree, postgraduate certificate or postgraduate diploma\n- Level 9: Master's degree\n- Level 10: Doctoral degree\n\nA higher level means more advanced learning. The level does not tell you how many years a course takes."
+      },
+      {
+        "title": "Where can you study?",
+        "content": "- University: degree courses and research.\n- Polytechnic or institute of technology: practical, applied learning.\n- Private training establishment: specialist courses.\n\nCheck the exact course and qualification offered."
+      },
+      {
+        "title": "Before choosing a course",
+        "content": "- Does it match your previous study and career plans?\n- What are the entry requirements?\n- How long is the course?\n- What are the total fees?\n- Is practical training included?\n- Does your future profession require registration?"
+      }
+    ],
+    "order": 1
+  },
+  {
+    "label": "Admission & scholarships",
+    "title": "Apply for admission",
+    "category": "Apply to a provider",
+    "description": "Check the requirements, dates and scholarships.",
+    "introduction": "Each provider sets its own admission requirements.",
+    "sections": [
+      {
+        "title": "Documents to prepare",
+        "content": "- Passport or other required identity document\n- Academic transcripts and certificates\n- Accepted English test result, if required\n- Required translations\n- References, portfolio or research proposal, if requested\n\nCheck how the provider assesses your Nepali qualification. English scores vary by course and provider."
+      },
+      {
+        "title": "Dates to check",
+        "content": "- Application deadline\n- Course start date\n- Offer acceptance deadline\n- Deadline for meeting offer conditions\n- Accommodation application date\n\nRead your offer carefully. Ask the provider about anything unclear."
+      },
+      {
+        "title": "Scholarship checklist",
+        "content": "- Are applicants from Nepal eligible?\n- Does it cover your course and study level?\n- What grades are required?\n- How much does it pay?\n- When do applications close?\n- Do you need a separate application?\n\nInclude a scholarship in your budget only once it is confirmed."
+      }
+    ],
+    "order": 2
+  },
+  {
+    "label": "Study funding",
+    "title": "Plan your study funds",
+    "category": "Plan your finances",
+    "description": "Know how much you need and what evidence to prepare.",
+    "introduction": "Budget in New Zealand dollars (NZD). Use your bank's current rate to convert to Nepali rupees (NPR).",
+    "sections": [
+      {
+        "title": "Minimum living funds for the visa",
+        "content": "For self-funded tertiary study:\n\n- Study of 1 year or more: NZD 20,000 per year.\n- Study shorter than 1 year: NZD 1,667 per month.\n- Extra: tuition fees and money to leave New Zealand.\n\nYour actual living costs may be higher."
+      },
+      {
+        "title": "Show where your money comes from",
+        "content": "Prepare the evidence that fits your funding:\n\n- Savings: bank statements and an explanation of large deposits.\n- Education loan: loan terms and repayment evidence.\n- Scholarship: confirmed award details.\n- Family support: financial and relationship evidence.\n\nUse Required Documents by Stage to organise your documents."
+      },
+      {
+        "title": "Family support and tuition payment",
+        "content": "For Nepali citizens applying from South Asia, eligible sponsors or financial undertakings are limited to immediate family:\n\n- Partner\n- Parents or parents-in-law\n- Siblings\n- Grandparents\n\nApplicants outside New Zealand can choose to pay tuition after Approval in Principle (AIP). Keep the funds ready and follow the deadline in your AIP letter."
+      }
+    ],
+    "order": 3
+  },
+  {
+    "label": "Visa preparation",
+    "title": "Apply for your student visa",
+    "category": "Apply for your visa",
+    "description": "Follow the steps from offer to final visa.",
+    "introduction": "Use the process stages to track your application.",
+    "sections": [
+      {
+        "title": "Your application steps",
+        "content": "- 1. Apply for an offer.\n- 2. Prepare visa documents, including medical and police evidence where required.\n- 3. Lodge your visa application online.\n- 4. Attend an interview if requested.\n- 5. Receive Approval in Principle (AIP).\n- 6. Pay tuition and submit payment evidence.\n- 7. Wait for the final visa decision."
+      },
+      {
+        "title": "Visa lodgement: fee and timing",
+        "content": "- Application cost: from NZD 850.\n- When to pay: when you lodge the visa application.\n- When to apply: aim for 3 months before travel.\n- Check the final charge for your nationality and application location.\n\nMedical checks, police certificates, translations and insurance cost extra. Tuition is a separate payment."
+      },
+      {
+        "title": "Interview: only if requested",
+        "content": "Be ready to explain:\n\n- Why you chose the course\n- Your previous study and any gaps\n- Who is paying and where the money comes from\n- Your plans after graduation\n\nAnswer honestly. Reply to document requests by the stated deadline."
+      },
+      {
+        "title": "After AIP",
+        "content": "- Pay tuition by the deadline in your request.\n- Submit the payment evidence.\n- Wait for the final visa; AIP alone does not allow travel.\n- Read the study, work and travel conditions on your eVisa.\n- Arrange the required medical and travel insurance."
+      }
+    ],
+    "order": 4
+  },
+  {
+    "label": "Living costs",
+    "title": "Plan your living costs",
+    "category": "Prepare to live in NZ",
+    "description": "A simple monthly budget for accommodation and everyday expenses.",
+    "introduction": "All amounts are in NZD. These are 2026 Auckland examples; costs vary by city and housing.",
+    "sections": [
+      {
+        "title": "How much per month?",
+        "content": "- Homestay with meals: about NZD 2,232.\n- Student hall with meals: about NZD 2,492.\n- Student hall without meals: about NZD 2,600–3,033.\n\nThese are total living budgets, including accommodation and ordinary daily expenses. Do not add rent again."
+      },
+      {
+        "title": "What costs extra?",
+        "content": "- Tuition and visa fees\n- Flights and insurance\n- Bond or advance rent\n- Temporary accommodation and household setup\n\nCheck what meals and bills your accommodation includes before booking."
+      }
+    ],
+    "order": 5
+  },
+  {
+    "label": "Arrival & student support",
+    "title": "Get ready to arrive",
+    "category": "Settle in",
+    "description": "Pack your documents and plan your first week.",
+    "introduction": "Keep your passport, eVisa, offer, accommodation address and important contacts easy to reach.",
+    "sections": [
+      {
+        "title": "Before your flight",
+        "content": "- Complete the New Zealand Traveller Declaration.\n- Check the rules before packing food, plants or animal products.\n- Clean used outdoor equipment.\n- Declare biosecurity risk items when arriving.\n\nBorder officers decide which items can enter, even if declared."
+      },
+      {
+        "title": "Your first week",
+        "content": "- Complete enrolment and identity checks.\n- Attend orientation.\n- Check your timetable and route to campus.\n- Find the international student office.\n- Learn how to get academic and insurance support."
+      },
+      {
+        "title": "If you need help",
+        "content": "- Contact your provider's student support team.\n- Ask about health, wellbeing and learning support.\n- Use the provider's complaints process for concerns.\n- If unresolved, check NZQA's guidance on external complaint options.\n\nThe pastoral care Code sets expectations for student safety and wellbeing."
+      }
+    ],
+    "order": 6
+  },
+  {
+    "label": "Work during study",
+    "title": "Work while studying",
+    "category": "Study and work",
+    "description": "Check your work permission before starting a job.",
+    "introduction": "Your eVisa tells you when and how much you can work.",
+    "sections": [
+      {
+        "title": "How many hours can you work?",
+        "content": "- Eligible student visas: up to 25 hours per week.\n- Full-time holiday work: only when your visa conditions allow it.\n- Research master's and PhD students: may work unlimited hours while studying full-time.\n\nThe research rule does not automatically apply to taught master's courses. Follow the conditions on your own visa."
+      },
+      {
+        "title": "Rules to follow",
+        "content": "- Work for an employer with an employment agreement.\n- Student visa work conditions do not allow self-employment.\n- Check separate conditions for course-required practical experience.\n- Resolve any missing or different work permission before starting."
+      },
+      {
+        "title": "Before your first job",
+        "content": "- Get an IRD number for tax.\n- Keep your employment agreement and payslips.\n- Track your work hours.\n- Ask the careers team for CV and interview help.\n\nKeep enough time for classes and assignments. Do not depend on finding work immediately."
+      }
+    ],
+    "order": 7
+  },
+  {
+    "label": "After graduation",
+    "title": "Plan life after study",
+    "category": "Plan your next step",
+    "description": "Check your post-study work options early.",
+    "introduction": "Your qualification and study duration affect eligibility.",
+    "sections": [
+      {
+        "title": "Post-Study Work Visa basics",
+        "content": "- Length: up to 3 years, depending on your study.\n- Degree level 7 or higher: generally at least 30 weeks of full-time study in New Zealand.\n- Non-degree level 7 or lower: must meet the eligible-qualification list and related-job rules.\n\nCheck your exact qualification. The level alone does not guarantee a visa."
+      },
+      {
+        "title": "Before your student visa expires",
+        "content": "- Prepare proof that you completed your qualification.\n- Check your application deadline; some study routes have different deadlines.\n- Prepare at least NZD 5,000 in living funds for this visa.\n- Keep valid immigration status."
+      },
+      {
+        "title": "Upcoming change: 16 November 2026",
+        "content": "Eligibility is due to expand for qualifying level 7 graduate diploma holders who also have a bachelor's degree.\n\nThis change is not yet in effect as of 14 September 2026. Check all conditions before relying on it."
+      },
+      {
+        "title": "Choose your next step",
+        "content": "- Look for work using your provider's careers service.\n- Check professional registration requirements.\n- Consider further study or returning home.\n\nWork and residence applications have separate requirements. Graduation does not guarantee residence."
+      }
+    ],
+    "order": 8
+  }
+]

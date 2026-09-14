@@ -1,0 +1,182 @@
+{
+  "title": "Study Abroad Cost Calculator",
+  "stages": [
+    {
+      "key": "offer_application",
+      "title": "Offer Application",
+      "items": [
+        {
+          "key": "application_cost",
+          "label": "Application Cost (NZD)",
+          "amount": null,
+          "currency": "NZD"
+        }
+      ]
+    },
+    {
+      "key": "visa_documentation",
+      "title": "Visa Documentation",
+      "items": [
+        {
+          "key": "bank_loan_amount_npr",
+          "label": "Bank Loan Amount (NPR)",
+          "amount": 7500000,
+          "currency": "NPR",
+          "includeInTotal": false,
+          "note": "75 lakh NPR. Loan principal is funding, not an expense."
+        },
+        {
+          "key": "bank_processing_fee",
+          "label": "Bank Processing Fee (%)",
+          "amount": 0.75,
+          "currency": "NPR",
+          "unit": "percent",
+          "includeInTotal": false
+        },
+        {
+          "key": "bank_processing_cost",
+          "label": "Bank Processing Charge",
+          "amount": null,
+          "currency": "NPR",
+          "calculation": {
+            "type": "percentage",
+            "baseKey": "bank_loan_amount_npr",
+            "rateKey": "bank_processing_fee"
+          },
+          "note": "Loan amount × bank processing rate."
+        },
+        {
+          "key": "bank_valuation",
+          "label": "Bank Valuation",
+          "amount": 10000,
+          "currency": "NPR"
+        },
+        {
+          "key": "ca_report",
+          "label": "CA Report",
+          "amount": 2500,
+          "currency": "NPR"
+        },
+        {
+          "key": "property_valuation",
+          "label": "Property Valuation",
+          "amount": 1500,
+          "currency": "NPR"
+        },
+        {
+          "key": "translation_notary",
+          "label": "Translation and Notary",
+          "amount": 10000,
+          "currency": "NPR"
+        }
+      ]
+    },
+    {
+      "key": "visa_lodgement",
+      "title": "Visa Lodgement",
+      "items": [
+        {
+          "key": "visa_fee",
+          "label": "Student Visa Fee",
+          "amount": 850,
+          "currency": "NZD",
+          "note": "Fee Paying Student Visa: published cost from NZD 850. Confirm the final charge at application."
+        },
+        {
+          "key": "biometric",
+          "label": "Biometric",
+          "amount": 3575,
+          "currency": "NPR"
+        },
+        {
+          "key": "medical",
+          "label": "Medical",
+          "amount": 10000,
+          "currency": "NPR"
+        }
+      ]
+    },
+    {
+      "key": "tuition_fee_payment",
+      "title": "Tuition Fee Payment",
+      "items": [
+        {
+          "key": "disbursement_amount_npr",
+          "label": "Disbursement Amount (NPR)",
+          "amount": null,
+          "currency": "NPR",
+          "includeInTotal": false,
+          "calculation": {
+            "type": "copy",
+            "baseKey": "bank_loan_amount_npr"
+          },
+          "note": "Full loan amount. Not an additional expense."
+        },
+        {
+          "key": "interest_rate",
+          "label": "Interest Rate (%)",
+          "amount": 8,
+          "currency": "NPR",
+          "unit": "percent",
+          "includeInTotal": false,
+          "note": "Annual loan interest rate. Repayment cost depends on the loan term."
+        },
+        {
+          "key": "loan_term_months",
+          "label": "Loan Term (months)",
+          "amount": 120,
+          "currency": "NPR",
+          "unit": "months",
+          "includeInTotal": false,
+          "note": "Enter the repayment period in months."
+        },
+        {
+          "key": "monthly_emi",
+          "label": "Monthly EMI (NPR/month)",
+          "amount": null,
+          "currency": "NPR",
+          "includeInTotal": false,
+          "calculation": {
+            "type": "emi",
+            "baseKey": "disbursement_amount_npr",
+            "rateKey": "interest_rate",
+            "termKey": "loan_term_months"
+          },
+          "note": "Monthly reducing-balance repayment using the disbursed loan, annual interest and loan term. Excludes bank fees and any moratorium."
+        },
+        {
+          "key": "education_tax",
+          "label": "Education Tax (3%)",
+          "amount": null,
+          "currency": "NZD",
+          "calculation": {
+            "type": "percentage",
+            "baseKey": "tuition_fee_amount",
+            "rate": 3
+          },
+          "note": "3% of the entered tuition fee. Converted to NPR with the tuition amount."
+        },
+        {
+          "key": "health_care_cost",
+          "label": "Health Insurance",
+          "amount": 899,
+          "currency": "NZD",
+          "note": "Studentsafe single-student cover for one academic year (2026 Massey premium). Change for your provider or cover period."
+        },
+        {
+          "key": "tuition_fee_amount",
+          "label": "Tuition Fee",
+          "amount": null,
+          "currency": "NZD"
+        },
+        {
+          "key": "payment_company_fees",
+          "label": "Payment Company Fees (NPR)",
+          "amount": null,
+          "currency": "NPR",
+          "note": "Enter the actual additional payment charge in NPR. PayPal purchases have no fee without currency conversion; its NZ/Nepal conversion schedule lists 4% above the base exchange rate. Flywire and Convera use a payment-specific quote; charges may be included in the quoted exchange rate. Do not count the same charge twice."
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { createElement as h } from "react";
+import { reportCostItems, reportCostLabel, costFieldAmount, loanRepaymentItems } from "./costInputs.js";
 import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
@@ -23,15 +24,18 @@ export function CostReportDocument({ result }) {
         h(Text, { style: styles.section }, "Cost summary"),
     ];
     result.stages.forEach((stage) => {
-        children.push(h(View, { key: `summary-${stage.key}`, style: styles.row, wrap: false }, h(Text, { style: styles.label }, stage.title), h(Text, { style: styles.amount }, amount(stage.subtotalNpr ?? stage.subtotal, "NPR"))));
+        children.push(h(View, { key: `summary-${stage.key}`, style: styles.row, wrap: false }, h(Text, { style: styles.label }, stage.title), h(Text, { style: styles.amount }, amount(stage.subtotalNpr, "NPR"))));
     });
     result.stages.forEach((stage) => {
         const rows = [h(Text, { key: `${stage.key}-heading`, style: styles.section }, stage.title)];
-        stage.items.forEach((item) => rows.push(h(View, { key: item.key, style: styles.row, wrap: false }, h(View, { style: styles.label }, h(Text, null, item.label), h(Text, { style: styles.note }, item.source === "user" ? "User entered" : item.source === "missing" ? "Amount needed" : "Suggested amount")), h(View, { style: styles.amount }, h(Text, null, item.convertedNpr !== null && item.currency?.toLowerCase() !== "npr" ? `${amount(item.convertedNpr, "NPR")} (${amount(item.amount, item.currency)})` : amount(item.amount, item.currency))))));
-        rows.push(h(View, { key: `${stage.key}-subtotal`, style: styles.row, wrap: false }, h(Text, { style: styles.label }, "Subtotal"), h(Text, { style: styles.amount }, amount(stage.subtotalNpr ?? stage.subtotal, "NPR"))));
+        reportCostItems(stage.items).forEach((item) => rows.push(h(View, { key: item.key, style: styles.row, wrap: false }, h(View, { style: styles.label }, h(Text, null, reportCostLabel(item, stage.items, amount)), h(Text, { style: styles.note }, item.includeInTotal === false ? "Not included in total" : item.source === "calculated" ? "Calculated" : item.source === "user" ? "User entered" : item.source === "missing" ? "Amount needed" : "Suggested amount")), h(View, { style: styles.amount }, h(Text, null, item.amount === null ? "Input required" : ['percent', 'months'].includes(item.unit) ? costFieldAmount(item, amount) : item.convertedNpr !== null && item.currency?.toLowerCase() !== "npr" ? `${amount(item.convertedNpr, "NPR")} (${amount(item.amount, item.currency)})` : amount(item.amount, item.currency))))));
+        rows.push(h(View, { key: `${stage.key}-subtotal`, style: styles.row, wrap: false }, h(Text, { style: styles.label }, "Subtotal"), h(Text, { style: styles.amount }, amount(stage.subtotalNpr, "NPR"))));
         children.push(h(View, { key: stage.key }, ...rows));
     });
-    children.push(h(View, { style: { marginTop: 12 } }, h(Text, { style: styles.section }, "TOTAL ESTIMATED COST"), h(Text, { style: styles.total }, `${result.isComplete ? "TOTAL ESTIMATED FUNDING" : "PARTIAL ESTIMATED FUNDING"}: ${amount(Number(result.totalNpr ?? result.total ?? 0), "NPR")}`), !result.isComplete ? h(Text, { style: styles.note }, `Still needed: ${result.stages.flatMap((stage) => stage.items).filter((item) => item.amount === null).map((item) => item.label).join(", ")}.`) : null, h(Text, { style: styles.note }, `Today's ${result.forex?.source || "NRB"} rates were used for available conversions (${result.forex?.date || "date unavailable"}). Planning estimates include blocked funds, deposits and travel cash. Confirm fees before payment.`)));
+    children.push(h(View, { style: { marginTop: 12 } }, h(Text, { style: styles.section }, "TOTAL ESTIMATED COST"), h(Text, { style: styles.total }, `${result.isComplete ? "TOTAL ESTIMATED COST" : "PARTIAL ESTIMATED COST"}: ${amount(result.totalNpr, "NPR")}`), !result.isComplete ? h(Text, { style: styles.note }, `Still needed: ${result.stages.flatMap((stage) => stage.items).filter((item) => item.amount === null).map((item) => item.label).join(", ")}.`) : null, h(Text, { style: styles.note }, `Available exchange rates: ${result.forex?.source || "NRB"} (${result.forex?.date || "date unavailable"}). Loan principal, disbursement and rate fields marked as excluded are not added to the cost total. Confirm fees before payment.`)));
+    loanRepaymentItems(result.stages).forEach(item => children.push(h(View, { key: item.key, wrap: false, style: { marginTop: 12 } },
+        h(Text, null, `Monthly EMI: ${item.amount === null ? 'Enter the interest rate and loan term to calculate' : `${amount(item.amount, item.currency)} / month`}`),
+        h(Text, { style: styles.note }, 'Loan repayment only - not included in the grand total. Tuition is counted once; the loan and disbursed principal are not costs.'))));
     children.push(h(Text, { style: styles.footer, fixed: true, render: ({ pageNumber, totalPages }) => `Counsora | ${pageNumber} / ${totalPages}` }));
     return h(Document, { title: result.title, author: "Counsora" }, h(Page, { size: "A4", style: styles.page }, ...children));
 }

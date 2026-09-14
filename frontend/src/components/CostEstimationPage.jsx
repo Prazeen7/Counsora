@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import CostSheetManager from "./admin/CostSheetManager";
 
 import { estimateCosts, getCostSheet } from "../services/costEstimationService";
+import { resolveCostInputs, costFieldUnit, costFieldAmount, linkedCharge, formCostItems, reportCostItems, reportCostLabel, loanRepaymentItems } from "../utils/costInputs";
 
 const currencyCode = (currency = "NPR") => ({ euro: "EUR", euros: "EUR", dollar: "USD", dollars: "USD", pound: "GBP", pounds: "GBP" }[String(currency).trim().toLowerCase()] || currency);
 const money = (amount, currency = "NPR") => {
@@ -100,10 +101,11 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
     if (!sheet) return <Stack spacing={3}>{management}<Alert severity="info" action={<Button onClick={reload}>Retry</Button>}>{error || "No cost sheet available for this country."}</Alert></Stack>;
 
     const allItems = sheet.stages.flatMap((stage) => stage.items);
-    const filled = allItems.filter((item) => (values[item.key] !== undefined && values[item.key] !== "") || item.defaultAmount !== null).length;
+    const resolvedInputs = resolveCostInputs(allItems, values);
+    const filled = allItems.filter((item) => resolvedInputs[item.key] !== null).length;
     const stage = sheet.stages[activeStage];
     const progress = Math.round((activeStage + 1) / sheet.stages.length * 100);
-    return <>{management}<Box ref={formRef} component="form" onSubmit={calculate} noValidate sx={{ scrollMarginTop: '90px' }}>
+    return <>{management}<Box ref={formRef} component="form" onSubmit={(event) => event.preventDefault()} noValidate sx={{ scrollMarginTop: '90px' }}>
         <Paper elevation={3} sx={{ bgcolor: primaryColor, color: "white", p: { xs: 2.5, sm: 3 }, borderRadius: 2, mb: 4 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
                 <Calculate sx={{ fontSize: 32 }} />
@@ -118,7 +120,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mt: 3 }}>
                 <Typography fontWeight={600}>{sheet.country.name}</Typography>
                 
-                <Button type="submit" color="inherit" variant="contained" disabled={calculating} startIcon={calculating ? <CircularProgress size={18} /> : <Calculate />}
+                <Button type="button" onClick={calculate} color="inherit" variant="contained" disabled={calculating} startIcon={calculating ? <CircularProgress size={18} /> : <Calculate />}
                     sx={{ bgcolor: "white", color: primaryColor, "&:hover": { bgcolor: "#eef2ff" }, "&.Mui-disabled": { bgcolor: "#e0e7ff", color: primaryColor } }}>{calculating ? "Calculating…" : "Calculate Total"}</Button>
             </Stack>
         </Paper>
@@ -136,17 +138,17 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                     <Typography color="text.secondary" variant="body2" sx={{ mb: 3 }}>Use the suggested amounts or enter your own. Blank fields use the suggested amount when available.</Typography>
                     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
-                        {stage.items.map((item) => <Paper key={item.key} variant="outlined" sx={{ p: 2.5, borderRadius: 2, bgcolor: "#fafaff", borderColor: "#e0e7ff" }}>
+                        {formCostItems(stage.items).map((item) => <Paper key={item.key} variant="outlined" sx={{ p: 2.5, borderRadius: 2, bgcolor: "#fafaff", borderColor: "#e0e7ff" }}>
                             <Stack direction="row" justifyContent="space-between" alignItems="start" spacing={1} sx={{ mb: 2.5 }}>
-                                <Typography fontWeight={600}>{item.label}</Typography>
-                                <Chip size="small" label={item.defaultAmount === null ? "Your amount" : "Estimated"} sx={{ bgcolor: `${primaryColor}12`, color: primaryColor }} />
+                                <Typography fontWeight={600}>{linkedCharge(item, allItems) ? `${item.label.replace(/\s*\(%\)$/, '')} (${money(resolvedInputs[linkedCharge(item, allItems).key], item.currency)})` : item.label}</Typography>
+                                <Chip size="small" label={item.calculation ? "Calculated" : item.defaultAmount === null ? "Your amount" : "Estimated"} sx={{ bgcolor: `${primaryColor}12`, color: primaryColor }} />
                             </Stack>
-                            <TextField fullWidth label="Amount"
-                            value={values[item.key] ?? (item.defaultAmount ?? "")}
+                            <TextField fullWidth label={item.unit === 'percent' ? 'Rate' : item.unit === 'months' ? 'Loan term' : 'Amount'}
+                            value={item.calculation ? (resolvedInputs[item.key] ?? '') : values[item.key] ?? (item.defaultAmount ?? "")}
                             onChange={(event) => changeValue(item.key, event.target.value)}
                             type="number" onFocus={(event) => event.target.select()} onWheel={(event) => event.target.blur()}
-                            slotProps={{ inputLabel: { shrink: true }, input: { startAdornment: <InputAdornment position="start">{item.currency || "NPR"}</InputAdornment> }, htmlInput: { "aria-label": `${item.label} (${item.currency || "NPR"})`, min: 0, max: 1e12, step: "0.01" } }}
-                            helperText={[item.note, item.defaultAmount === null ? "Enter your amount; zero is allowed." : `Suggested: ${money(item.defaultAmount, item.currency)}`].filter(Boolean).join(" · ")} />
+                            slotProps={{ inputLabel: { shrink: true }, input: { readOnly: Boolean(item.calculation), startAdornment: <InputAdornment position="start">{costFieldUnit(item)}</InputAdornment> }, htmlInput: { "aria-label": `${item.label} (${costFieldUnit(item)})`, min: item.unit === 'months' ? 1 : 0, max: item.unit === 'percent' ? 100 : item.unit === 'months' ? 600 : 1e12, step: item.unit === 'months' ? '1' : '0.01' } }}
+                            helperText={[item.note, item.calculation ? 'Updates automatically.' : item.defaultAmount === null ? "Enter your amount; zero is allowed." : `Suggested: ${costFieldAmount({ ...item, amount: item.defaultAmount }, money)}`, item.includeInTotal === false ? 'Not added to the cost total.' : ''].filter(Boolean).join(" · ")} />
                         </Paper>)}
                     </Box>
                     <Alert severity="info" sx={{ mt: 3, bgcolor: `${primaryColor}08` }}>{filled} of {allItems.length} amounts available. Each field uses its configured currency.</Alert>
@@ -154,7 +156,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                 <CardActions sx={{ bgcolor: "#f8f9fb", p: 2, justifyContent: "space-between", borderTop: "1px solid #e5e7eb" }}>
                         <Button disabled={activeStage === 0} onClick={() => setActiveStage((value) => value - 1)}>Previous stage</Button>
                         {activeStage < sheet.stages.length - 1 ? <Button variant="contained" endIcon={<ArrowForward />} onClick={() => setActiveStage((value) => value + 1)}>Next stage</Button>
-                            : <Button type="submit" variant="contained" startIcon={<Calculate />} disabled={calculating}>Calculate Total</Button>}
+                            : <Button type="button" onClick={calculate} variant="contained" startIcon={<Calculate />} disabled={calculating}>Calculate Total</Button>}
                 </CardActions>
             </Card>
             {result && <Card ref={resultsRef} tabIndex={-1} aria-label="Cost estimation results" elevation={3} sx={{ borderRadius: 2, mt: 4, overflow: "hidden", scrollMarginTop: '90px' }}>
@@ -168,7 +170,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                                 <Box sx={{ color: stageColors[index % 3], mb: 1 }}>{stageIcons[index % 3]}</Box>
                                 <Typography variant="overline" color="text.secondary">Stage {index + 1}</Typography>
                                 <Button onClick={() => setActiveStage(index)} sx={{ p: 0, textAlign: "left", justifyContent: "flex-start", textTransform: "none", color: stageColors[index % 3] }}>{item.title}</Button>
-                                <Typography variant="h6" fontWeight={700}>{money(item.subtotalNpr ?? item.subtotal, "NPR")}</Typography>
+                                <Typography variant="h6" fontWeight={700}>{money(item.subtotalNpr, "NPR")}</Typography>
                                 {!item.isComplete && <Typography variant="caption">Missing amounts</Typography>}
                             </Paper>)}
                         </Box>
@@ -179,10 +181,10 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                                 </TableRow></TableHead>
                                 <TableBody>
                                     {result.stages.map((group, index) => <Fragment key={group.key}>
-                                        {group.items.map((item, itemIndex) => <TableRow key={item.key} sx={{ bgcolor: `${stageColors[index % 3]}08` }}>
-                                            {itemIndex === 0 && <TableCell rowSpan={group.items.length} sx={{ verticalAlign: "top", fontWeight: 600, width: "25%" }}>{group.title}</TableCell>}
-                                            <TableCell>{item.label}</TableCell>
-                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : item.currency?.toLowerCase() !== 'npr' && item.convertedNpr !== null ? <>{money(item.convertedNpr, "NPR")} <Typography component="span" variant="caption" color="text.secondary">({money(item.amount, item.currency)})</Typography></> : money(item.amount, item.currency)}</TableCell>
+                                        {reportCostItems(group.items).map((item, itemIndex) => <TableRow key={item.key} sx={{ bgcolor: `${stageColors[index % 3]}08` }}>
+                                            {itemIndex === 0 && <TableCell rowSpan={reportCostItems(group.items).length} sx={{ verticalAlign: "top", fontWeight: 600, width: "25%" }}>{group.title}</TableCell>}
+                                            <TableCell>{reportCostLabel(item, group.items, money)}{item.includeInTotal === false && <Typography variant="caption" display="block">Not included in total</Typography>}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>{item.amount === null ? "Input required" : ['percent', 'months'].includes(item.unit) ? costFieldAmount(item, money) : item.currency?.toLowerCase() !== 'npr' && item.convertedNpr !== null ? <>{money(item.convertedNpr, "NPR")} <Typography component="span" variant="caption" color="text.secondary">({money(item.amount, item.currency)})</Typography></> : money(item.amount, item.currency)}</TableCell>
                                         </TableRow>)}
                                     </Fragment>)}
                                     <TableRow sx={{ bgcolor: `${primaryColor}12` }}>
@@ -192,6 +194,10 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                                 </TableBody>
                             </Table>
                         </TableContainer>
+                        {loanRepaymentItems(result.stages).map(item => <Box key={item.key} sx={{ mt: 2 }}>
+                            <Typography fontWeight={600}>Monthly EMI: {item.amount === null ? 'Enter the interest rate and loan term to calculate' : `${money(item.amount, item.currency)} / month`}</Typography>
+                            <Typography variant="body2" color="text.secondary">Loan repayment only — not included in the grand total. Tuition is counted once; the loan and disbursed principal are not costs.</Typography>
+                        </Box>)}
                         {!result.isComplete && <Alert severity="warning" sx={{ my: 2 }}>Still needed: {allItems.filter((item) => result.missingFields.includes(item.key)).map((item) => item.label).join(", ")}. These amounts are excluded from the total.</Alert>}
                         {result.forex?.date && <Typography variant="caption" color="text.secondary" display="block">Converted to NPR using NRB rates for {result.forex.date}{result.forex.unavailable ? " (rates unavailable)" : ""}.</Typography>}
                         {result.forex?.rates?.length > 0 && <Alert severity="info" sx={{ mt: 2 }}>Today&apos;s {result.forex.source || "NRB"} rate for {result.forex.currency}: {result.forex.rates.map((rate) => `${rate.currency?.iso3 || rate.currency?.ISO3 || rate.currency?.name}: NPR ${Number(rate.sell).toFixed(2)}/${rate.currency?.unit || 1}`).join(" · ")}</Alert>}
