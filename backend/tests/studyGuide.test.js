@@ -10,7 +10,10 @@ const response = () => ({ statusCode: 200, status(value) { this.statusCode = val
 function controller(model = StudyGuide, exists = async () => true) {
     const module = { exports: {} };
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/controllers/studyGuideController.js'), 'utf8'), {
-        module, require: name => ({ mongoose, '../models/StudyGuide': model, '../models/Country': { exists } })[name],
+        module, require: name => ({ mongoose, '../models/StudyGuide': model, '../models/Country': { exists }, '../utils/saveOrderedStudyGuide': {
+            saveOrderedStudyGuide: record => record.save(),
+            deleteOrderedStudyGuide: async id => { if (!(await model.findByIdAndDelete(id))) throw Object.assign(new Error('Study guide not found.'), { status: 404 }); },
+        } })[name],
     });
     return module.exports;
 }

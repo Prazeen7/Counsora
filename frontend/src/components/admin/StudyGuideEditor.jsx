@@ -24,7 +24,7 @@ export default function StudyGuideEditor({ record, country, defaultOrder, onClos
         if (saving) return;
         if (!fields.introduction.trim() && !fields.sections.length) { setError('Add an introduction or at least one section.'); return; }
         setSaving(true); setError('');
-        try { onSaved(await saveStudyGuide(record?._id, { ...fields, order: Number(fields.order) })); }
+        try { await onSaved(await saveStudyGuide(record?._id, { ...fields, order: Number(fields.order) })); }
         catch (err) { setError(err.message); }
         finally { setSaving(false); }
     };
@@ -38,7 +38,7 @@ export default function StudyGuideEditor({ record, country, defaultOrder, onClos
                     <TextField label="Topic heading" required value={fields.title} onChange={change('title')} disabled={saving} inputProps={{ maxLength: 300 }} />
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                         <TextField fullWidth label="Category" value={fields.category} onChange={change('category')} disabled={saving} inputProps={{ maxLength: 100 }} helperText="For example: Before you travel" />
-                        <TextField label="Display order" type="number" required value={fields.order} onChange={change('order')} disabled={saving} inputProps={{ min: 0, step: 1 }} />
+                        <TextField label="Display order" type="number" required value={fields.order} onChange={change('order')} disabled={saving} inputProps={{ min: 0, step: 1 }} helperText="If occupied, this and later topics move down by one." />
                     </Stack>
                     <TextField label="Short description" multiline minRows={2} value={fields.description} onChange={change('description')} disabled={saving} inputProps={{ maxLength: 1000 }} />
                     <TextField label="Introduction" multiline minRows={4} value={fields.introduction} onChange={change('introduction')} disabled={saving} inputProps={{ maxLength: 20000 }} helperText="Always visible. Separate paragraphs with a blank line; start bullet lines with - ." />

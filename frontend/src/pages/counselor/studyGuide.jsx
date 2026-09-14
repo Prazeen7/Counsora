@@ -49,8 +49,14 @@ function GuideContent({ country, isAdmin }) {
     setDeleteBusy(true); setDeleteError('');
     try {
       await deleteStudyGuide(deleting._id);
-      setTopics(current => current.filter(item => item._id !== deleting._id));
       setActiveTopic(0); setDeleting(null);
+      setLoading(true);
+      try {
+        const { guides } = await getStudyGuides(country._id);
+        setTopics(guides); setError('');
+      } catch {
+        setError('Topic deleted, but the updated order could not be loaded. Retry to refresh the guide.');
+      } finally { setLoading(false); }
     } catch (err) { setDeleteError(err.message); }
     finally { setDeleteBusy(false); }
   };
@@ -96,9 +102,15 @@ function GuideContent({ country, isAdmin }) {
           </Stack>
         </Paper>
       </Box>}
-      {editor && <StudyGuideEditor record={editor.record} country={country} defaultOrder={Math.max(0, ...topics.map(item => item.order)) + 1} onClose={() => setEditor(null)} onSaved={saved => {
-        const next = [...topics.filter(item => item._id !== saved._id), saved].sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt) || a._id.localeCompare(b._id));
-        setTopics(next); setActiveTopic(next.findIndex(item => item._id === saved._id)); setEditor(null);
+      {editor && <StudyGuideEditor record={editor.record} country={country} defaultOrder={Math.max(0, ...topics.map(item => item.order)) + 1} onClose={() => setEditor(null)} onSaved={async saved => {
+        setEditor(null);
+        setLoading(true);
+        try {
+          const { guides } = await getStudyGuides(country._id);
+          setTopics(guides); setActiveTopic(Math.max(0, guides.findIndex(item => item._id === saved._id))); setError('');
+        } catch {
+          setError('Topic saved, but the updated order could not be loaded. Retry to refresh the guide.');
+        } finally { setLoading(false); }
       }} />}
       <Dialog open={Boolean(deleting)} onClose={deleteBusy ? undefined : () => setDeleting(null)}>
         <DialogTitle>Delete topic?</DialogTitle>

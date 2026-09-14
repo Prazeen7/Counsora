@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const StudyGuide = require('../models/StudyGuide');
 const Country = require('../models/Country');
+const { saveOrderedStudyGuide, deleteOrderedStudyGuide } = require('../utils/saveOrderedStudyGuide');
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const respondError = (res, error) => {
     if (error.code === 11000) return res.status(409).json({ error: 'A topic with this navigation label already exists for this country.' });
@@ -45,7 +46,7 @@ async function saveStudyGuide(req, res) {
             record.sections = body.sections;
         }
         if (!record.introduction?.trim() && !record.sections.length) throw fail('Add an introduction or at least one section.');
-        await record.save();
+        await saveOrderedStudyGuide(record);
         await record.populate('country', 'name code');
         res.status(updating ? 200 : 201).json(record);
     } catch (error) { respondError(res, error); }
@@ -54,7 +55,7 @@ async function saveStudyGuide(req, res) {
 async function deleteStudyGuide(req, res) {
     try {
         if (!mongoose.isObjectIdOrHexString(req.params.id)) throw fail('Invalid study guide ID.');
-        if (!(await StudyGuide.findByIdAndDelete(req.params.id))) throw fail('Study guide not found.', 404);
+        await deleteOrderedStudyGuide(req.params.id);
         res.json({ message: 'Study guide topic deleted.' });
     } catch (error) { respondError(res, error); }
 }
