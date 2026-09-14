@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Institution
+method: DELETE
+url: '{{base_url}}/institution/{{institutionId}}'
+order: 5000
+description: |-
+  Delete an institution and all its programs.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{institutionId}}'

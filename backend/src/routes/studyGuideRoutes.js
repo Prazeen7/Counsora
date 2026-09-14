@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { authMiddleware } = require('../middleware/authMiddleWare');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const { adminMiddleware } = require('../middleware/adminMiddleware');
 const { listStudyGuides, saveStudyGuide, deleteStudyGuide } = require('../controllers/studyGuideController');
 router.use(authMiddleware);

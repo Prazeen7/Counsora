@@ -1,0 +1,31 @@
+$kind: http-request
+name: Create Country
+method: POST
+url: '{{base_url}}/country'
+order: 3000
+description: |-
+  Create a new country.
+
+  **Requires:** `superAdmin` role.
+
+  Fields: `code` (2-letter ISO), `name`, `currency` (optional), `isActive` (boolean, optional).
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": "AU",
+      "name": "Australia",
+      "currency": "AUD",
+      "isActive": true
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 201 && json._id) {
+          pm.collectionVariables.set("countryId", json._id);
+      }

@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Institution by ID
+method: GET
+url: '{{base_url}}/institution/{{institutionId}}'
+order: 2000
+description: |-
+  Retrieve full details of a single institution.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: id
+    value: '{{institutionId}}'

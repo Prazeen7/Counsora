@@ -1,0 +1,14 @@
+$kind: http-request
+name: Get Today Forex Rate
+method: GET
+url: '{{base_url}}/cost-estimation/{{countryId}}/forex/today'
+order: 3000
+description: |-
+  Fetch today's NRB (Nepal Rastra Bank) forex exchange rate for the country's currency.
+
+  Falls back to open.er-api.com if NRB is unavailable.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: countryId
+    value: '{{countryId}}'

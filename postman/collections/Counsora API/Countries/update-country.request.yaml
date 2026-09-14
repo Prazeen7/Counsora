@@ -1,0 +1,23 @@
+$kind: http-request
+name: Update Country
+method: PATCH
+url: '{{base_url}}/country/{{countryId}}'
+order: 4000
+description: |-
+  Partially update a country's fields.
+
+  **Requires:** `superAdmin` role.
+
+  Allowed fields: `code`, `name`, `currency`, `isActive`.
+pathVariables:
+  - key: id
+    value: '{{countryId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "isActive": false
+    }

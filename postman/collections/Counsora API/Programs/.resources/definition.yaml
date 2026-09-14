@@ -1,0 +1,8 @@
+$kind: collection
+name: Programs
+description: |-
+  Academic program management.
+
+  - Read operations – all authenticated users
+  - Write operations – `admin` or `superAdmin` only
+order: 5000

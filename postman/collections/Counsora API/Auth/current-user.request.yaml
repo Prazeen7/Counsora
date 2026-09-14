@@ -1,0 +1,9 @@
+$kind: http-request
+name: Current User (me)
+method: GET
+url: '{{base_url}}/auth/me'
+order: 3000
+description: |-
+  Returns the profile of the currently authenticated user.
+
+  Requires a valid Bearer token.

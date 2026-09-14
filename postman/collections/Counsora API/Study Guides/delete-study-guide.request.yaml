@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Study Guide
+method: DELETE
+url: '{{base_url}}/study-guides/{{studyGuideId}}'
+order: 4000
+description: |-
+  Delete a study guide topic.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{studyGuideId}}'

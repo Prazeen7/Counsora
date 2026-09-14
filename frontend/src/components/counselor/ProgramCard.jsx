@@ -1,3 +1,4 @@
+import { tuitionFeeText } from '../../utils/tuitionFees';
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
 import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
 import {
@@ -259,10 +260,8 @@ function ProgramCard({ program, institutionData }) {
                                 {program.tuition_fees?.length > 0 ? (
                                     program.tuition_fees.map((fee, index) => (
                                         <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
-                                            {fee?.credits}
-                                            {fee?.annual_fee_eur != null &&
-                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()} EUR`}
-                                        </Typography>
+                                            {tuitionFeeText(fee)}
+</Typography>
                                     ))
                                 ) : (
                                     <Typography variant="body2">Not specified</Typography>

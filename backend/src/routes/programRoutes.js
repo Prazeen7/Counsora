@@ -7,7 +7,7 @@ const {
     deleteProgram,
     getAllProgram
 } = require("../controllers/programController");
-const { authMiddleware } = require("../middleware/authMiddleWare");
+const { authMiddleware } = require("../middleware/authMiddleware");
 const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 // Get programs by institution (auth required)

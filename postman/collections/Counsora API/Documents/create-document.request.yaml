@@ -1,0 +1,47 @@
+$kind: http-request
+name: Create Document
+method: POST
+url: '{{base_url}}/documents'
+order: 3000
+description: |-
+  Create a new document entry (required_documents or process_flow).
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Send as `multipart/form-data`. Attach up to several preview files (images or PDFs).
+
+  Fields:
+  - `country` (ObjectId, required)
+  - `type` – `required_documents` | `process_flow`
+  - `title` (required)
+  - `section` – section heading (required_documents only)
+  - `stage` – stage label (process_flow only)
+  - `source` – source URL (required_documents only)
+  - `timeline` – timeline text (process_flow only)
+  - `details` – rich text details
+  - `order` – display order (non-negative integer)
+body:
+  type: formdata
+  content:
+    - key: country
+      type: text
+      value: '{{countryId}}'
+    - key: type
+      type: text
+      value: required_documents
+    - key: title
+      type: text
+      value: Passport
+    - key: section
+      type: text
+      value: Identity Documents
+    - key: details
+      type: text
+      value: Valid passport with at least 6 months validity.
+    - key: order
+      type: text
+      value: '0'
+    - key: files
+      type: file
+      src: ''
+      description: Preview image or PDF (optional, repeatable)

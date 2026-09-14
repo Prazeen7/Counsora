@@ -1,0 +1,25 @@
+$kind: http-request
+name: Update User Approval
+method: PATCH
+url: '{{base_url}}/users/{{userId}}/approval'
+order: 2000
+description: |-
+  Approve or reject a verified user account.
+
+  **Requires:** `superAdmin` role.
+
+  Only users who have already verified their email can be approved or rejected.
+  Approving a user also sends them an approval notification email.
+pathVariables:
+  - key: userId
+    value: '{{userId}}'
+    description: MongoDB ObjectId of the user to approve/reject
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "approved": true
+    }

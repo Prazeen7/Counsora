@@ -1,0 +1,33 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{base_url}}/auth/login'
+order: 2000
+description: |-
+  Authenticate with email and password.
+
+  **Public endpoint** – no token required.
+
+  On success the response contains a `token` (JWT, 7-day expiry) and a `user` object.
+  The test script automatically stores the token in the `token` collection variable.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "jane.doe@example.com",
+      "password": "SecurePass123!"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 200 && json.token) {
+          pm.collectionVariables.set("token", json.token);
+          console.log("Token saved to collection variable 'token'");
+      }

@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Country
+method: DELETE
+url: '{{base_url}}/country/{{countryId}}'
+order: 5000
+description: |-
+  Delete a country and cascade-delete its institutions, programs, documents, cost sheets, and study guides.
+
+  **Requires:** `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{countryId}}'

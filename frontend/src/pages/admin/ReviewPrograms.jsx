@@ -1,3 +1,5 @@
+import { tuitionFeeText, tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
+import { apiFetch } from "../../services/api";
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -50,7 +52,7 @@ export default function ReviewPrograms() {
             const token = localStorage.getItem('token');
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            const response = await fetch(
+            const response = await apiFetch(
                 `${apiUrl}/institution/${institutionId}/programs/pending`,
                 {
                     headers: {
@@ -101,7 +103,7 @@ export default function ReviewPrograms() {
             const token = localStorage.getItem('token');
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            const response = await fetch(
+            const response = await apiFetch(
                 `${apiUrl}/institution/${institutionId}/programs/approve`,
                 {
                     method: 'POST',
@@ -138,7 +140,7 @@ export default function ReviewPrograms() {
             const token = localStorage.getItem('token');
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            const response = await fetch(
+            const response = await apiFetch(
                 `${apiUrl}/institution/${institutionId}/programs/reject`,
                 {
                     method: 'POST',
@@ -276,7 +278,7 @@ export default function ReviewPrograms() {
                                     {program.tuition_fees && program.tuition_fees.length > 0 && (
                                         <Grid item xs={12} md={6}>
                                             <Typography variant="body2" color="text.secondary">Tuition:</Typography>
-                                            <Typography variant="body1">{program.tuition_fees.join(', ')}</Typography>
+                                            <Typography variant="body1">{tuitionFeesText(program.tuition_fees)}</Typography>
                                         </Grid>
                                     )}
 
@@ -366,46 +368,10 @@ export default function ReviewPrograms() {
                             value={editForm.credits?.join(', ') || ''}
                             onChange={(e) => setEditForm({ ...editForm, credits: e.target.value.split(',').map(s => s.trim()) })}
                         />
-                        <TextField
-                            label="Tuition Fees (one per line)"
-                            fullWidth
-                            multiline
-                            rows={3}
-                            value={
-                                Array.isArray(editForm?.tuition_fees)
-                                    ? editForm.tuition_fees
-                                        .map(fee =>
-                                            `${fee?.credits || ''}: ${fee?.annual_fee_eur ?? ''}`
-                                        )
-                                        .join('\n')
-                                    : ''
-                            }
-                            onChange={(e) => {
-                                const tuitionFees = e.target.value
-                                    .split('\n')
-                                    .map(line => line.trim())
-                                    .filter(Boolean)
-                                    .map(line => {
-                                        const [credits, fee] = line.split(':');
-
-                                        const parsedFee = Number(fee?.trim());
-
-                                        return {
-                                            credits: credits?.trim() || null,
-                                            annual_fee_eur:
-                                                fee?.trim() && !Number.isNaN(parsedFee)
-                                                    ? parsedFee
-                                                    : null
-                                        };
-                                    });
-
-                                setEditForm({
-                                    ...editForm,
-                                    tuition_fees: tuitionFees
-                                });
-                            }}
-                            placeholder="120 ECTS: 23520"
-                        />
+                        <TextField label="Tuition Fees" fullWidth multiline rows={3}
+ value={tuitionFeesText(editForm?.tuition_fees)}
+ onChange={e => setEditForm({ ...editForm, tuition_fees: tuitionFeesFromText(e.target.value, editForm?.tuition_fees) })}
+ placeholder="e.g. NZD 25,000 per year" />
                         <TextField
                             label="Intakes (comma-separated)"
                             fullWidth

@@ -1,0 +1,9 @@
+$kind: collection
+name: Countries
+description: |-
+  Country management.
+
+  - `GET /country/get` – active countries (all authenticated users)
+  - `GET /country/all` – all countries including inactive (`superAdmin` only)
+  - `POST / PATCH / DELETE` – `superAdmin` only
+order: 3000

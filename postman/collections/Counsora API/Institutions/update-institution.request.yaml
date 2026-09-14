@@ -1,0 +1,23 @@
+$kind: http-request
+name: Update Institution
+method: PUT
+url: '{{base_url}}/institution/{{institutionId}}'
+order: 4000
+description: |-
+  Update an existing institution. Accepts `multipart/form-data` (same shape as Add Institution).
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{institutionId}}'
+body:
+  type: formdata
+  content:
+    - key: data
+      type: text
+      value: '{"website":"https://updated.edu"}'
+      description: JSON-encoded fields to update
+    - key: logo
+      type: file
+      src: ''
+      description: Replacement logo image (optional)

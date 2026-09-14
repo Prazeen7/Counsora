@@ -1,0 +1,20 @@
+$kind: http-request
+name: Verify Email
+method: POST
+url: '{{base_url}}/auth/verify-email'
+order: 4000
+description: |-
+  Confirm an email address using the one-time token sent to the user's inbox.
+
+  **Public endpoint** – no token required.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "token": "<one-time-email-verification-token>"
+    }
+auth:
+  type: noauth

@@ -1,0 +1,25 @@
+$kind: http-request
+name: Update Document
+method: PUT
+url: '{{base_url}}/documents/{{documentId}}'
+order: 4000
+description: |-
+  Update an existing document entry.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Same `multipart/form-data` shape as Create Document.
+  Pass `removePreview: true` to clear all existing previews.
+  Pass `removePreviewIndexes` (JSON array of integers) to remove specific previews.
+pathVariables:
+  - key: id
+    value: '{{documentId}}'
+body:
+  type: formdata
+  content:
+    - key: title
+      type: text
+      value: Updated Passport
+    - key: details
+      type: text
+      value: Updated details text.

@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Active Countries
+method: GET
+url: '{{base_url}}/country/get'
+order: 1000
+description: |-
+  Returns all active countries (code, name, currency), sorted by name.
+
+  **Requires:** any authenticated user.

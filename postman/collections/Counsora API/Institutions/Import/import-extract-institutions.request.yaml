@@ -1,0 +1,26 @@
+$kind: http-request
+name: Extract Institutions
+method: POST
+url: '{{base_url}}/institution/import/extract-institutions'
+order: 2000
+description: |-
+  Extract institution records from a previously uploaded spreadsheet group.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Send as `multipart/form-data` with the same spreadsheet file plus `sessionId` and `groupId` fields.
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''
+      description: Same Excel spreadsheet used in Discover Groups
+    - key: sessionId
+      type: text
+      value: ''
+      description: Session ID returned by Discover Groups
+    - key: groupId
+      type: text
+      value: ''
+      description: Group ID to extract institutions from

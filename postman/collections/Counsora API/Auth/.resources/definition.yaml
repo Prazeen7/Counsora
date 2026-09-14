@@ -1,0 +1,4 @@
+$kind: collection
+name: Auth
+description: Public and authenticated endpoints for account registration, login, and email verification.
+order: 1000

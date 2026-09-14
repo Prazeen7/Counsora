@@ -1,0 +1,21 @@
+$kind: http-request
+name: Update Verification Email
+method: POST
+url: '{{base_url}}/auth/verification-email'
+order: 7000
+description: |-
+  Change the email address that the verification link is sent to (before the account is verified).
+
+  **Public endpoint** – no token required.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "verificationStatusToken": "{{verificationStatusToken}}",
+      "newEmail": "jane.new@example.com"
+    }
+auth:
+  type: noauth

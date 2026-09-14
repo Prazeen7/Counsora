@@ -1,3 +1,4 @@
+import { tuitionFeeText } from '../../utils/tuitionFees';
 import React, { useEffect, useState } from "react";
 import ListingFlags from "../admin/ListingFlags";
 import {
@@ -929,10 +930,8 @@ export default function InstitutionTabsContent({
                                                     </Typography>
                                                     {program.tuition_fees.map((fee, index) => (
                                                         <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
-                                                            {fee?.credits}
-                                                            {fee?.annual_fee_eur != null &&
-                                                                ` · ${Number(fee.annual_fee_eur).toLocaleString()}${institution?.country?.currency ? ` ${institution.country.currency}` : ""}`}
-                                                        </Typography>
+                                                            {tuitionFeeText(fee)}
+</Typography>
                                                     ))}
                                                 </Box>
                                             )}

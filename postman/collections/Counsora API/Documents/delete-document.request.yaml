@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Document
+method: DELETE
+url: '{{base_url}}/documents/{{documentId}}'
+order: 5000
+description: |-
+  Delete a document entry.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{documentId}}'

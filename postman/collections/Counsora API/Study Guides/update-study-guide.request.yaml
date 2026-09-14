@@ -1,0 +1,27 @@
+$kind: http-request
+name: Update Study Guide
+method: PUT
+url: '{{base_url}}/study-guides/{{studyGuideId}}'
+order: 3000
+description: |-
+  Update an existing study guide topic.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: id
+    value: '{{studyGuideId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated Visa Requirements",
+      "sections": [
+        {
+          "title": "Documents Required",
+          "content": "Updated content here."
+        }
+      ]
+    }

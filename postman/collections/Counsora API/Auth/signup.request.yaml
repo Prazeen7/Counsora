@@ -1,0 +1,38 @@
+$kind: http-request
+name: Sign Up
+method: POST
+url: '{{base_url}}/auth/signup'
+order: 1000
+description: |-
+  Register a new counselor or admin account.
+
+  **Public endpoint** – no token required.
+
+  `role` defaults to `counselor`. Counselors must supply `organizationName`.
+  Superadmins are provisioned separately and cannot be created via this endpoint.
+
+  On success a `verificationStatusToken` is returned for polling email-verification status.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "email": "jane.doe@example.com",
+      "password": "SecurePass123!",
+      "role": "counselor",
+      "organizationName": "Bright Future Consultancy"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 201 && json.verificationStatusToken) {
+          pm.collectionVariables.set("verificationStatusToken", json.verificationStatusToken);
+      }

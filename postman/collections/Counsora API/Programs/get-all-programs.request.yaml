@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get All Programs
+method: GET
+url: '{{base_url}}/program/get'
+order: 2000
+description: |-
+  Retrieve all programs with optional filtering.
+
+  **Requires:** any authenticated user.

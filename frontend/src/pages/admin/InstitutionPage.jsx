@@ -1,3 +1,5 @@
+import { tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
+import { apiFetch } from "../../services/api";
 import { FIELD_OPTIONS } from "../../constants/programFields";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -566,13 +568,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                 campuses_raw: Array.isArray(base.campuses)
                     ? base.campuses.join(", ")
                     : base.campuses || "",
-                tuition_fees_raw: Array.isArray(base.tuition_fees)
-                    ? base.tuition_fees
-                        .map((fee) => `${fee?.credits || ""}: ${fee?.annual_fee_eur ?? ""}`)
-                        .join("\n")
-                    : typeof base.tuition_fees === "string"
-                        ? base.tuition_fees
-                        : "",
+                tuition_fees_raw: tuitionFeesText(base.tuition_fees),
                 additional_requirements_raw: Array.isArray(
                     base.entry_requirements?.additional_requirements
                 )
@@ -672,24 +668,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                         .map((c) => c.trim())
                         .filter(Boolean)
                     : formData.campuses || [],
-            tuition_fees:
-                typeof formData.tuition_fees_raw === "string"
-                    ? formData.tuition_fees_raw
-                        .split("\n")
-                        .map((line) => line.trim())
-                        .filter(Boolean)
-                        .map((line) => {
-                            const [credits, fee] = line.split(":");
-                            const parsedFee = Number(fee?.trim());
-                            return {
-                                credits: credits?.trim() || null,
-                                annual_fee_eur:
-                                    fee?.trim() && !Number.isNaN(parsedFee)
-                                        ? parsedFee
-                                        : null,
-                            };
-                        })
-                    : formData.tuition_fees || [],
+            tuition_fees: tuitionFeesFromText(formData.tuition_fees_raw ?? "", formData.tuition_fees || []),
             entry_requirements: {
                 ...formData.entry_requirements,
                 academic: {
@@ -974,10 +953,10 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                                 fullWidth
                                 multiline
                                 rows={3}
-                                label="Tuition Fees (one per line: credits: amount)"
+                                label="Tuition Fees"
                                 value={formData.tuition_fees_raw ?? ""}
                                 onChange={(e) => handleChange("tuition_fees_raw", e.target.value)}
-                                placeholder="e.g. 120 ECTS: 23520"
+                                placeholder="e.g. NZD 25,000 per year"
                             />
                         </Grid>
 
@@ -2377,7 +2356,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 }
             });
 
-            const response = await fetch(`${apiUrl}/institution/${institutionId}`, {
+            const response = await apiFetch(`${apiUrl}/institution/${institutionId}`, {
                 method: "PUT",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -2532,7 +2511,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             delete payloadToSave.tuitionFee;
 
             if (payloadToSave._id && !payloadToSave._id.startsWith("temp_")) {
-                const response = await fetch(`${apiUrl}/program/${payloadToSave._id}`, {
+                const response = await apiFetch(`${apiUrl}/program/${payloadToSave._id}`, {
                     method: "PUT",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -2561,7 +2540,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 });
             } else {
                 delete payloadToSave._id;
-                const response = await fetch(`${apiUrl}/program`, {
+                const response = await apiFetch(`${apiUrl}/program`, {
                     method: "POST",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -2611,7 +2590,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             const token = localStorage.getItem("token");
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            const response = await fetch(`${apiUrl}/program/${programToDelete._id}`, {
+            const response = await apiFetch(`${apiUrl}/program/${programToDelete._id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -2696,7 +2675,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
         const pollStatus = async () => {
             try {
-                const response = await fetch(`${apiUrl}/institution/${institutionId}/crawl-status`, {
+                const response = await apiFetch(`${apiUrl}/institution/${institutionId}/crawl-status`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await response.json();
@@ -2729,7 +2708,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
 
         try {
             setProgramImporting(true);
-            const response = await fetch(`${apiUrl}/institution/${institutionId}/crawl`, {
+            const response = await apiFetch(`${apiUrl}/institution/${institutionId}/crawl`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

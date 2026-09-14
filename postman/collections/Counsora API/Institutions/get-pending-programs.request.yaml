@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Pending Programs
+method: GET
+url: '{{base_url}}/institution/{{institutionId}}/programs/pending'
+order: 8000
+description: |-
+  List programs discovered by the crawler that are awaiting admin review.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'

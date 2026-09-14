@@ -1,0 +1,26 @@
+$kind: http-request
+name: List Users
+method: GET
+url: '{{base_url}}/users?page=1'
+order: 1000
+description: |-
+  Paginated list of users.
+
+  **Requires:** `superAdmin` role.
+
+  **Query parameters:**
+  - `page` (integer, default 1) – page number
+  - `view` – `all` | `verify` (pending verification) | `admin` | `counselor`
+  - `organization` – filter counselors by organization name (used with `view=counselor`)
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (25 users per page)
+  - key: view
+    value: all
+    description: 'Filter: all | verify | admin | counselor'
+    disabled: true
+  - key: organization
+    value: ''
+    description: Filter counselors by organization name
+    disabled: true

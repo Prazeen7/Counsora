@@ -1,0 +1,47 @@
+$kind: http-request
+name: Create Program
+method: POST
+url: '{{base_url}}/program'
+order: 3000
+description: |-
+  Create a new academic program for an institution.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Key fields: `institutionId`, `degree_name`, `level`, `field`, `tuitionFee`, `entry_requirements`.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "institutionId": "{{institutionId}}",
+      "degree_name": "Bachelor of Computer Science",
+      "level": "Bachelor",
+      "field": "Information Systems and Technology",
+      "tuitionFee": {
+        "annual_fee_eur": null
+      },
+      "entry_requirements": {
+        "academic": {
+          "minimum_qualification": "Higher Secondary",
+          "score_type": "GPA",
+          "score": 2.5,
+          "scale": 4.0
+        },
+        "language_requirements": {
+          "english": {
+            "ielts": { "overall": 6.0, "minimum_band": 5.5 }
+          }
+        }
+      }
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 201 && json._id) {
+          pm.collectionVariables.set("programId", json._id);
+      }

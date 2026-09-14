@@ -1,0 +1,13 @@
+$kind: collection
+name: Import (Spreadsheet)
+description: |-
+  Multi-step spreadsheet import flow for bulk-loading institutions and programs.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Steps:
+  1. `POST /import/groups` – upload spreadsheet, discover institution groups
+  2. `POST /import/extract-institutions` – extract institution records from a group
+  3. `POST /import/extract-programs` – extract program records for institutions
+  4. `POST /import/commit` – persist the extracted data to the database
+order: 11000

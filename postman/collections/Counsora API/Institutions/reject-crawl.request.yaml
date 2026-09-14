@@ -1,0 +1,19 @@
+$kind: http-request
+name: Reject Crawl
+method: POST
+url: '{{base_url}}/institution/{{institutionId}}/programs/reject'
+order: 10000
+description: |-
+  Reject (discard) all pending programs from the last crawl for an institution.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {}

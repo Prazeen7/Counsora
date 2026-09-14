@@ -1,0 +1,19 @@
+$kind: http-request
+name: Discover Groups
+method: POST
+url: '{{base_url}}/institution/import/groups'
+order: 1000
+description: |-
+  Upload a spreadsheet and discover institution groups within it.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Send as `multipart/form-data` with a `file` field containing the `.xlsx` spreadsheet.
+  Returns a `sessionId` and list of groups to use in subsequent import steps.
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''
+      description: Excel spreadsheet (.xlsx)

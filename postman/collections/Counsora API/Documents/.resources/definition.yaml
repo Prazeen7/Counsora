@@ -1,0 +1,8 @@
+$kind: collection
+name: Documents
+description: |-
+  Required-documents and process-flow document management per country.
+
+  - Read – all authenticated users
+  - Write – `admin` or `superAdmin` only
+order: 6000

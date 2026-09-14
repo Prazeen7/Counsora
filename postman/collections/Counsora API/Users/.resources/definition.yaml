@@ -1,0 +1,7 @@
+$kind: collection
+name: Users
+description: |-
+  User management endpoints.
+
+  **Requires:** `superAdmin` role.
+order: 2000

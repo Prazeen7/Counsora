@@ -1,0 +1,21 @@
+$kind: http-request
+name: Approve Programs
+method: POST
+url: '{{base_url}}/institution/{{institutionId}}/programs/approve'
+order: 9000
+description: |-
+  Approve selected pending programs discovered by the crawler.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "programIds": ["<programId1>", "<programId2>"]
+    }

@@ -1,19 +1,27 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authenticatedRequests = new WeakSet();
 
 const authMiddleware = async (req, res, next) => {
+    // API and route guards share one validation per request.
+    if (authenticatedRequests.has(req)) return next();
     const authHeader = req.headers.authorization;
+    const bearer = typeof authHeader === 'string' && /^Bearer ([^\s,]+)$/i.exec(authHeader);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!bearer) {
         return res.status(401).json({
             error: "Authentication token is missing",
         });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = bearer[1];
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded || typeof decoded !== 'object' || typeof decoded.id !== 'string' ||
+            !/^[a-f0-9]{24}$/i.test(decoded.id) || typeof decoded.sessionToken !== 'string' || !decoded.sessionToken.trim()) {
+            return res.status(401).json({ error: 'Invalid session token' });
+        }
 
         const user = await User.findById(decoded.id);
 
@@ -27,7 +35,7 @@ const authMiddleware = async (req, res, next) => {
             return res.status(403).json({ error: "Invalid account role" });
         }
 
-        if (user.sessionToken !== decoded.sessionToken) {
+        if (!user.sessionToken || user.sessionToken !== decoded.sessionToken) {
             return res.status(401).json({
                 error: "You have been logged out because your account was used on another device.",
             });
@@ -42,6 +50,7 @@ const authMiddleware = async (req, res, next) => {
         }
 
         req.user = user;
+        authenticatedRequests.add(req);
         
 
         next();

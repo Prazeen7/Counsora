@@ -1,0 +1,8 @@
+$kind: collection
+name: Study Guides
+description: |-
+  Country-specific study-guide topics with ordered sections.
+
+  - Read – all authenticated users
+  - Write – `admin` or `superAdmin` only
+order: 7000

@@ -1,0 +1,8 @@
+$kind: collection
+name: Institutions
+description: |-
+  Institution CRUD, logo upload, web-crawler integration, and spreadsheet import.
+
+  - Read operations – all authenticated users
+  - Write / crawl / import operations – `admin` or `superAdmin` only
+order: 4000

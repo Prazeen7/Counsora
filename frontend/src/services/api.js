@@ -1,44 +1,12 @@
 const URL = import.meta.env.VITE_BACKEND_URL;
+import { apiFetch } from './authenticatedFetch';
+export { apiFetch };
 
 export async function apiRequest(endpoint, options = {}) {
-    const token = localStorage.getItem("token");
-    
-    // Check if it's FormData
-    const isFormData = options.isFormData || options.body instanceof FormData;
-    
-    const headers = {
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...(options.headers || {}),
-    };
-    
-    // Don't set Content-Type for FormData - browser will set it with boundary
-    if (!isFormData) {
-        headers["Content-Type"] = "application/json";
-    }
-
-    const response = await fetch(`${URL}${endpoint}`, {
-        headers,
-        ...options,
-    });
+    const response = await apiFetch(`${URL}${endpoint}`, options);
 
     if (response.ok && options.responseType === "blob") return response.blob();
     const data = await response.json().catch(() => ({}));
-
-    // Handle unauthorized globally
-    if (response.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        sessionStorage.setItem(
-            "logoutMessage",
-            data.error || "Your session has expired. Please log in again."
-        );
-
-        window.location.href = "/login";
-
-        // Stop execution
-        throw new Error("Unauthorized");
-    }
 
     if (!response.ok) {
         const error = new Error(data.error || "Request failed");

@@ -1,0 +1,22 @@
+$kind: http-request
+name: Update Program
+method: PUT
+url: '{{base_url}}/program/{{programId}}'
+order: 4000
+description: |-
+  Update an existing program.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: programId
+    value: '{{programId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "isActive": true,
+      "field": "Information Systems and Technology"
+    }

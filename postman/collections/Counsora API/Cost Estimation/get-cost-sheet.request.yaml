@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Cost Sheet
+method: GET
+url: '{{base_url}}/cost-estimation/{{countryId}}'
+order: 1000
+description: |-
+  Retrieve the cost sheet for a country with default amounts and live NRB forex conversion.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: countryId
+    value: '{{countryId}}'

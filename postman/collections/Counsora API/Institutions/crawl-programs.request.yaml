@@ -1,0 +1,23 @@
+$kind: http-request
+name: Crawl and Add Programs
+method: POST
+url: '{{base_url}}/institution/{{institutionId}}/crawl'
+order: 6000
+description: |-
+  Trigger the web crawler to discover programs for an institution.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  The crawler runs asynchronously. Poll `GET /:institutionId/crawl-status` to track progress.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "url": "https://example.edu/programs"
+    }

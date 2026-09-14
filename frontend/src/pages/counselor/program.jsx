@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api";
 import { FIELD_OPTIONS } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -307,7 +308,7 @@ export default function Programs() {
             setLoading(true);
             const token = localStorage.getItem("token");
 
-            const response = await fetch(`${URL}/program/get?limit=${batchSize}&offset=${offset}&seed=${programShuffleSeed}&${backendFilterKey}`, {
+            const response = await apiFetch(`${URL}/program/get?limit=${batchSize}&offset=${offset}&seed=${programShuffleSeed}&${backendFilterKey}`, {
                 method: "GET",
                 signal,
                 headers: {

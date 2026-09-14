@@ -1,0 +1,15 @@
+$kind: http-request
+name: List Study Guides
+method: GET
+url: '{{base_url}}/study-guides?country={{countryId}}'
+order: 1000
+description: |-
+  List all study guide topics for a country, sorted by display order.
+
+  **Requires:** any authenticated user.
+
+  The `country` query parameter (ObjectId) is **required**.
+queryParams:
+  - key: country
+    value: '{{countryId}}'
+    description: Country ObjectId (required)

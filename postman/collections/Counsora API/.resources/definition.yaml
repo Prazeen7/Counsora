@@ -1,0 +1,49 @@
+$kind: collection
+name: Counsora API
+description: |-
+  REST API for the Counsora study-abroad counselling platform.
+
+  **Base URL:** `{{base_url}}`  (e.g. `http://localhost:5000/api`)
+
+  **Authentication:**  
+  Most endpoints require a JWT Bearer token obtained from `POST /auth/login`.  
+  Pass it as `Authorization: Bearer {{token}}`.
+
+  **Roles:**
+  - `counselor` – standard authenticated user
+  - `admin` – can manage institutions, programs, documents, study guides, cost sheets
+  - `superAdmin` – can manage users and countries
+
+variables:
+  - key: base_url
+    value: 'http://localhost:5000/api'
+    description: Base URL for all API requests (no trailing slash)
+  - key: token
+    value: ''
+    description: JWT Bearer token – set automatically by the Login request test script
+  - key: userId
+    value: ''
+    description: MongoDB ObjectId of a user (used in user-management requests)
+  - key: countryId
+    value: ''
+    description: MongoDB ObjectId of a country
+  - key: institutionId
+    value: ''
+    description: MongoDB ObjectId of an institution
+  - key: programId
+    value: ''
+    description: MongoDB ObjectId of a program
+  - key: documentId
+    value: ''
+    description: MongoDB ObjectId of a document
+  - key: studyGuideId
+    value: ''
+    description: MongoDB ObjectId of a study guide
+  - key: verificationStatusToken
+    value: ''
+    description: Short-lived JWT returned by signup / resend-verification for polling email-verification status
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

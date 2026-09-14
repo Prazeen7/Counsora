@@ -1,0 +1,57 @@
+$kind: http-request
+name: Save Cost Sheet
+method: PUT
+url: '{{base_url}}/cost-estimation/{{countryId}}'
+order: 4000
+description: |-
+  Create or replace the cost sheet for a country.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  The body must contain `title` and `stages` (1–20 stages, each with 1–50 items).
+  Each item must have a `key`, `label`, `currency` (NPR or the country's currency), and optional `amount`.
+pathVariables:
+  - key: countryId
+    value: '{{countryId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Australia Study Cost Estimate",
+      "stages": [
+        {
+          "key": "pre_departure",
+          "title": "Pre-Departure",
+          "items": [
+            {
+              "key": "visa_fee",
+              "label": "Student Visa Fee",
+              "amount": 650,
+              "currency": "AUD"
+            },
+            {
+              "key": "oshc",
+              "label": "Overseas Student Health Cover (1 year)",
+              "amount": 600,
+              "currency": "AUD"
+            }
+          ]
+        },
+        {
+          "key": "on_arrival",
+          "title": "On Arrival",
+          "items": [
+            {
+              "key": "accommodation_deposit",
+              "label": "Accommodation Deposit",
+              "amount": null,
+              "currency": "AUD",
+              "note": "Varies by provider"
+            }
+          ]
+        }
+      ]
+    }

@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Cost Sheet
+method: DELETE
+url: '{{base_url}}/cost-estimation/{{countryId}}'
+order: 5000
+description: |-
+  Delete the cost sheet for a country.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: countryId
+    value: '{{countryId}}'

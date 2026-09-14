@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Document Preview
+method: GET
+url: '{{base_url}}/documents/{{documentId}}/preview'
+order: 2000
+description: |-
+  Retrieve the preview images/PDF stored with a document.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: id
+    value: '{{documentId}}'

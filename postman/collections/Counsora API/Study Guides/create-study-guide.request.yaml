@@ -1,0 +1,50 @@
+$kind: http-request
+name: Create Study Guide
+method: POST
+url: '{{base_url}}/study-guides'
+order: 2000
+description: |-
+  Create a new study guide topic for a country.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Fields:
+  - `country` (ObjectId, required)
+  - `label` – short navigation label (unique per country, required)
+  - `title` – full topic title (required)
+  - `description` – short description
+  - `category` – grouping category
+  - `introduction` – introductory text
+  - `sections` – array of `{ title, content }` objects (up to 50)
+  - `order` – display order (non-negative integer)
+
+  Either `introduction` or at least one `section` is required.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "country": "{{countryId}}",
+      "label": "visa-requirements",
+      "title": "Visa Requirements",
+      "description": "Overview of student visa requirements.",
+      "category": "Visa",
+      "introduction": "To study abroad you need a valid student visa.",
+      "sections": [
+        {
+          "title": "Documents Required",
+          "content": "Passport, offer letter, financial proof."
+        }
+      ],
+      "order": 0
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 201 && json._id) {
+          pm.collectionVariables.set("studyGuideId", json._id);
+      }

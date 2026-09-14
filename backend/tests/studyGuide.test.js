@@ -82,7 +82,7 @@ test('delete validates ID and reports missing records', async () => {
 });
 test('all writes are protected by admin middleware and reads require authentication', () => {
     const router = require('../src/routes/studyGuideRoutes');
-    const { authMiddleware } = require('../src/middleware/authMiddleWare');
+    const { authMiddleware } = require('../src/middleware/authMiddleware');
     const { adminMiddleware } = require('../src/middleware/adminMiddleware');
     assert.equal(router.stack[0].handle, authMiddleware);
     for (const layer of router.stack.filter(layer => layer.route && !layer.route.methods.get)) assert.equal(layer.route.stack[0].handle, adminMiddleware);

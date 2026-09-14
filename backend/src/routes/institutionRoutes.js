@@ -11,7 +11,7 @@ const {
     approvePrograms,
     rejectCrawl
 } = require("../controllers/institutionController");
-const { authMiddleware } = require("../middleware/authMiddleWare");
+const { authMiddleware } = require("../middleware/authMiddleware");
 const { adminMiddleware } = require("../middleware/adminMiddleware");
 const upload = require("../middleware/upload");
 const spreadsheetUpload = require("../middleware/spreadsheetUpload");

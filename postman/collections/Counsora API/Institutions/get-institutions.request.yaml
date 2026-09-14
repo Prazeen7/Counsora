@@ -1,0 +1,28 @@
+$kind: http-request
+name: Get Institutions
+method: POST
+url: '{{base_url}}/institution/get'
+order: 1000
+description: |-
+  Paginated, filtered list of institutions with active program counts.
+
+  **Requires:** any authenticated user.
+
+  Body filters (all optional):
+  - `search` – name substring match
+  - `country` – country ObjectId
+  - `location` – campus city
+  - `page` / `limit` (default 1 / 12)
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "page": 1,
+      "limit": 12,
+      "country": "{{countryId}}",
+      "search": "",
+      "location": "all"
+    }

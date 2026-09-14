@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isVerifiedUser } from "../utils/authAccess";
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
                     setUser(null);
                     return;
                 }
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/me`, {
+                const response = await apiFetch(`${import.meta.env.VITE_BACKEND_URL}/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
                 });
                 const data = await response.json();

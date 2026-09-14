@@ -1,0 +1,26 @@
+$kind: http-request
+name: Extract Programs
+method: POST
+url: '{{base_url}}/institution/import/extract-programs'
+order: 3000
+description: |-
+  Extract program records for institutions from the spreadsheet.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Send as `multipart/form-data` with the spreadsheet file plus `sessionId` and `groupId`.
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''
+      description: Same Excel spreadsheet
+    - key: sessionId
+      type: text
+      value: ''
+      description: Session ID from Discover Groups
+    - key: groupId
+      type: text
+      value: ''
+      description: Group ID

@@ -1,0 +1,28 @@
+$kind: http-request
+name: Resend Verification Email
+method: POST
+url: '{{base_url}}/auth/resend-verification'
+order: 6000
+description: |-
+  Re-send the email-verification link to the user's registered address.
+
+  **Public endpoint** – no token required.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "jane.doe@example.com"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (pm.response.code === 200 && json.verificationStatusToken) {
+          pm.collectionVariables.set("verificationStatusToken", json.verificationStatusToken);
+      }

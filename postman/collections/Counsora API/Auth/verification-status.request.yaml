@@ -1,0 +1,22 @@
+$kind: http-request
+name: Verification Status
+method: POST
+url: '{{base_url}}/auth/verification-status'
+order: 5000
+description: |-
+  Poll whether the user's email has been verified.
+
+  **Public endpoint** – no token required.
+
+  Pass the `verificationStatusToken` returned by Sign Up or Resend Verification.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "verificationStatusToken": "{{verificationStatusToken}}"
+    }
+auth:
+  type: noauth

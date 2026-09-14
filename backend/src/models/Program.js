@@ -79,6 +79,7 @@ const scholarshipSchema = new mongoose.Schema(
 
 const tuitionFeeSchema = new mongoose.Schema(
     {
+        display_text: { type: String, default: null },
         credits: { type: String, default: null },
         annual_fee_eur: { type: Number, default: null },
     },

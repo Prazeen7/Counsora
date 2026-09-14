@@ -1,3 +1,4 @@
+import { tuitionFeeText, tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -250,9 +251,7 @@ export default function ReviewProgramsModal({
 
                                                         {program.tuition_fees.map((fee, i) => (
                                                             <Typography variant="body1" key={i}>
-                                                                {fee.credits && `${fee.credits}: `}
-                                                                {fee.annual_fee_eur != null &&
-                                                                    `€${fee.annual_fee_eur.toLocaleString()} per year`}
+                                                                {tuitionFeeText(fee)}
                                                             </Typography>
                                                         ))}
                                                     </Grid>
@@ -426,41 +425,10 @@ export default function ReviewProgramsModal({
                                 credits: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                             })}
                         />
-                        <TextField
-                            label="Tuition Fees"
-                            fullWidth
-                            value={
-                                editProgramForm.tuition_fees
-                                    ?.map(
-                                        fee =>
-                                            `${fee.credits || ''}: ${fee.annual_fee_eur ?? ''}`
-                                    )
-                                    .join(', ') || ''
-                            }
-                            onChange={(e) => {
-                                const tuitionFees = e.target.value
-                                    .split(',')
-                                    .map(item => item.trim())
-                                    .filter(Boolean)
-                                    .map(item => {
-                                        const [credits, fee] = item.split(':');
-
-                                        const parsedFee = Number(fee?.trim());
-
-                                        return {
-                                            credits: credits?.trim() || null,
-                                            annual_fee_eur: fee?.trim() && !Number.isNaN(parsedFee)
-                                                ? parsedFee
-                                                : null,
-                                        };
-                                    });
-
-                                setEditProgramForm({
-                                    ...editProgramForm,
-                                    tuition_fees: tuitionFees,
-                                });
-                            }}
-                        />
+                        <TextField label="Tuition Fees" fullWidth multiline rows={3}
+ value={tuitionFeesText(editProgramForm?.tuition_fees)}
+ onChange={e => setEditProgramForm({ ...editProgramForm, tuition_fees: tuitionFeesFromText(e.target.value, editProgramForm?.tuition_fees) })}
+ placeholder="e.g. NZD 25,000 per year" />
                         <TextField
                             label="Intakes (comma-separated)"
                             fullWidth

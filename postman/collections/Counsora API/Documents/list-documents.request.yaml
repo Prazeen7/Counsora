@@ -1,0 +1,18 @@
+$kind: http-request
+name: List Documents
+method: GET
+url: '{{base_url}}/documents'
+order: 1000
+description: |-
+  List documents (required_documents or process_flow) optionally filtered by country and/or type.
+
+  **Requires:** any authenticated user.
+queryParams:
+  - key: country
+    value: '{{countryId}}'
+    description: Filter by country ObjectId
+    disabled: true
+  - key: type
+    value: required_documents
+    description: 'required_documents | process_flow'
+    disabled: true

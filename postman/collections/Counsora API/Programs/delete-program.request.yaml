@@ -1,0 +1,12 @@
+$kind: http-request
+name: Delete Program
+method: DELETE
+url: '{{base_url}}/program/{{programId}}'
+order: 5000
+description: |-
+  Delete a program.
+
+  **Requires:** `admin` or `superAdmin` role.
+pathVariables:
+  - key: programId
+    value: '{{programId}}'

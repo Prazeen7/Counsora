@@ -1,0 +1,19 @@
+$kind: http-request
+name: Get Programs by Institution
+method: GET
+url: '{{base_url}}/program/institution/{{institutionId}}'
+order: 1000
+description: |-
+  List all active programs for a given institution.
+
+  **Requires:** any authenticated user.
+
+  Admins and superAdmins can pass `includeInactive=true` to also see inactive programs.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'
+queryParams:
+  - key: includeInactive
+    value: 'true'
+    description: Include inactive programs (admin/superAdmin only)
+    disabled: true

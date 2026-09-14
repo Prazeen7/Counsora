@@ -1,0 +1,27 @@
+$kind: http-request
+name: Estimate Costs
+method: POST
+url: '{{base_url}}/cost-estimation/{{countryId}}/estimate'
+order: 2000
+description: |-
+  Calculate a personalised cost estimate by supplying custom amounts for specific cost items.
+
+  **Requires:** any authenticated user.
+
+  The `values` object maps cost-item keys (from the cost sheet) to custom amounts.
+  Omitted keys use the sheet's default amounts.
+pathVariables:
+  - key: countryId
+    value: '{{countryId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "values": {
+        "tuition_fee": 15000,
+        "accommodation": 8000
+      }
+    }

@@ -1,0 +1,24 @@
+$kind: http-request
+name: Add Institution
+method: POST
+url: '{{base_url}}/institution/add'
+order: 3000
+description: |-
+  Create a new institution. Accepts `multipart/form-data` so a logo image can be uploaded.
+
+  **Requires:** `admin` or `superAdmin` role.
+
+  Send as `form-data`. The `data` field must be a JSON string containing the institution object.
+  Optionally attach a `logo` file (image).
+body:
+  type: formdata
+  content:
+    - key: data
+      type: text
+      value: |-
+        {"name":"Example University","country":"{{countryId}}","type":"Public","website":"https://example.edu","campuses":[{"address":"123 Main St","city":"Sydney"}]}
+      description: JSON-encoded institution object
+    - key: logo
+      type: file
+      src: ''
+      description: Institution logo image (optional)

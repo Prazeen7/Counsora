@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get Crawl Status
+method: GET
+url: '{{base_url}}/institution/{{institutionId}}/crawl-status'
+order: 7000
+description: |-
+  Check the status of an ongoing or completed crawl for an institution.
+
+  **Requires:** any authenticated user.
+pathVariables:
+  - key: institutionId
+    value: '{{institutionId}}'

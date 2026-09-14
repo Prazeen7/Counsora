@@ -1,3 +1,4 @@
+import { apiFetch } from "../../services/api";
 import { useState, useEffect, useRef } from "react";
 import {
     Box,
@@ -923,7 +924,7 @@ export default function AddInstitution({ onClose }) {
             setCrawlStatus('crawling');
             setCrawlMessage('Crawling website... This may take several minutes. You can continue working.');
 
-            const crawlResponse = await fetch(
+            const crawlResponse = await apiFetch(
                 `${apiUrl}/institution/${useInstId}/crawl`,
                 {
                     method: 'POST',
@@ -948,7 +949,7 @@ export default function AddInstitution({ onClose }) {
                     // Poll for status every 10 seconds
                     const pollInterval = setInterval(async () => {
                         try {
-                            const pollResponse = await fetch(
+                            const pollResponse = await apiFetch(
                                 `${apiUrl}/institution/${useInstId}/crawl-status`,
                                 {
                                     headers: {
@@ -968,7 +969,7 @@ export default function AddInstitution({ onClose }) {
                                 setCrawlMessage(`✓ Crawl completed! Fetching ${pollData.programCount} programs for review...`);
 
                                 // Fetch the pending programs
-                                const programsResponse = await fetch(
+                                const programsResponse = await apiFetch(
                                     `${apiUrl}/institution/${useInstId}/programs/pending`,
                                     {
                                         headers: {
@@ -1031,7 +1032,7 @@ export default function AddInstitution({ onClose }) {
             const token = localStorage.getItem('token');
             const apiUrl = import.meta.env.VITE_BACKEND_URL;
 
-            const response = await fetch(
+            const response = await apiFetch(
                 `${apiUrl}/institution/${institutionId}/programs/approve`,
                 {
                     method: 'POST',

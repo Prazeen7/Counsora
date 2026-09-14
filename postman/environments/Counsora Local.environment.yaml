@@ -1,0 +1,38 @@
+name: Counsora Local
+values:
+  - key: base_url
+    value: 'http://localhost:5000/api'
+    enabled: true
+    type: default
+  - key: token
+    value: ''
+    enabled: true
+    type: default
+  - key: userId
+    value: ''
+    enabled: true
+    type: default
+  - key: countryId
+    value: ''
+    enabled: true
+    type: default
+  - key: institutionId
+    value: ''
+    enabled: true
+    type: default
+  - key: programId
+    value: ''
+    enabled: true
+    type: default
+  - key: documentId
+    value: ''
+    enabled: true
+    type: default
+  - key: studyGuideId
+    value: ''
+    enabled: true
+    type: default
+  - key: verificationStatusToken
+    value: ''
+    enabled: true
+    type: default
