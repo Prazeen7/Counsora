@@ -186,6 +186,15 @@ function CountryInstitutionList({ selectedCountry }) {
 
     const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
 
+    const getUniqueCities = (campuses = []) => [
+        ...new Map(
+            campuses
+                .map((campus) => campus.city?.trim())
+                .filter(Boolean)
+                .map((city) => [city.toLowerCase(), city])
+        ).values(),
+    ];
+
     // ----- Fetch institutions -----
 
     const fetchInstitution = async (query, location, page) => {
@@ -237,12 +246,7 @@ function CountryInstitutionList({ selectedCountry }) {
             setInstitutions(institutionsWithCounts);
             setPagination(jsonResponse.pagination);
 
-            const locations = institutionsWithCounts
-                .flatMap(inst => inst.campuses?.map(c => c.city) || [])
-                .filter((city, index, self) => city && self.indexOf(city) === index)
-                .sort();
-
-            setAllLocations(locations);
+            setAllLocations(jsonResponse.locations || []);
             setError(null);
         } catch (err) {
             setError(err.message);
@@ -402,11 +406,8 @@ function CountryInstitutionList({ selectedCountry }) {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                                                 <LocationOn sx={{ fontSize: 18 }} />
                                                 <Typography level='body-sm'>
-                                                    {institution.campuses?.length
-                                                        ? institution.campuses
-                                                            .map((campus) => campus.city)
-                                                            .filter(Boolean)
-                                                            .join(', ')
+                                                    {getUniqueCities(institution.campuses).length
+                                                        ? getUniqueCities(institution.campuses).join(', ')
                                                         : 'Location not available'}
                                                 </Typography>
                                             </Box>

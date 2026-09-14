@@ -291,7 +291,7 @@ const getAllProgram = async (req, res) => {
             return res.status(400).json({ error: "Invalid program location" });
         }
         const locationFilter = location?.trim() ? {
-            "programInstitution.campuses.name": { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
+            "programInstitution.campuses.city": { $regex: `^\\s*${location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, $options: "i" },
         } : null;
         const searchFilter = search?.trim() ? {
             $or: [
@@ -418,8 +418,14 @@ const getAllProgram = async (req, res) => {
 
         if (paginated) {
             const total = matchingTotal;
-            const institutionIds = await Program.distinct("institutionId", { isActive: true });
-            const campusValues = await Institution.distinct("campuses.name", { _id: { $in: institutionIds } });
+            const locationInstitutionQuery = {};
+            if (country) {
+                locationInstitutionQuery.country = new mongoose.Types.ObjectId(country);
+            }
+            const institutionIds = await Institution.distinct("_id", locationInstitutionQuery);
+            const campusValues = await Institution.distinct("campuses.city", {
+                _id: { $in: institutionIds },
+            });
             const locationsByName = new Map();
             campusValues.filter(value => typeof value === "string" && value.trim()).forEach(value => {
                 const location = value.trim();

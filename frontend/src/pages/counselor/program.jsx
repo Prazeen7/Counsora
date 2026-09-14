@@ -298,6 +298,7 @@ export default function Programs() {
         if (cached) {
             setInstitutions(cached.programs);
             setTotalPrograms(cached.total);
+            setAvailableLocations(cached.locations || []);
             setLoadedFilterKey(backendFilterKey);
             setLoadedOffset(offset);
             setError("");
@@ -406,7 +407,11 @@ export default function Programs() {
                     };
                 });
 
-            programBatchesRef.current.set(cacheKey, { programs: mappedPrograms, total: data.pagination.total });
+            programBatchesRef.current.set(cacheKey, {
+                programs: mappedPrograms,
+                total: data.pagination.total,
+                locations: data.locations || [],
+            });
             setLoadedFilterKey(backendFilterKey);
             setInstitutions(mappedPrograms);
             setLoadedOffset(offset);

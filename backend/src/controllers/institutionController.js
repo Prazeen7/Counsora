@@ -56,7 +56,12 @@ const getInstitutions = async (req, res) => {
         const limitNumber = parseInt(limit);
         const skip = (pageNumber - 1) * limitNumber;
 
-        const [institutions, total] = await Promise.all([
+        const locationsQuery = {};
+        if (country && country !== 'all') {
+            locationsQuery.country = query.country;
+        }
+
+        const [institutions, total, cityValues] = await Promise.all([
             Institution.aggregate([
                 { $match: query },
 
@@ -160,10 +165,18 @@ const getInstitutions = async (req, res) => {
             ]),
 
             Institution.countDocuments(query),
+            Institution.distinct('campuses.city', locationsQuery),
         ]);
+
+        const locations = cityValues
+            .filter((city) => typeof city === 'string' && city.trim())
+            .map((city) => city.trim())
+            .filter((city, index, values) => values.findIndex((value) => value.toLowerCase() === city.toLowerCase()) === index)
+            .sort((a, b) => a.localeCompare(b));
 
         return res.status(200).json({
             institutions,
+            locations,
             pagination: {
                 page: pageNumber,
                 limit: limitNumber,
