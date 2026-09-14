@@ -25,6 +25,16 @@ import { Pagination } from "@mui/material";
 import { Search, LocationOn, School, AccessTime, ArrowForward } from "@mui/icons-material";
 
 export default function InstitutionList() {
+    const { selectedCountry } = useCountry();
+    return (
+        <CountryInstitutionList
+            key={selectedCountry?._id || selectedCountry?.id || "worldwide"}
+            selectedCountry={selectedCountry}
+        />
+    );
+}
+
+function CountryInstitutionList({ selectedCountry }) {
     const [institutions, setInstitutions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -41,7 +51,6 @@ export default function InstitutionList() {
         totalPages: 1,
         total: 0,
     });
-    const { selectedCountry } = useCountry();
 
     const URL = import.meta.env.VITE_BACKEND_URL;
 
