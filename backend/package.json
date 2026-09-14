@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --ignore import-output/** src/server.js",
+    "build": "node -e \"console.log('Backend build complete')\"",
     "start": "node src/server.js"
   },
   "keywords": [],
