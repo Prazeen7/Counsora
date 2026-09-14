@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { subscriptionError } = require('../utils/subscription');
 const authenticatedRequests = new WeakSet();
 
 const authMiddleware = async (req, res, next) => {
@@ -48,6 +49,9 @@ const authMiddleware = async (req, res, next) => {
         if (user.isApproved !== true) {
             return res.status(403).json({ error: "Your account is awaiting admin approval", code: "ACCOUNT_NOT_APPROVED" });
         }
+
+        const subscriptionFailure = subscriptionError(user);
+        if (subscriptionFailure) return res.status(403).json(subscriptionFailure);
 
         req.user = user;
         authenticatedRequests.add(req);

@@ -4,6 +4,7 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 const { superAdminMiddleware } = require("../middleware/adminMiddleware");
 const { sendApprovalEmail } = require("../utils/emailVerification");
 const router = express.Router();
+const { createSubscription } = require('../utils/subscription');
 
 router.get("/", authMiddleware, superAdminMiddleware, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -21,7 +22,7 @@ router.get("/", authMiddleware, superAdminMiddleware, async (req, res) => {
     }
     try {
         const [users, total, organizations] = await Promise.all([
-            User.find(filter).select("name email role organizationName isVerified isApproved isActive createdAt")
+            User.find(filter).select("name email role organizationName isVerified isApproved isActive createdAt subscriptionDuration subscriptionStartsAt subscriptionExpiresAt")
                 .sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
             User.countDocuments(filter),
             User.distinct("organizationName", { role: "counselor", organizationName: { $nin: [null, ""] } }),
@@ -53,6 +54,21 @@ router.patch("/:userId/approval", authMiddleware, superAdminMiddleware, async (r
         if (error.name === "CastError") return res.status(400).json({ error: "Invalid user id" });
         return res.status(500).json({ error: "Unable to update account approval" });
     }
+});
+
+router.patch('/:userId/subscription', authMiddleware, superAdminMiddleware, async (req, res) => {
+    if (!/^[a-f0-9]{24}$/i.test(req.params.userId)) return res.status(400).json({ error: 'Invalid user id' });
+    let subscription;
+    try { subscription = createSubscription(req.body || {}); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+    try {
+        const user = await User.findOneAndUpdate(
+            { _id: req.params.userId, role: { $in: ['admin', 'counselor'] } },
+            { $set: subscription }, { new: true, runValidators: true }
+        ).select('name email role subscriptionDuration subscriptionStartsAt subscriptionExpiresAt').lean();
+        if (!user) return res.status(404).json({ error: 'No eligible user found. Superadmins do not need subscriptions.' });
+        return res.json({ user });
+    } catch { return res.status(500).json({ error: 'Unable to update subscription' }); }
 });
 
 module.exports = router;

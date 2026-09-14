@@ -38,5 +38,9 @@ export async function apiFetch(url, options = {}) {
     delete requestOptions.responseType;
     const response = await fetch(target.href, requestOptions);
     if (response.status === 401 && !isPublic) invalidateSession('Your session has expired. Please log in again.');
+    if (response.status === 403 && !isPublic) {
+        const data = await response.clone().json().catch(() => ({}));
+        if (['SUBSCRIPTION_EXPIRED', 'SUBSCRIPTION_REQUIRED'].includes(data.code)) invalidateSession(data.error);
+    }
     return response;
 }

@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { subscriptionError } = require('../utils/subscription');
 const hashPassword = require("../utils/hashPassword");
 const comparePassword = require("../utils/comparePassword")
 const jwt = require("jsonwebtoken");
@@ -150,6 +151,9 @@ const login = async (req, res) => {
                 code: "ACCOUNT_NOT_APPROVED",
             });
         }
+
+        const subscriptionFailure = subscriptionError(existingUser);
+        if (subscriptionFailure) return res.status(403).json(subscriptionFailure);
 
         const sessionToken = crypto.randomBytes(32).toString("hex");
         existingUser.sessionToken = sessionToken;

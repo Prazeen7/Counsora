@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function setup(token = 'current-token', status = 200) {
+function setup(token = 'current-token', status = 200, body = {}) {
     const stored = new Map(token === null ? [] : [['token', token], ['user', '{}']]);
     const calls = [];
     const window = { location: { origin: 'https://app.example', href: '/study-guide' } };
@@ -13,7 +13,7 @@ function setup(token = 'current-token', status = 200) {
     const context = vm.createContext({ URL, Headers, FormData, window,
         localStorage: { getItem: key => stored.get(key) ?? null, removeItem: key => stored.delete(key) },
         sessionStorage: { setItem() {} },
-        fetch: async (url, options) => { calls.push({ url, options }); return new Response('{}', { status }); },
+        fetch: async (url, options) => { calls.push({ url, options }); return new Response(JSON.stringify(body), { status }); },
     });
     vm.runInContext(source, context);
     return { request: context.apiFetch, calls, stored, window };
@@ -54,6 +54,19 @@ test('invalid session responses clear stored credentials', async () => {
     assert.equal(api.stored.has('token'), false);
     assert.equal(api.stored.has('user'), false);
     assert.equal(api.window.location.href, '/login');
+});
+
+test('subscription failures clear access and preserve the response for callers', async () => {
+    for (const code of ['SUBSCRIPTION_EXPIRED', 'SUBSCRIPTION_REQUIRED']) {
+        const api = setup('current-token', 403, { code, error: 'Contact your superadmin.' });
+        const response = await api.request('https://api.example/api/auth/me');
+        assert.equal(api.stored.has('token'), false);
+        assert.equal(api.window.location.href, '/login');
+        assert.equal((await response.json()).code, code);
+    }
+    const api = setup('current-token', 403, { error: 'Admins only' });
+    await api.request('https://api.example/api/users');
+    assert.equal(api.stored.has('token'), true);
 });
 test('tokens cannot be sent to other origins or outside the backend API prefix', async () => {
     const api = setup();

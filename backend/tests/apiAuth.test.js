@@ -16,8 +16,8 @@ function load(name, dependencies, extra = {}) {
 }
 function setup(overrides = {}) {
     let reads = 0;
-    const user = { role: 'counselor', sessionToken: 'session', isVerified: true, isApproved: true, ...overrides };
-    const { authMiddleware } = load('authMiddleware.js', { jsonwebtoken: jwt, '../models/User': { async findById() { reads++; return user; } } }, { process: { env: { JWT_SECRET: secret } } });
+    const user = { role: 'counselor', sessionToken: 'session', isVerified: true, isApproved: true, subscriptionExpiresAt: new Date('2099-01-01'), ...overrides };
+    const { authMiddleware } = load('authMiddleware.js', { jsonwebtoken: jwt, '../utils/subscription': require('../src/utils/subscription'), '../models/User': { async findById() { reads++; return user; } } }, { process: { env: { JWT_SECRET: secret } } });
     return { authMiddleware, reads: () => reads };
 }
 test('API gate only exempts exact POST authentication bootstrap routes', () => {
@@ -67,4 +67,16 @@ test('unapproved or unverified users still cannot access protected routes', asyn
         await setup(overrides).authMiddleware({ headers: { authorization: 'Bearer ' + jwt.sign({ id, sessionToken: 'session' }, secret) } }, response, () => assert.fail('Must reject'));
         assert.equal(response.statusCode, 403);
     }
+});
+
+test('subscription is checked on authenticated requests and superadmins remain exempt', async () => {
+    for (const subscriptionExpiresAt of [null, new Date('2000-01-01')]) {
+        const response = res();
+        await setup({ subscriptionExpiresAt }).authMiddleware({ headers: { authorization: 'Bearer ' + jwt.sign({ id, sessionToken: 'session' }, secret) } }, response, () => assert.fail('Must reject'));
+        assert.equal(response.statusCode, 403);
+        assert.match(response.body.code, /^SUBSCRIPTION_/);
+    }
+    let passed = false;
+    await setup({ role: 'superAdmin', subscriptionExpiresAt: null }).authMiddleware({ headers: { authorization: 'Bearer ' + jwt.sign({ id, sessionToken: 'session' }, secret) } }, res(), () => { passed = true; });
+    assert.equal(passed, true);
 });

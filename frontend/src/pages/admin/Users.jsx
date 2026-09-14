@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { apiRequest } from "../../services/api";
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 
 const roleLabels = { superAdmin: "Superadmin", admin: "Admin", counselor: "Counselor" };
 
@@ -12,6 +13,24 @@ export default function Users() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [retry, setRetry] = useState(0);
+    const [subscriptionUser, setSubscriptionUser] = useState(null);
+    const [duration, setDuration] = useState('1');
+    const [unit, setUnit] = useState('days');
+    const [endDate, setEndDate] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [subscriptionError, setSubscriptionError] = useState('');
+    const saveSubscription = async () => {
+        setSaving(true);
+        setSubscriptionError('');
+        try {
+            await apiRequest(`/users/${subscriptionUser._id}/subscription`, {
+                method: 'PATCH', body: JSON.stringify({ value: Number(duration), unit, endDate }),
+            });
+            setSubscriptionUser(null);
+            setRetry(value => value + 1);
+        } catch (err) { setSubscriptionError(err.message); }
+        finally { setSaving(false); }
+    };
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
@@ -67,13 +86,19 @@ export default function Users() {
                 : <>
                     <TableContainer component={Paper}>
                         <Table aria-label="Registered users">
-                            <TableHead><TableRow>{["Name", "Email", "Role", "Email verification", "Approval", "Account", ...(view === "verify" ? ["Actions"] : [])].map((title) => <TableCell key={title}>{title}</TableCell>)}</TableRow></TableHead>
+                            <TableHead><TableRow>{["Name", "Email", "Role", "Email verification", "Approval", "Account", "Subscription", ...(view === "verify" ? ["Actions"] : [])].map((title) => <TableCell key={title}>{title}</TableCell>)}</TableRow></TableHead>
                             <TableBody>{data.users.map((user) => <TableRow key={user._id}>
                                 <TableCell>{user.name}</TableCell><TableCell>{user.email}</TableCell>
                                 <TableCell>{roleLabels[user.role] || "Unknown"}</TableCell>
                                 <TableCell><Chip size="small" label={user.isVerified ? "Verified" : "Unverified"} color={user.isVerified ? "success" : "warning"} /></TableCell>
                                 <TableCell><Chip size="small" label={user.isApproved ? "Approved" : "Pending"} color={user.isApproved ? "success" : "warning"} /></TableCell>
                                 <TableCell>{user.isActive ? "Active" : "Inactive"}</TableCell>
+                                <TableCell>{user.role === 'superAdmin' ? 'Exempt' : <>
+                                    <Typography variant="body2">{!user.subscriptionExpiresAt ? 'Not assigned' : new Date(user.subscriptionExpiresAt) <= new Date() ? 'Expired' : 'Active'}</Typography>
+                                    {user.subscriptionDuration?.value && <Typography variant="body2">{user.subscriptionDuration.value} {user.subscriptionDuration.unit}</Typography>}
+                                    {user.subscriptionExpiresAt && <Typography variant="caption" display="block">Last access: {new Date(new Date(user.subscriptionExpiresAt).getTime() - 1).toLocaleDateString('en-GB', { timeZone: 'Asia/Kathmandu' })} (Nepal)</Typography>}
+                                    <Button size="small" onClick={() => { setSubscriptionUser(user); setDuration('1'); setUnit('days'); setEndDate(''); setSubscriptionError(''); }}>Set subscription</Button>
+                                </>}</TableCell>
                                 {view === "verify" && <TableCell>
                                     {user.isVerified ? <Box display="flex" gap={1}>
                                         <Button size="small" variant="contained" color="success" disabled={user.isApproved} onClick={() => updateApproval(user, true)}>Approve</Button>
@@ -81,7 +106,7 @@ export default function Users() {
                                     </Box> : <Typography variant="caption" color="text.secondary">Verify email first</Typography>}
                                 </TableCell>}
                             </TableRow>)}
-                                {!data.users.length && <TableRow><TableCell colSpan={view === "verify" ? 7 : 6}>No users found.</TableCell></TableRow>}
+                                {!data.users.length && <TableRow><TableCell colSpan={view === "verify" ? 8 : 7}>No users found.</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -91,5 +116,20 @@ export default function Users() {
                         <Button disabled={page * data.limit >= data.total} onClick={() => setPage(page + 1)}>Next</Button>
                     </Box>
                 </>}
+        <Dialog open={Boolean(subscriptionUser)} onClose={() => { if (!saving) setSubscriptionUser(null); }} fullWidth maxWidth="sm">
+            <DialogTitle>Subscription for {subscriptionUser?.name}</DialogTitle>
+            <DialogContent>
+                <Typography mb={2}>Replaces the current subscription, starting today. One day covers today through midnight in Nepal time. Months and years use calendar dates.</Typography>
+                {subscriptionError && <Alert severity="error" sx={{ mb: 2 }}>{subscriptionError}</Alert>}
+                <FormControl fullWidth sx={{ mt: 1, mb: 2 }}><InputLabel id="subscription-unit">Duration unit</InputLabel>
+                    <Select labelId="subscription-unit" label="Duration unit" value={unit} onChange={event => setUnit(event.target.value)}>
+                        <MenuItem value="days">Days</MenuItem><MenuItem value="months">Months</MenuItem><MenuItem value="years">Years</MenuItem><MenuItem value="date">Specific last-access date</MenuItem>
+                    </Select>
+                </FormControl>
+                {unit === 'date' ? <TextField fullWidth label="Last-access date (Nepal)" type="date" slotProps={{ inputLabel: { shrink: true } }} value={endDate} onChange={event => setEndDate(event.target.value)} />
+                    : <TextField fullWidth label="Number" type="number" slotProps={{ htmlInput: { min: 1, step: 1 } }} value={duration} onChange={event => setDuration(event.target.value)} />}
+            </DialogContent>
+            <DialogActions><Button disabled={saving} onClick={() => setSubscriptionUser(null)}>Cancel</Button><Button variant="contained" disabled={saving || (unit === 'date' ? !endDate : !Number.isSafeInteger(Number(duration)) || Number(duration) < 1)} onClick={saveSubscription}>{saving ? 'Saving…' : 'Save subscription'}</Button></DialogActions>
+        </Dialog>
     </Box>;
 }

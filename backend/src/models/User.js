@@ -40,6 +40,13 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    subscriptionDuration: {
+      value: { type: Number, min: 1, validate: Number.isSafeInteger },
+      unit: { type: String, enum: ['days', 'months', 'years'] },
+    },
+    subscriptionStartsAt: { type: Date, default: null },
+    subscriptionExpiresAt: { type: Date, default: null },
+
     isApproved: {
       type: Boolean,
       default: false,
