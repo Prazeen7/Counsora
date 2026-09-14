@@ -108,6 +108,7 @@ function Sidebar() {
         { text: "Dashboard", icon: <DashboardIcon />, path: "/admin/dashboard" },
         { text: "Institution Management", icon: <BusinessIcon />, path: "/admin/institutions" },
         { text: "Documents Management", icon: <DescriptionIcon />, path: "/admin/documents" },
+        { text: "Study Guide", icon: <DescriptionIcon />, path: "/admin/study-guide" },
         { text: "Cost Estimation", icon: <CalculateIcon />, path: "/admin/cost-estimation" },
         ...(isSuperAdmin ? [{ text: "Users", icon: <PeopleIcon />, path: "/admin/users" }] : []),
         ...(isSuperAdmin ? [{ text: "Countries", icon: <Public />, path: "/admin/countries" }] : []),

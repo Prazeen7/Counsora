@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { authMiddleware } = require('../middleware/authMiddleWare');
+const { adminMiddleware } = require('../middleware/adminMiddleware');
+const { listStudyGuides, saveStudyGuide, deleteStudyGuide } = require('../controllers/studyGuideController');
+router.use(authMiddleware);
+router.get('/', listStudyGuides);
+router.post('/', adminMiddleware, saveStudyGuide);
+router.put('/:id', adminMiddleware, saveStudyGuide);
+router.delete('/:id', adminMiddleware, deleteStudyGuide);
+module.exports = router;

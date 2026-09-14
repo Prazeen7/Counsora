@@ -126,6 +126,7 @@ function App() {
         <Route path="/admin/countries" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Countries /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
         <Route path="/admin/documents" element={<DocumentsPage isAdmin />} />
+        <Route path="/admin/study-guide" element={<StudyGuide isAdmin />} />
         <Route path="/admin/cost-estimation" element={<CostEstimationPage />} />
         <Route path="/admin/institutions/:institutionId/review-programs" element={<ReviewPrograms />} />
       </Route>

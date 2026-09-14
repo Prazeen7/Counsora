@@ -1,25 +1,110 @@
-import React from "react";
-import { Box, Card, CardContent, Container, Grid, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, Divider, Paper, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { ArrowBack, ArrowForward, ExpandMore } from "@mui/icons-material";
+import { useCountry } from '../../context/CountryContext';
+import { getStudyGuides, deleteStudyGuide } from '../../services/studyGuideService';
+import StudyGuideEditor from '../../components/admin/StudyGuideEditor';
 
-const Section = ({ title, children }) => (
-  <Card sx={{ height: "100%", borderRadius: 3, border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(15,23,42,.06)" }}>
-    <CardContent sx={{ p: 3 }}><Box sx={{ width: 42, height: 4, bgcolor: "#4f46e5", borderRadius: 99, mb: 1.5 }} /><Typography variant="h5" fontWeight={700} gutterBottom>{title}</Typography><Box sx={{ color: "#475569", lineHeight: 1.7 }}>{children}</Box></CardContent>
-  </Card>
-);
-const BulletList = ({ items }) => <Box component="ul" sx={{ pl: 2.5, mt: 1 }}>{items.map(item => <li key={item}><Typography component="span">{item}</Typography></li>)}</Box>;
+function GuideText({ text }) {
+  return String(text || '').split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => {
+    const lines = paragraph.split('\n');
+    return lines.every(line => line.startsWith('- '))
+      ? <Box component="ul" key={index} sx={{ pl: 2.5, my: 2, '& li': { mb: 1 } }}>{lines.map((line, i) => <li key={i}><Typography sx={{ lineHeight: 1.8 }}>{line.slice(2)}</Typography></li>)}</Box>
+      : <Typography key={index} sx={{ mb: 2, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.8 }}>{paragraph}</Typography>;
+  });
+}
 
-export default function StudyGuide() {
-  return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(180deg,#eef2ff,#f8fafc 300px)", py: { xs: 3, md: 6 }, px: 2 }}>
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: "center", mb: 5 }}><Typography variant="h3" fontWeight={800} color="#1e1b4b">Study Guide</Typography><Typography color="text.secondary" sx={{ mt: 1 }}>Practical guidance for studying and building a future in Germany.</Typography></Box>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}><Section title="Blocked Account"><Typography paragraph>The most critical financial requirement for obtaining a German student visa is proof of sufficient funds to cover living expenses. Currently, Nepali students need at least €11,904 per year, which translates to €992 per month, deposited in a blocked account. As of November 2025, this amount equals approximately NPR 17–18 lakhs, and the exact conversion varies with exchange rates.</Typography><Typography fontWeight={700}>How the Blocked Account Works</Typography><BulletList items={["Open account with authorized provider (Deutsche Bank, Fintiba, Expatrio, etc.)", "Deposit full year’s amount (€11,904) before visa application", "The account gets blocked until you arrive in Germany", "After arrival, withdraw €992 monthly for living expenses", "Funds remain protected and cannot be accessed in full at once"]} /></Section></Grid>
-          <Grid item xs={12} md={6}><Section title="Living Cost Breakdown in Germany"><Typography paragraph>Understanding actual living expenses while studying in Germany helps in financial planning beyond the visa requirement. Rent is the biggest variable depending on your city choice.</Typography><Typography fontWeight={700}>Cities with Lower Living Costs</Typography><Typography paragraph>Leipzig, Dresden, Jena, Erfurt, Halle. Estimated budget: €750–€950 per month.</Typography><Typography fontWeight={700}>Cities with Higher Living Costs</Typography><Typography paragraph>Munich, Frankfurt, Hamburg, Stuttgart, Berlin. Estimated budget: €1,000–€1,400+ per month.</Typography><Typography fontWeight={700}>Typical Monthly Breakdown</Typography><BulletList items={["Rent (Shared/Dorm): €300–€750", "Health Insurance: ~€125 (Student Public)", "Food & Groceries: €150–€250", "Transport: €0–€49 (Deutschland-Ticket)", "Internet/Phone: €30–€50"]} /></Section></Grid>
-          <Grid item xs={12} md={6}><Section title="Visa Interview Tips"><Typography paragraph>As you study in Germany from Nepal, you need to attend a visa interview at the German Embassy.</Typography><BulletList items={["Be Honest and Clear: Answer all questions truthfully about your study plans", "Know Your Program: Understand your course structure, subjects, and career relevance", "Explain Return Plans: Demonstrate strong ties to Nepal and intention to return", "Show Financial Clarity: Explain your funding sources confidently", "Professional Appearance: Dress formally and maintain respectful demeanor", "Organize Documents: Keep all papers well-organized for easy access"]} /><Typography variant="h6" fontWeight={700}>Common Interview Questions</Typography><BulletList items={["Why did you choose to study in Germany?", "Why this specific university and program?", "How will this degree help your career in Nepal?", "Who is funding your education?", "What are your plans after completing your studies?", "Do you have any relatives in Germany?"]} /></Section></Grid>
-          <Grid item xs={12} md={6}><Section title="Post-Study Opportunities in Germany"><Typography variant="h6" fontWeight={700}>1. Job Seeker Visa</Typography><Typography paragraph>After completing the degree, Germany offers an 18-month job seeker visa. This allows students to stay while looking for a job related to their course.</Typography><Typography fontWeight={700}>Benefits</Typography><BulletList items={["Students get 18 months to find suitable job", "Can take temporary jobs during job search", "No restrictions on number of job interviews", "Transition directly to a work visa upon securing a job"]} /><Typography fontWeight={700}>Requirements</Typography><BulletList items={["Need to complete degree from German university", "Health insurance coverage", "Proof of financial means (blocked account or income)", "Passport validity"]} /><Typography variant="h6" fontWeight={700}>2. EU Blue Card</Typography><Typography paragraph>For highly qualified professionals, the EU Blue Card offers long-term residence and work authorization throughout the European Union.</Typography><Typography fontWeight={700}>Eligibility</Typography><BulletList items={["Recognized university degree (German or equivalent)", "Job offer with minimum annual salary (€58,400 in 2025, lower for shortage occupations)", "Employment contract"]} /><Typography fontWeight={700}>Benefits</Typography><BulletList items={["Valid for up to 4 years", "Family reunification rights", "Path to permanent residence after 33 months (21 months with B1 German)", "Freedom to work throughout EU after 18 months"]} /><Typography variant="h6" fontWeight={700}>3. Permanent Residence (Niederlassungserlaubnis)</Typography><Typography paragraph>After legally residing in Germany for 5 years, you can apply for permanent residence.</Typography><Typography fontWeight={700}>Requirements and Benefits</Typography><BulletList items={["5 years continuous legal residence", "Secure income and accommodation", "German language proficiency (B1 level)", "Basic knowledge of German legal and social system", "Adequate retirement provisions", "No criminal record", "Unlimited residence and work rights", "Full access to social security benefits", "Family reunification", "No renewal required"]} /><Typography variant="h6" fontWeight={700}>4. German Citizenship</Typography><Typography paragraph>After 8 years of legal residence (can be reduced to 6–7 years in special cases), you may apply for German citizenship.</Typography><BulletList items={["Nepal does not allow dual citizenship", "Must renounce Nepali citizenship to acquire German citizenship", "Requires extensive integration (German language C1 and civic knowledge)", "Offers full political rights and EU passport benefits"]} /></Section></Grid>
-        </Grid>
-      </Container>
-    </Box>
-  );
+export default function StudyGuide({ isAdmin = false }) {
+  const { selectedCountry } = useCountry();
+  if (!selectedCountry) return <Container sx={{ py: 4 }}><Alert severity="info">Select a country from the navigation menu to view its study guide.</Alert></Container>;
+  return <GuideContent key={selectedCountry._id} country={selectedCountry} isAdmin={isAdmin} />;
+}
+
+const Detail = ({ title, children }) => <Accordion disableGutters elevation={0} sx={{ my: 2, border: "1px solid", borderColor: "divider", borderRadius: "12px !important", "&:before": { display: "none" } }}>
+  <AccordionSummary expandIcon={<ExpandMore />}><Typography component="h3" fontWeight={600}>{title}</Typography></AccordionSummary>
+  <AccordionDetails sx={{ px: { xs: 2, md: 3 }, pt: 1, pb: 3 }}>{children}</AccordionDetails>
+</Accordion>;
+
+function GuideContent({ country, isAdmin }) {
+  const theme = useTheme();
+  const desktop = useMediaQuery(theme.breakpoints.up("md"));
+  const [activeTopic, setActiveTopic] = useState(0);
+  const [topics, setTopics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [version, setVersion] = useState(0);
+  const [editor, setEditor] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  useEffect(() => {
+    let active = true;
+    getStudyGuides(country._id).then(data => {
+      if (active) { setTopics(data.guides); setActiveTopic(0); setError(''); }
+    }).catch(err => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [country._id, version]);
+  const remove = async () => {
+    setDeleteBusy(true); setDeleteError('');
+    try {
+      await deleteStudyGuide(deleting._id);
+      setTopics(current => current.filter(item => item._id !== deleting._id));
+      setActiveTopic(0); setDeleting(null);
+    } catch (err) { setDeleteError(err.message); }
+    finally { setDeleteBusy(false); }
+  };
+  const topic = topics[activeTopic];
+  const selectTopic = (index) => {
+    setActiveTopic(index);
+    document.getElementById("guide-navigation")?.scrollIntoView({ block: "nearest" });
+    document.getElementById("guide-tab-" + index)?.focus({ preventScroll: true });
+  };
+
+  return <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: { xs: 3, md: 5 } }}>
+    <Container maxWidth="lg">
+      <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Typography variant="overline" color="primary" fontWeight={700} sx={{ letterSpacing: 1.5 }}>STUDY IN {country.name.toUpperCase()}</Typography>
+        <Typography component="h1" fontWeight={750} sx={{ fontSize: { xs: "2rem", md: "2.75rem" }, color: "#1e293b", mt: 0.5 }}>Study Guide</Typography>
+        <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 620, lineHeight: 1.7 }}>From planning your finances to life after graduation. Choose a topic and explore it at your own pace.</Typography>
+        {isAdmin && <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setEditor({ record: null })} disabled={loading || Boolean(error)}>Add topic</Button>}
+      </Box>
+      {loading ? <Box sx={{ py: 5, textAlign: 'center' }}><CircularProgress aria-label="Loading study guide" /></Box> : error ? <Alert severity="error" action={<Button onClick={() => { setLoading(true); setVersion(value => value + 1); }}>Retry</Button>}>{error}</Alert> : !topic ? <Paper variant="outlined" sx={{ p: 4, borderRadius: 3 }}><Typography>No study guide has been added for {country.name} yet.</Typography>{isAdmin && <Typography color="text.secondary" sx={{ mt: 1 }}>Add the first topic to make this guide available to counselors.</Typography>}</Paper> : <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "250px minmax(0, 1fr)" }, gap: { xs: 2, md: 4 }, alignItems: "start" }}>
+        <Paper id="guide-navigation" component="nav" aria-label="Study guide topics" variant="outlined" sx={{ borderRadius: 3, p: { xs: 1, md: 2 }, position: { md: "sticky" }, top: { md: 88 }, minWidth: 0 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, px: 1, mb: 1 }}>IN THIS GUIDE</Typography>
+          <Tabs value={activeTopic} onChange={(_, value) => setActiveTopic(value)} orientation={desktop ? "vertical" : "horizontal"} aria-label="Choose a study guide topic" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile
+            sx={{ "& .MuiTabs-list": { flexDirection: { xs: "row", md: "column" }, gap: 0.75 }, "& .MuiTabs-indicator": { display: "none" }, "& .MuiTab-root": { minHeight: 48, textTransform: "none", alignItems: "flex-start", textAlign: "left", borderRadius: 2, px: 2, fontWeight: 600, maxWidth: "none", "&.Mui-selected": { bgcolor: "#eef2ff", color: "#4338ca" }, "&.Mui-focusVisible": { outline: "2px solid #4338ca", outlineOffset: -2 } } }}>
+            {topics.map((item, index) => <Tab key={item.label} id={"guide-tab-" + index} aria-controls={"guide-panel-" + index} label={(index + 1) + ". " + item.label} />)}
+          </Tabs>
+        </Paper>
+        <Paper variant="outlined" sx={{ minWidth: 0, borderRadius: 3, overflow: "hidden" }}>
+          <Box role="tabpanel" id={"guide-panel-" + activeTopic} aria-labelledby={"guide-tab-" + activeTopic} tabIndex={0} sx={{ p: { xs: 2.5, md: 4 } }}>
+            <Stack direction="row" justifyContent="space-between" spacing={2} sx={{ mb: 1.5 }}>
+              <Typography variant="overline" color="primary" fontWeight={600}>{topic.category}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center", whiteSpace: "nowrap" }}>Topic {activeTopic + 1} of {topics.length}</Typography>
+            </Stack>
+            <Typography component="h2" fontWeight={700} sx={{ fontSize: { xs: "1.6rem", md: "2rem" } }}>{topic.title}</Typography>
+            {isAdmin && <Stack direction="row" spacing={1} sx={{ mt: 1 }}><Button onClick={() => setEditor({ record: topic })}>Edit topic</Button><Button color="error" onClick={() => { setDeleteError(''); setDeleting(topic); }}>Delete topic</Button></Stack>}
+            <Typography color="text.secondary" sx={{ mt: 1, lineHeight: 1.7 }}>{topic.description}</Typography>
+            <Divider sx={{ my: 3 }} />
+            <Box key={activeTopic} sx={{ maxWidth: 720, color: "#475569", "& .MuiTypography-root": { lineHeight: 1.8 }, "& > .MuiTypography-root": { mb: 2 }, "& .MuiTypography-h6": { color: "#1e293b", mt: 2 } }}><GuideText text={topic.introduction} />{topic.sections.map((section, index) => <Detail key={index} title={section.title}><GuideText text={section.content} /></Detail>)}</Box>
+          </Box>
+          <Divider />
+          <Stack direction="row" justifyContent="space-between" spacing={1} sx={{ px: { xs: 2, md: 4 }, py: 2, bgcolor: "#fcfcfd" }}>
+            <Button disabled={activeTopic === 0} startIcon={<ArrowBack />} onClick={() => selectTopic(activeTopic - 1)}>Previous</Button>
+            {activeTopic < topics.length - 1 ? <Button endIcon={<ArrowForward />} onClick={() => selectTopic(activeTopic + 1)} sx={{ textTransform: "none" }}>Next: {topics[activeTopic + 1].label}</Button> : <Button onClick={() => selectTopic(0)} sx={{ textTransform: "none" }}>Back to first topic</Button>}
+          </Stack>
+        </Paper>
+      </Box>}
+      {editor && <StudyGuideEditor record={editor.record} country={country} defaultOrder={Math.max(0, ...topics.map(item => item.order)) + 1} onClose={() => setEditor(null)} onSaved={saved => {
+        const next = [...topics.filter(item => item._id !== saved._id), saved].sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt) || a._id.localeCompare(b._id));
+        setTopics(next); setActiveTopic(next.findIndex(item => item._id === saved._id)); setEditor(null);
+      }} />}
+      <Dialog open={Boolean(deleting)} onClose={deleteBusy ? undefined : () => setDeleting(null)}>
+        <DialogTitle>Delete topic?</DialogTitle>
+        <DialogContent>{deleteError && <Alert severity="error">{deleteError}</Alert>}Delete “{deleting?.label}” from the {country.name} study guide?</DialogContent>
+        <DialogActions><Button disabled={deleteBusy} onClick={() => setDeleting(null)}>Cancel</Button><Button color="error" disabled={deleteBusy} onClick={remove}>{deleteBusy ? 'Deleting…' : 'Delete'}</Button></DialogActions>
+      </Dialog>
+    </Container>
+  </Box>;
 }
