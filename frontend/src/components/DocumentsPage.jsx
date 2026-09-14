@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { Add, DeleteOutlineOutlined as DeleteOutline, EditOutlined, ExpandMore, VisibilityOutlined } from "@mui/icons-material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Tab, Tabs, TextField, InputAdornment, Tooltip, Typography } from "@mui/material";
+import { Add, DeleteOutlineOutlined as DeleteOutline, EditOutlined, ExpandMore, VisibilityOutlined, Search, DescriptionOutlined } from "@mui/icons-material";
 import { useCountry } from "../context/CountryContext";
 import { getCountries } from "../services/countryService";
 import { getDocuments, deleteDocument } from "../services/documentService";
 import DocumentEditor from "./admin/DocumentEditor";
 import DocumentPreview from "./DocumentPreview";
+
+const sectionStyle = { border: '1px solid', borderColor: 'divider', borderRadius: '6px !important', boxShadow: 'none', overflow: 'hidden', '&:before': { display: 'none' } };
+
+function EmptyDocuments({ search, process }) {
+    return <Paper variant="outlined" sx={{ p: 5, textAlign: 'center', borderRadius: 3 }}>
+        <DescriptionOutlined sx={{ color: 'text.secondary', fontSize: 36, mb: 1 }} />
+        <Typography fontWeight={600}>{search.trim() ? 'No matching entries' : `No ${process ? 'process stages' : 'documents'} yet`}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{search.trim() ? 'Try another keyword or clear the search to see all entries.' : 'Entries will appear here when they are added for this country.'}</Typography>
+    </Paper>;
+}
 
 export default function DocumentsPage({ isAdmin = false }) {
     const { selectedCountry } = useCountry();
@@ -24,9 +34,35 @@ export default function DocumentsPage({ isAdmin = false }) {
     const [deleting, setDeleting] = useState(null);
     const [deleteBusy, setDeleteBusy] = useState(false);
     const [deleteError, setDeleteError] = useState("");
+    const [search, setSearch] = useState('');
     const process = type === "process_flow";
     const byStage = type === "by_stage";
     const sections = [...new Set(documents.map((record) => record.section?.trim() || "General"))];
+    const matches = (record) => [record.title, record.details, record.source, record.timeline, record.section, record.stage].filter(Boolean).join(' ').toLowerCase().includes(search.trim().toLowerCase());
+    const visibleDocuments = documents.filter(matches);
+    const visibleSections = sections.filter(section => visibleDocuments.some(record => (record.section?.trim() || 'General') === section));
+    const stageGroups = processStages.map(stage => ({ ...stage, items: stageDocuments.filter(document => document.stage?.trim() === stage.title) }));
+    const unassigned = stageDocuments.filter(document => !processStages.some(stage => stage.title === document.stage?.trim()));
+    if (unassigned.length) stageGroups.push({ _id: 'unassigned', title: 'Other documents', items: unassigned });
+    const visibleStageGroups = stageGroups.map(stage => ({ ...stage, items: stage.items.filter(matches) })).filter(stage => !search.trim() || stage.items.length);
+    const renderEntry = (record, index) => {
+        const previewCount = Array.isArray(record.preview) ? record.preview.length : Number(Boolean(record.preview));
+        return <Box component="article" key={record._id} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', md: 'minmax(180px, 0.8fr) minmax(0, 1.7fr) auto' }, alignItems: 'start', columnGap: 2, rowGap: 0.5, px: 1.5, py: 1, '& + &': { borderTop: '1px solid', borderColor: 'divider' }, '&:hover': { bgcolor: 'action.hover' } }}>
+            <Typography component="h3" variant="body2" fontWeight={600} sx={{ pt: 0.5, overflowWrap: 'anywhere' }}><Box component="span" sx={{ color: 'text.disabled', mr: 1, fontWeight: 400 }}>{index + 1}.</Box>{record.title}</Typography>
+            <Box sx={{ minWidth: 0, gridColumn: { xs: '1 / -1', md: 'auto' }, gridRow: { xs: 2, md: 'auto' }, fontSize: 13 }}>
+                {process && record.timeline && <Typography variant="caption" color="primary" sx={{ display: 'block', lineHeight: 1.5 }}>{record.timeline}</Typography>}
+                {!process && record.source && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflowWrap: 'anywhere' }}>Source: {record.source}</Typography>}
+                {record.details && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={record.details}>{record.details}</Typography>}
+            </Box>
+            <Stack direction="row" spacing={0.25} sx={{ gridColumn: { xs: 2, md: 3 }, gridRow: 1 }}>
+                {previewCount > 0 && <Tooltip title={`View ${previewCount} attachment${previewCount === 1 ? '' : 's'}`}><IconButton size="small" aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></Tooltip>}
+                {isAdmin && <>
+                    <Tooltip title="Edit"><IconButton size="small" aria-label={`Edit ${record.title}`} onClick={() => setEditor({ record })}><EditOutlined fontSize="small" /></IconButton></Tooltip>
+                    <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.title}`} onClick={() => { setDeleteError(''); setDeleting(record); }}><DeleteOutline fontSize="small" /></IconButton></Tooltip>
+                </>}
+            </Stack>
+        </Box>;
+    };
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -64,90 +100,63 @@ export default function DocumentsPage({ isAdmin = false }) {
             await deleteDocument(deleting._id);
             setDocuments((current) => current.filter((record) => record._id !== deleting._id));
             setDeleting(null);
+            setVersion(value => value + 1);
         } catch (err) { setDeleteError(err.message); }
         finally { setDeleteBusy(false); }
     };
 
     if (!selectedCountry) return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 5 } }}><Alert severity="info">Select a country from the navigation menu to view its required documents and process stages.</Alert></Box>;
-    return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 3 } }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="space-between" alignItems={{ sm: "center" }} sx={{ mb: 3 }}>
+    return <Box sx={{ maxWidth: 1440, mx: "auto", p: { xs: 1.5, md: 2 }, pb: 3 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="space-between" alignItems={{ sm: "center" }} sx={{ mb: 1.5 }}>
             <Box>
-                <Typography variant="h4" fontWeight={700}>Documents</Typography>
-                <Typography color="text.secondary">Required documents and process stages by country.</Typography>
+                <Typography variant="h6" component="h1" fontWeight={700}>Documents <Typography component="span" variant="body2" color="text.secondary">· {selectedCountry.name}</Typography></Typography>
             </Box>
-            {isAdmin && !byStage && <Button size="small" variant="outlined" startIcon={<Add sx={{ fontSize: 15 }} />} onClick={() => setEditor({ record: null })} disabled={!countries.length} sx={{ minWidth: 0, height: 30, px: 1, py: 0, borderRadius: 1.25, fontSize: "0.75rem", lineHeight: 1, whiteSpace: "nowrap", "& .MuiButton-startIcon": { mr: 0.5 } }}>
+            {isAdmin && !byStage && <Button size="small" variant="contained" disableElevation startIcon={<Add />} onClick={() => setEditor({ record: null })} disabled={!countries.length} sx={{ whiteSpace: 'nowrap', alignSelf: { xs: 'flex-start', sm: 'center' } }}>
                 {process ? "Add stage" : "Add document"}
             </Button>}
         </Stack>
         {countryError && <Alert severity="error" sx={{ mb: 2 }} action={<Button onClick={() => setVersion((value) => value + 1)}>Retry</Button>}>{countryError}</Alert>}
-        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
-            <Tabs value={type} onChange={(_event, value) => setType(value)} variant="scrollable" allowScrollButtonsMobile aria-label="Document type">
-                <Tab label="Stage / Process Flow" value="process_flow" />
-                <Tab label="Required Documents" value="required_documents" />
-                <Tab label="Required Documents by Stage" value="by_stage" />
+        <Paper variant="outlined" sx={{ borderRadius: 1.5, overflow: "hidden", mb: 1.5, display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: { md: "center" }, justifyContent: "space-between" }}>
+            <Tabs value={type} onChange={(_event, value) => { setType(value); setSearch(''); }} variant="scrollable" allowScrollButtonsMobile aria-label="Document type" sx={{ px: 0.5, minHeight: 42, minWidth: 0, '& .MuiTab-root': { textTransform: 'none', minHeight: 42, py: 1 } }}>
+                <Tab label="Process overview" value="process_flow" />
+                <Tab label="All documents" value="required_documents" />
+                <Tab label="Documents by stage" value="by_stage" />
             </Tabs>
+            <Box sx={{ p: 0.75 }}>
+                <TextField size="small" placeholder="Search documents…" value={search} onChange={event => setSearch(event.target.value)} sx={{ width: { xs: '100%', sm: 280 }, flexShrink: 0 }} slotProps={{ htmlInput: { 'aria-label': 'Search documents and stages' }, input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }} />
+            </Box>
+        </Paper>
             {loading ? <Box sx={{ p: 5, textAlign: "center" }}><CircularProgress aria-label="Loading documents" /></Box> : error ?
                 <Alert severity="error" action={<Button onClick={() => setVersion((value) => value + 1)}>Retry</Button>}>{error}</Alert> :
-                byStage ? <Box sx={{ p: { xs: 1, md: 2 } }}>{(processStages.length ? processStages : [{ _id: "unassigned", title: "Process stages have not been added yet" }]).map((stage, stageIndex) => {
-                    const items = stageDocuments.filter((document) => document.stage?.trim() === stage.title);
-                    return <Accordion key={stage._id} defaultExpanded={stageIndex === 0} disableGutters sx={{ mb: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "12px !important", boxShadow: "none", "&:before": { display: "none" } }}>
-                        <AccordionSummary expandIcon={<ExpandMore />}><Stack direction="row" spacing={1.5} alignItems="center"><Typography fontWeight={600}>{stageIndex + 1}. {stage.title}</Typography><Chip size="small" label={items.length} /></Stack></AccordionSummary>
-                        <AccordionDetails sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>{items.length ? items.map((item) => <Box key={item._id} sx={{ py: 1, borderBottom: "1px solid", borderColor: "divider" }}><Typography fontWeight={600}>{item.title}</Typography><Typography variant="body2" color="text.secondary">{item.details || item.source || "No additional details"}</Typography></Box>) : <Typography color="text.secondary">No required documents assigned to this stage yet.</Typography>}</AccordionDetails>
-                    </Accordion>;
-                })}</Box> :
-                !documents.length ? <Box sx={{ p: 5, textAlign: "center" }}>
-                    <Typography color="text.secondary">No {process ? "process stages" : "required documents"} have been added{selectedCountry ? ` for ${selectedCountry.name}` : ""} yet.</Typography>
-                    {isAdmin && <Typography variant="body2" sx={{ mt: 1 }}>Add an entry and choose its country to get started.</Typography>}
-                </Box> : <Box sx={{ p: { xs: 1, md: 2 } }}>{sections.map((section, sectionIndex) => {
-                    const sectionDocuments = documents.filter((record) => (record.section?.trim() || "General") === section);
-                    return <Accordion key={`${countryId}:${type}:${section}`} defaultExpanded={sectionIndex === 0} disableGutters
-                        sx={{ mb: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "12px !important", boxShadow: "none", "&:before": { display: "none" } }}>
-                        <AccordionSummary expandIcon={<ExpandMore />} id={`document-section-${sectionIndex}-header`} aria-controls={`document-section-${sectionIndex}-content`}>
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Typography fontWeight={600}>{sectionIndex + 1}. {section}</Typography>
-                                <Chip size="small" label={sectionDocuments.length} aria-label={`${sectionDocuments.length} entries`} />
-                            </Stack>
+                byStage ? <Stack spacing={1}>{visibleStageGroups.length ? visibleStageGroups.map((stage, stageIndex) =>
+                    <Accordion key={`${countryId}:${stage._id}:${Boolean(search.trim())}`} defaultExpanded={Boolean(search.trim()) || stageIndex === 0} disableGutters sx={sectionStyle}>
+                        <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 1.5, minHeight: 42, '& .MuiAccordionSummary-content': { my: 1, alignItems: 'center' } }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}><Typography component="h2" variant="body2" fontWeight={600}>{stage.title}</Typography><Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>{stage.items.length} {stage.items.length === 1 ? 'document' : 'documents'}</Typography></Box>
                         </AccordionSummary>
-                        <AccordionDetails sx={{ p: 0, borderTop: "1px solid", borderColor: "divider" }}>
-                            {isAdmin && <Box sx={{ p: 1, textAlign: "right" }}><Button size="small" variant="outlined" startIcon={<Add sx={{ fontSize: 14 }} />} sx={{ minHeight: 26, px: 1, py: 0.15, borderRadius: 1, fontSize: "0.72rem" }}
-                                onClick={() => setEditor({ record: null, section: section === "General" ? "" : section })}>
-                                {process ? "Add stage" : "Add document"}
-                            </Button></Box>}
-                            <TableContainer>
-                    <Table sx={{ minWidth: 620, "& td": { verticalAlign: "top" } }}>
-                        <TableHead><TableRow>
-                            <TableCell width="48">#</TableCell><TableCell>{process ? "Stage" : "Document"}</TableCell><TableCell>Information</TableCell><TableCell width="100">Preview</TableCell>
-                            {isAdmin && <TableCell align="right">Actions</TableCell>}
-                        </TableRow></TableHead>
-                        <TableBody>{sectionDocuments.map((record, index) => <TableRow key={record._id} hover>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell sx={{ fontWeight: 600, minWidth: 170, maxWidth: 280, overflowWrap: "anywhere" }}>{record.title}</TableCell>
-                            <TableCell sx={{ minWidth: 220, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-                                <Stack spacing={0.75}>
-                                    {process && record.timeline && <Chip size="small" label={record.timeline} sx={{ alignSelf: "flex-start" }} />}
-                                    {!process && record.source && <Typography variant="body2" color="primary" fontWeight={600}>{record.source}</Typography>}
-                                    <Typography variant="body2" color="text.secondary">{record.details || "No additional details"}</Typography>
-                                </Stack>
-                            </TableCell>
-                            <TableCell>{(() => { const hasPreview = Array.isArray(record.preview) ? record.preview.length > 0 : Boolean(record.preview); return <Tooltip title={hasPreview ? "Open preview" : "No preview available"}><span><IconButton size="small" disabled={!hasPreview} aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></span></Tooltip>; })()}</TableCell>
-                            {isAdmin && <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                                <Tooltip title="Edit"><IconButton size="small" aria-label={`Edit ${record.title}`} onClick={() => setEditor({ record })}><EditOutlined fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="Delete"><IconButton size="small" aria-label={`Delete ${record.title}`} onClick={() => { setDeleteError(""); setDeleting(record); }}><DeleteOutline fontSize="small" /></IconButton></Tooltip>
-                            </TableCell>}
-                        </TableRow>)}</TableBody>
-                    </Table>
-                            </TableContainer>
+                        <AccordionDetails sx={{ px: 0, py: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+                            {stage.items.length ? stage.items.map(renderEntry) : <Typography color="text.secondary" sx={{ py: 3 }}>No documents assigned to this stage yet.</Typography>}
+                        </AccordionDetails>
+                    </Accordion>) : <EmptyDocuments search={search} />}</Stack> :
+                !visibleDocuments.length ? <EmptyDocuments search={search} process={process} /> :
+                <Stack spacing={1}>{visibleSections.map((section, sectionIndex) => {
+                    const sectionDocuments = visibleDocuments.filter(record => (record.section?.trim() || 'General') === section);
+                    return <Accordion key={`${countryId}:${type}:${section}:${Boolean(search.trim())}`} defaultExpanded={Boolean(search.trim()) || sectionIndex === 0} disableGutters sx={sectionStyle}>
+                        <AccordionSummary expandIcon={<ExpandMore />} id={`document-section-${sectionIndex}-header`} aria-controls={`document-section-${sectionIndex}-content`} sx={{ px: 1.5, minHeight: 42, '& .MuiAccordionSummary-content': { my: 1, alignItems: 'center' } }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}><Typography component="h2" variant="body2" fontWeight={600}>{section}</Typography><Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>{sectionDocuments.length} {process ? (sectionDocuments.length === 1 ? 'step' : 'steps') : (sectionDocuments.length === 1 ? 'document' : 'documents')}</Typography></Box>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ px: 0, py: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+                            {sectionDocuments.map(renderEntry)}
+                            {isAdmin && <Box sx={{ px: 1.5, py: 0.5 }}><Button size="small" startIcon={<Add />} onClick={() => setEditor({ record: null, section: section === 'General' ? '' : section })}>{process ? 'Add stage to section' : 'Add document to section'}</Button></Box>}
                         </AccordionDetails>
                     </Accordion>;
-                })}</Box>}
-        </Paper>
-        {editor && <DocumentEditor record={editor.record} countries={countries} stages={processStages} defaultCountry={countryId} defaultType={type}
+                })}</Stack>}
+        {editor && <DocumentEditor record={editor.record} countries={countries} stages={processStages} defaultCountry={countryId} defaultType={byStage ? "required_documents" : type}
             sections={sections.filter((section) => section !== "General")} defaultSection={editor.section || ""}
             onClose={() => setEditor(null)} onSaved={(saved) => {
                 setDocuments((current) => editor.record
                     ? current.map((record) => record._id === saved._id ? saved : record)
                     : [...current, saved].sort((a, b) => (a.order || 0) - (b.order || 0)));
-                setEditor(null);
+                setEditor(null); setVersion(value => value + 1);
             }} />}
         {preview && <DocumentPreview key={preview._id} record={preview} onClose={() => setPreview(null)} />}
         <Dialog open={Boolean(deleting)} onClose={deleteBusy ? undefined : () => setDeleting(null)}>
