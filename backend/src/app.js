@@ -28,5 +28,6 @@ app.use("/api/program", programRoutes);
 app.use("/api/documents", require("./routes/documentRoutes"));
 app.use("/api/study-guides", require("./routes/studyGuideRoutes"));
 app.use("/api/cost-estimation", require("./routes/costEstimationRoutes"));
+app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 
 module.exports = app;

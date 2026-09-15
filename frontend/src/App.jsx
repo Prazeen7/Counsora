@@ -17,6 +17,7 @@ import RoleProtectedRoutes from "./components/protectedRoutes/roleProtectedRoute
 import AdminDashboard from "./pages/admin/dashboard";
 import Sidebar from "./components/admin/sidebar";
 import AdminInstitutions from "./pages/admin/institutionsList";
+import AdminInstitutionPage from "./pages/admin/InstitutionPage";
 import AdminLayout from "./layouts/adminLayout";
 import ReviewPrograms from "./pages/admin/ReviewPrograms";
 import Programs from "./pages/counselor/program";
@@ -125,6 +126,7 @@ function App() {
         <Route path="/admin/users" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Users /></RoleProtectedRoutes>} />
         <Route path="/admin/countries" element={<RoleProtectedRoutes allowedRoles={["superAdmin"]}><Countries /></RoleProtectedRoutes>} />
         <Route path="/admin/institutions" element={<AdminInstitutions />} />
+        <Route path="/admin/institutions/:institutionId" element={<AdminInstitutionPage />} />
         <Route path="/admin/documents" element={<DocumentsPage isAdmin />} />
         <Route path="/admin/study-guide" element={<StudyGuide isAdmin />} />
         <Route path="/admin/cost-estimation" element={<CostEstimationPage />} />

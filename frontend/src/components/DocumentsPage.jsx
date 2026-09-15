@@ -50,9 +50,9 @@ export default function DocumentsPage({ isAdmin = false }) {
         return <Box component="article" key={record._id} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', md: 'minmax(180px, 0.8fr) minmax(0, 1.7fr) auto' }, alignItems: 'start', columnGap: 2, rowGap: 0.5, px: 1.5, py: 1, '& + &': { borderTop: '1px solid', borderColor: 'divider' }, '&:hover': { bgcolor: 'action.hover' } }}>
             <Typography component="h3" variant="body2" fontWeight={600} sx={{ pt: 0.5, overflowWrap: 'anywhere' }}><Box component="span" sx={{ color: 'text.disabled', mr: 1, fontWeight: 400 }}>{index + 1}.</Box>{record.title}</Typography>
             <Box sx={{ minWidth: 0, gridColumn: { xs: '1 / -1', md: 'auto' }, gridRow: { xs: 2, md: 'auto' }, fontSize: 13 }}>
-                {process && record.timeline && <Typography variant="caption" color="primary" sx={{ display: 'block', lineHeight: 1.5 }}>{record.timeline}</Typography>}
+                {process && record.timeline && <Typography variant="caption" color="primary" sx={{ display: 'block', lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.timeline}</Typography>}
                 {!process && record.source && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflowWrap: 'anywhere' }}>Source: {record.source}</Typography>}
-                {record.details && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={record.details}>{record.details}</Typography>}
+                {record.details && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.details}</Typography>}
             </Box>
             <Stack direction="row" spacing={0.25} sx={{ gridColumn: { xs: 2, md: 3 }, gridRow: 1 }}>
                 {previewCount > 0 && <Tooltip title={`View ${previewCount} attachment${previewCount === 1 ? '' : 's'}`}><IconButton size="small" aria-label={`Preview ${record.title}`} onClick={() => setPreview(record)}><VisibilityOutlined fontSize="small" /></IconButton></Tooltip>}
