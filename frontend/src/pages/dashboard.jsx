@@ -1,3 +1,4 @@
+import CounselorDashboard from "./counselor/CounselorDashboard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -8,22 +9,17 @@ import {
     Grid,
     Button,
     Divider,
-    Chip,
-    Avatar,
     Stack
 } from "@mui/joy";
 import {
     School,
-    Description,
     Calculate,
-    Timeline,
     Login,
     PersonAdd,
-    Public,
 } from "@mui/icons-material";
 
 export default function Dashboard() {
-    const { isLoggedIn, user } = useAuth();
+    const { isLoggedIn } = useAuth();
     const navigate = useNavigate();
 
     const brandColor = "#4f46e5";
@@ -117,33 +113,5 @@ export default function Dashboard() {
 
     }
 
-    return (
-        <Box sx={{ width: "100%", p: 3 }}>
-            <Box
-                sx={{
-                    mb: 4,
-                    p: 3,
-                    borderRadius: "3xl",
-                    background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
-                    color: "white",
-                }}
-            > <Stack align="center" gap={2}>
-                    <Avatar sx={{ width: 64, height: 64, bgcolor: "white", color: brandColor }}>
-                        {user?.name?.charAt(0)?.toUpperCase() || "U"} </Avatar>
-
-
-                    < Box >
-                        <Typography level="h2" sx={{ color: "white" }}>
-                            Welcome back{user?.name ? `, ${user.name}` : ""}!
-                        </Typography>
-                        <Typography level="body-md" sx={{ color: "#e0e7ff" }}>
-                            Continue your study abroad journey and keep your applications on track.
-                        </Typography>
-                    </Box >
-                </Stack >
-            </Box >
-
-        </Box >
-
-    );
+    return <CounselorDashboard />;
 }
