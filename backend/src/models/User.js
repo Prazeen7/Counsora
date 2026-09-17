@@ -62,6 +62,8 @@ const userSchema = new mongoose.Schema(
     verificationTokenExpiresAt: { type: Date, select: false },
     verificationEmailSentAt: { type: Date, select: false },
 
+    verificationEmailDelivery: { type: String, enum: ['sending', 'sent', 'failed'] },
+
     isActive: {
       type: Boolean,
       default: true,

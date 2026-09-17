@@ -37,6 +37,15 @@ export default function VerifyEmail() {
                 const result = await apiRequest("/auth/verification-status", {
                     method: "POST", body: JSON.stringify({ statusToken }),
                 });
+                if (!cancelled && !result.isVerified && result.emailDelivery) {
+                    const messages = {
+                        sending: "Sending your verification email… Temporary delivery failures are retried automatically.",
+                        sent: "Verification email sent. Check your inbox and spam folder.",
+                        failed: "We couldn't send your verification email. Please try resending it.",
+                    };
+                    setMessage(messages[result.emailDelivery]);
+                    setSeverity(result.emailDelivery === "failed" ? "warning" : result.emailDelivery === "sent" ? "success" : "info");
+                }
                 if (!cancelled && result.isVerified && result.token && result.user) {
                     if (result.user.isApproved !== true) {
                         endVerificationFlow();
@@ -88,7 +97,7 @@ export default function VerifyEmail() {
                 method: "POST", body: JSON.stringify(verify ? { token } : { email, statusToken: location.state?.verificationStatusToken }),
             });
             setMessage(result.message);
-            setSeverity(result.emailSent === false ? "warning" : "success");
+            setSeverity(result.emailSent === false ? "warning" : result.emailSent === null ? "info" : "success");
             if (verify) {
                 if (result.user?.isApproved !== true) {
                     endVerificationFlow();

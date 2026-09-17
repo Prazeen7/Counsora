@@ -68,17 +68,13 @@ const signUp = async (req, res) => {
             isVerified: false,
         });
 
-        let emailSent = true;
-        try {
-            await sendVerificationEmail(user);
-        } catch (error) {
-            emailSent = false;
-            console.error("Verification email delivery failed:", error.message);
-        }
+        sendVerificationEmail(user).catch(error => {
+            console.error("Verification email delivery failed", { code: error.code, command: error.command, responseCode: error.responseCode });
+        });
 
         return res.status(201).json({
-            message: emailSent ? "Check your email to verify your account" : "Account created, but the verification email could not be sent. Please try resending it.",
-            emailSent,
+            message: "Account created. Sending your verification email…",
+            emailSent: null,
             verificationStatusToken: createVerificationStatusToken(user),
             user: {
                 id: user._id,
@@ -133,15 +129,15 @@ const login = async (req, res) => {
             // Do not hold the login response open while SMTP connects. The user
             // is sent to the verification route immediately; delivery continues
             // in the background and failures are logged without exposing secrets.
-            sendVerificationEmail(existingUser, { force: true }).catch((error) => {
+            sendVerificationEmail(existingUser).catch((error) => {
                 console.error("Automatic verification email failed", { code: error.code, responseCode: error.responseCode });
             });
             return res.status(403).json({
                 error: "Please verify your email before logging in",
                 code: "EMAIL_NOT_VERIFIED",
                 verificationStatusToken: createVerificationStatusToken(existingUser),
-                message: "We sent a verification email. Check your inbox to continue.",
-                emailSent: true,
+                message: "Verification email requested. Check your inbox shortly.",
+                emailSent: null,
             });
         }
 
@@ -232,7 +228,7 @@ const verificationStatus = async (req, res) => {
             // Reuse the session created by verification. Polling must not log out
             // the email tab or restore a session replaced by a later login.
             const canCompleteLogin = isVerified && user.sessionToken && user.verificationLoginSession === user.sessionToken;
-            return res.json({ isVerified, ...(canCompleteLogin ? verificationSession(user) : {}) });
+            return res.json({ isVerified, emailDelivery: user?.verificationEmailDelivery, ...(canCompleteLogin ? verificationSession(user) : {}) });
         } catch {
             return res.status(503).json({ error: "Unable to check verification status" });
         }
@@ -253,7 +249,7 @@ const verificationStatus = async (req, res) => {
 };
 
 const updateVerificationEmail = async (req, res) => {
-    const { email, statusToken, automatic = false } = req.body;
+    const { email, statusToken } = req.body;
     let claims;
     try {
         claims = jwt.verify(statusToken, process.env.JWT_SECRET);
@@ -285,14 +281,14 @@ const updateVerificationEmail = async (req, res) => {
             }, { new: true, runValidators: true });
             if (!user) return res.status(409).json({ error: "Please wait one minute after the last email, then try again. The account may also have been updated in another tab." });
         }
-        sendVerificationEmail(user, { force: automatic === true }).catch((error) => {
+        sendVerificationEmail(user).catch((error) => {
             console.error("Updated verification email delivery failed", {
                 code: error.code, command: error.command, responseCode: error.responseCode,
             });
         });
         return res.json({
             email: user.email,
-            emailSent: true,
+            emailSent: null,
             message: "Verification email requested. Check your inbox shortly.",
         });
     } catch (error) {
