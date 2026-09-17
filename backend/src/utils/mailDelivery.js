@@ -1,5 +1,14 @@
 const nodemailer = require("nodemailer");
 const { setTimeout: delay } = require("node:timers/promises");
+const { sendGmail, validateGmailConfig } = require('./gmailDelivery');
+
+function validateMailConfig() {
+    const provider = process.env.EMAIL_PROVIDER || 'smtp';
+    if (provider === 'gmail-api') validateGmailConfig();
+    else if (provider !== 'smtp' || !process.env.SMTP_HOST) {
+        throw Object.assign(new Error('Invalid email provider or missing SMTP_HOST'), { code: 'EMAIL_CONFIG' });
+    }
+}
 
 function retryable(error) {
     if (error.code === "EAUTH") return false;
@@ -8,6 +17,10 @@ function retryable(error) {
 }
 
 async function sendMail(message, { wait = delay } = {}) {
+    if (process.env.EMAIL_PROVIDER === 'gmail-api') return sendGmail(message, { wait });
+    if (process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== 'smtp') {
+        throw Object.assign(new Error('Unsupported EMAIL_PROVIDER'), { code: 'EMAIL_CONFIG' });
+    }
     const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
     const port = Number(process.env.SMTP_PORT || 587);
     // Reuse the message (and verification link) across temporary delivery failures.
@@ -31,4 +44,4 @@ async function sendMail(message, { wait = delay } = {}) {
     }
 }
 
-module.exports = { sendMail };
+module.exports = { sendMail, validateMailConfig };

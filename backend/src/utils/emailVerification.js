@@ -1,12 +1,13 @@
 const crypto = require("crypto");
-const { sendMail } = require("./mailDelivery");
+const { sendMail, validateMailConfig } = require("./mailDelivery");
 const User = require("../models/User");
 const path = require("path");
 const verificationEmailTemplate = require("./verificationEmailTemplate");
 
 async function sendApprovalEmail(user) {
-    const { SMTP_HOST, EMAIL_FROM, FRONTEND_URL } = process.env;
-    if (!SMTP_HOST || !EMAIL_FROM || !FRONTEND_URL) throw new Error("Email delivery is not configured");
+    const { EMAIL_FROM, FRONTEND_URL } = process.env;
+    validateMailConfig();
+    if (!EMAIL_FROM || !FRONTEND_URL) throw new Error("Email delivery is not configured");
     const dashboardUrl = new URL(user.role === "counselor" ? "/" : "/admin/dashboard", FRONTEND_URL).toString();
     const safeName = String(user.name || "there").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const safeUrl = dashboardUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -22,8 +23,9 @@ async function sendApprovalEmail(user) {
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 async function sendVerificationEmail(user) {
-    const { SMTP_HOST, EMAIL_FROM, FRONTEND_URL } = process.env;
-    if (!SMTP_HOST || !EMAIL_FROM || !FRONTEND_URL) {
+    const { EMAIL_FROM, FRONTEND_URL } = process.env;
+    validateMailConfig();
+    if (!EMAIL_FROM || !FRONTEND_URL) {
         throw new Error("Email verification is not configured");
     }
     const token = crypto.randomBytes(32).toString("hex");
