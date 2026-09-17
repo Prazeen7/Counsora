@@ -4,6 +4,7 @@ const Institution = require("../models/Institution");
 const Document = require("../models/Document");
 const CostSheet = require("../models/CostSheet");
 const StudyGuide = require("../models/StudyGuide");
+const { parseListQuery } = require("../utils/listQuery");
 
 const getCountries = async (req, res) => {
     try {
@@ -18,9 +19,17 @@ const getCountries = async (req, res) => {
 };
 
 const getAllCountries = async (req, res) => {
+    let params;
+    try { params = parseListQuery(req.query); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
     try {
-        const countries = await Country.find({}).sort({ name: 1 }).lean();
-        res.status(200).json(countries);
+        const { page, limit, search } = params;
+        const filter = search ? { $or: ["name", "code", "currency"].map(field => ({ [field]: { $regex: search, $options: "i" } })) } : {};
+        const [countries, total] = await Promise.all([
+            Country.find(filter).sort({ name: 1, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+            Country.countDocuments(filter),
+        ]);
+        res.status(200).json({ countries, total, page, limit });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

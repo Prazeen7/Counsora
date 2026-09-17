@@ -1,7 +1,7 @@
 import { apiRequest } from "./api";
 
-export function getAllCountries() {
-    return apiRequest("/country/all");
+export function getAllCountries(params = {}) {
+    return apiRequest(`/country/all?${new URLSearchParams(params)}`);
 }
 
 export function updateCountry(id, changes) {

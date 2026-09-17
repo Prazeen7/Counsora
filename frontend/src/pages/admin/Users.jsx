@@ -1,18 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { apiRequest } from "../../services/api";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { TablePagination } from "@mui/material";
+import useAdminList from "../../hooks/useAdminList";
+import ListSearch from "../../components/admin/ListSearch";
 
 const roleLabels = { superAdmin: "Superadmin", admin: "Admin", counselor: "Counselor" };
 
 export default function Users() {
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(25);
+    const [search, setSearch] = useState("");
     const [view, setView] = useState("all");
     const [organization, setOrganization] = useState("all");
-    const [data, setData] = useState({ users: [], total: 0, limit: 25, organizations: [] });
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [retry, setRetry] = useState(0);
+    const query = new URLSearchParams({ page, limit, search, view });
+    if (view === "counselor" && organization !== "all") query.set("organization", organization);
+    const { data: result, loading, error: fetchError } = useAdminList("/users", query.toString(), retry);
+    const data = result || { users: [], total: 0, organizations: [] };
     const [subscriptionUser, setSubscriptionUser] = useState(null);
     const [duration, setDuration] = useState('1');
     const [unit, setUnit] = useState('days');
@@ -31,19 +38,6 @@ export default function Users() {
         } catch (err) { setSubscriptionError(err.message); }
         finally { setSaving(false); }
     };
-    useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
-        setError("");
-        const query = new URLSearchParams({ page: String(page), view });
-        if (view === "counselor" && organization !== "all") query.set("organization", organization);
-        apiRequest(`/users?${query.toString()}`).then((result) => {
-            if (!cancelled) setData(result);
-        }).catch((err) => { if (!cancelled) setError(err.message); })
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [page, view, organization, retry]);
-
     const changeView = (_, nextView) => {
         if (nextView === null) return;
         setView(nextView);
@@ -59,6 +53,7 @@ export default function Users() {
             await apiRequest(`/users/${user._id}/approval`, {
                 method: "PATCH", body: JSON.stringify({ approved }),
             });
+            if (view === "verify" && approved && data.users.length === 1 && page > 1) setPage(value => value - 1);
             setRetry((value) => value + 1);
         } catch (err) {
             setError(err.message);
@@ -68,6 +63,7 @@ export default function Users() {
     return <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Typography variant="h4" component="h1" fontWeight="bold" mb={1}>Users</Typography>
         <Typography color="text.secondary" mb={2}>Registered accounts and their access roles.</Typography>
+        <ListSearch label="Search users" placeholder="Name, email, or organization" onSearch={value => { setSearch(value); setPage(1); setError(""); }} />
         <Tabs value={view} onChange={changeView} variant="scrollable" sx={{ mb: 2 }}>
             <Tab value="all" label="View All Users" />
             <Tab value="verify" label="Verify Users" />
@@ -78,10 +74,11 @@ export default function Users() {
             <InputLabel id="organization-filter-label">Organization</InputLabel>
             <Select labelId="organization-filter-label" value={organization} label="Organization" onChange={changeOrganization}>
                 <MenuItem value="all">All organizations</MenuItem>
+                {organization !== "all" && !data.organizations.includes(organization) && <MenuItem value={organization}>{organization}</MenuItem>}
                 {data.organizations.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
             </Select>
         </FormControl>}
-        {error ? <Alert severity="error" action={<Button onClick={() => setRetry(retry + 1)}>Retry</Button>}>{error}</Alert>
+        {error || fetchError ? <Alert severity="error" action={<Button onClick={() => { setError(""); setRetry(retry + 1); }}>Retry</Button>}>{error || fetchError}</Alert>
             : loading ? <CircularProgress aria-label="Loading users" />
                 : <>
                     <TableContainer component={Paper}>
@@ -110,11 +107,7 @@ export default function Users() {
                             </TableBody>
                         </Table>
                     </TableContainer>
-                    <Box display="flex" alignItems="center" gap={2} mt={2}>
-                        <Button disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</Button>
-                        <Typography>Page {page} of {Math.max(1, Math.ceil(data.total / data.limit))}</Typography>
-                        <Button disabled={page * data.limit >= data.total} onClick={() => setPage(page + 1)}>Next</Button>
-                    </Box>
+                    <TablePagination component="div" count={data.total} page={page - 1} rowsPerPage={limit} rowsPerPageOptions={[10, 25, 50, 100]} onPageChange={(_, next) => setPage(next + 1)} onRowsPerPageChange={event => { setLimit(Number(event.target.value)); setPage(1); }} />
                 </>}
         <Dialog open={Boolean(subscriptionUser)} onClose={() => { if (!saving) setSubscriptionUser(null); }} fullWidth maxWidth="sm">
             <DialogTitle>Subscription for {subscriptionUser?.name}</DialogTitle>

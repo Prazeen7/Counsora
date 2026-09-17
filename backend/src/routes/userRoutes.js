@@ -5,12 +5,19 @@ const { superAdminMiddleware } = require("../middleware/adminMiddleware");
 const { sendApprovalEmail } = require("../utils/emailVerification");
 const router = express.Router();
 const { createSubscription } = require('../utils/subscription');
+const { parseListQuery } = require('../utils/listQuery');
 
 router.get("/", authMiddleware, superAdminMiddleware, async (req, res) => {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = 25;
+    let params;
+    try { params = parseListQuery(req.query); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+    const { page, limit, search } = params;
     const { view = "all", organization } = req.query;
     const filter = {};
+    if (organization !== undefined && (typeof organization !== "string" || organization.length > 300)) {
+        return res.status(400).json({ error: "Invalid organization" });
+    }
+    if (search) filter.$or = ["name", "email", "organizationName"].map(field => ({ [field]: { $regex: search, $options: "i" } }));
     if (view === "verify") filter.isApproved = false;
     if (view === "admin") filter.role = "admin";
     if (view === "counselor") {

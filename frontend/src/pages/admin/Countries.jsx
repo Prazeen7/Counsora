@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
-import { getAllCountries, createCountry, updateCountry, deleteCountry } from "../../services/countryService";
+import { TablePagination } from "@mui/material";
+import { createCountry, updateCountry, deleteCountry } from "../../services/countryService";
+import useAdminList from "../../hooks/useAdminList";
+import ListSearch from "../../components/admin/ListSearch";
 
 const schemaFields = ["code", "name", "currency", "isActive"];
 
@@ -12,10 +15,13 @@ function displayValue(value) {
 }
 
 export default function Countries() {
-    const [countries, setCountries] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(25);
+    const [search, setSearch] = useState("");
     const [retry, setRetry] = useState(0);
+    const query = new URLSearchParams({ page, limit, search }).toString();
+    const { data, loading, error } = useAdminList("/country/all", query, retry);
+    const countries = data?.countries || [];
     const [editing, setEditing] = useState(null);
     const [deleting, setDeleting] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -35,8 +41,10 @@ export default function Countries() {
         setActionError("");
         try {
             const changes = Object.fromEntries(schemaFields.filter((field) => editing[field] !== undefined).map((field) => [field, editing[field]]));
-            const updated = isCreating ? await createCountry(changes) : await updateCountry(editing._id, changes);
-            setCountries((items) => (isCreating ? [...items, updated] : items.map((item) => item._id === updated._id ? updated : item)).sort((a, b) => a.name.localeCompare(b.name)));
+            if (isCreating) await createCountry(changes);
+            else await updateCountry(editing._id, changes);
+            setPage(1);
+            setRetry(value => value + 1);
             setEditing(null);
         } catch (err) {
             setActionError(err.message);
@@ -50,7 +58,8 @@ export default function Countries() {
         setActionError("");
         try {
             await deleteCountry(deleting._id);
-            setCountries((items) => items.filter((item) => item._id !== deleting._id));
+            if (countries.length === 1 && page > 1) setPage(value => value - 1);
+            setRetry(value => value + 1);
             setDeleting(null);
         } catch (err) {
             setActionError(err.message);
@@ -59,18 +68,7 @@ export default function Countries() {
         }
     };
 
-    useEffect(() => {
-        let cancelled = false;
-        getAllCountries()
-            .then((data) => { if (!cancelled) setCountries(data); })
-            .catch((err) => { if (!cancelled) setError(err.message); })
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [retry]);
-
     const retryFetch = () => {
-        setLoading(true);
-        setError("");
         setRetry((value) => value + 1);
     };
 
@@ -80,10 +78,11 @@ export default function Countries() {
         <Typography variant="h4" component="h1" fontWeight="bold" mb={1}>Countries</Typography>
         <Typography color="text.secondary" mb={3}>Manage country code, name, currency, and active status.</Typography>
         <Button variant="contained" sx={{ mb: 3 }} disabled={loading || Boolean(error)} onClick={() => { setActionError(""); setEditing({ code: "", name: "", currency: "", isActive: true }); }}>Add country</Button>
+        <ListSearch label="Search countries" placeholder="Name, code, or currency" onSearch={value => { setSearch(value); setPage(1); }} />
         {error ? <Alert severity="error" action={<Button onClick={retryFetch}>Retry</Button>}>{error}</Alert>
             : loading ? <CircularProgress aria-label="Loading countries" />
                 : <>
-                    <Typography mb={2}>{countries.length} countries</Typography>
+                    <Typography mb={2}>{data.total} countries{search ? ` matching “${search}”` : ""}</Typography>
                     <TableContainer component={Paper}>
                         <Table aria-label="Countries">
                             <TableHead>
@@ -101,6 +100,7 @@ export default function Countries() {
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <TablePagination component="div" count={data.total} page={page - 1} rowsPerPage={limit} rowsPerPageOptions={[10, 25, 50, 100]} onPageChange={(_, next) => setPage(next + 1)} onRowsPerPageChange={event => { setLimit(Number(event.target.value)); setPage(1); }} />
                 </>}
         <Dialog open={Boolean(editing)} onClose={closeDialog} fullWidth maxWidth="sm">
             <Box component="form" onSubmit={saveCountry}>
