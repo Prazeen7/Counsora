@@ -54,6 +54,7 @@ body {
 
 .nav-links {
     display: flex;
+    align-items: center;
     gap: 1.5em;
     list-style-type: none;
 }
@@ -162,6 +163,7 @@ body {
 
 .nav-links.active {
     display: flex;
+    align-items: stretch;
     flex-direction: column;
     position: absolute;
     top: 100%;
@@ -285,22 +287,59 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: transparent;
-    border: none;
+    background: #eef2ff;
+    border: 1px solid #a5b4fc;
+    color: #4338ca;
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 8px 10px;
+    min-height: 48px;
+    font-family: inherit;
+    text-align: left;
     border-radius: 8px;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.region-button:hover {
-    background: #f3f4f6;
+.region-button:hover,
+.region-button[aria-expanded="true"] {
+    background: #e0e7ff;
+    border-color: #4f46e5;
+}
+
+.region-button:focus-visible {
+    outline: 3px solid #4f46e5;
+    outline-offset: 3px;
+}
+
+.region-button-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.region-label {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.region-button > img,
+.region-chevron {
+    flex-shrink: 0;
+}
+
+.region-button[aria-expanded="true"] .region-chevron {
+    transform: rotate(180deg);
 }
 
 .region-code {
     font-size: 15px;
     font-weight: 600;
     color: #111827;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .region-dropdown {
@@ -344,4 +383,24 @@ body {
 
 .region-item:hover {
     background: #f3f4f6;
+}
+
+@media (max-width: 960px) {
+    .region-button {
+        width: 100%;
+    }
+
+    .region-button-text {
+        flex: 1;
+    }
+
+    .region-code {
+        max-width: none;
+    }
+
+    .region-dropdown {
+        left: 0;
+        right: auto;
+        width: min(320px, 100%);
+    }
 }

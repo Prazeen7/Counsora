@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCountry } from "../../context/CountryContext";
 import { getCountries } from "../../services/countryService";
 
-import { Public } from "@mui/icons-material";
+import { KeyboardArrowDown, Public } from "@mui/icons-material";
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -102,30 +102,39 @@ const Navbar = () => {
                                 className="region-button"
                                 onClick={() => setShowRegionDropdown(!showRegionDropdown)}
                                 type="button"
+                                aria-expanded={showRegionDropdown}
+                                aria-controls="country-dropdown"
+                                aria-label={`Select country: ${selectedRegion?.name || "Worldwide"}`}
                             >
                                 {selectedRegion ? (
                                     <>
                                         <img
                                             src={`https://flagcdn.com/${selectedRegion.code.toLowerCase()}.svg`}
-                                            alt={selectedRegion.name}
+                                            alt=""
                                             width={28}
                                             height={20}
                                         />
-                                        <span className="region-code">{selectedRegion.code}</span>
                                     </>
                                 ) : (
                                     <>
                                         <Public sx={{ fontSize: 24 }} />
-                                        <span className="region-code">Worldwide</span>
                                     </>
                                 )}
+                                <span className="region-button-text">
+                                    <span className="region-label">Select country</span>
+                                    <span className="region-code" title={selectedRegion?.name || "Worldwide"}>
+                                        {selectedRegion?.name || "Worldwide"}
+                                    </span>
+                                </span>
+                                <KeyboardArrowDown className="region-chevron" sx={{ fontSize: 22 }} />
                             </button>
 
                             {showRegionDropdown && (
-                                <div className="region-dropdown">
+                                <div className="region-dropdown" id="country-dropdown">
                                     <input
                                         type="text"
                                         placeholder="Search country..."
+                                        aria-label="Search countries"
                                         value={regionSearch}
                                         onChange={(e) => setRegionSearch(e.target.value)}
                                         className="region-search"
