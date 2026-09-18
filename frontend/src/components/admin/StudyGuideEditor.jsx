@@ -9,6 +9,7 @@ export default function StudyGuideEditor({ record, country, defaultOrder, onClos
         category: record?.category || '', introduction: record?.introduction || '',
         order: record?.order ?? defaultOrder,
         sections: record?.sections?.map(section => ({ title: section.title, content: section.content })) || [],
+        sources: record?.sources?.map(source => ({ title: source.title, url: source.url })) || [],
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -42,6 +43,13 @@ export default function StudyGuideEditor({ record, country, defaultOrder, onClos
                     </Stack>
                     <TextField label="Short description" multiline minRows={2} value={fields.description} onChange={change('description')} disabled={saving} inputProps={{ maxLength: 1000 }} />
                     <TextField label="Introduction" multiline minRows={4} value={fields.introduction} onChange={change('introduction')} disabled={saving} inputProps={{ maxLength: 20000 }} helperText="Always visible. Separate paragraphs with a blank line; start bullet lines with - ." />
+                    <Typography variant="h6">Sources</Typography>
+                    {fields.sources.map((source, index) => <Stack key={index} spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                        <TextField label="Source title" required value={source.title} disabled={saving} inputProps={{ maxLength: 300 }} onChange={event => setFields(current => ({ ...current, sources: current.sources.map((item, i) => i === index ? { ...item, title: event.target.value } : item) }))} />
+                        <TextField label="Source URL" type="url" required value={source.url} disabled={saving} inputProps={{ maxLength: 2048, pattern: 'https?://.+' }} helperText="Use the full HTTP or HTTPS link to the source." onChange={event => setFields(current => ({ ...current, sources: current.sources.map((item, i) => i === index ? { ...item, url: event.target.value } : item) }))} />
+                        <Button color="error" disabled={saving} onClick={() => setFields(current => ({ ...current, sources: current.sources.filter((_, i) => i !== index) }))}>Remove source {index + 1}</Button>
+                    </Stack>)}
+                    <Button variant="outlined" disabled={saving || fields.sources.length >= 20} onClick={() => setFields(current => ({ ...current, sources: [...current.sources, { title: '', url: '' }] }))}>Add source</Button>
                     <Typography variant="h6">Expandable sections</Typography>
                     {fields.sections.map((section, index) => <Stack key={index} spacing={2} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">

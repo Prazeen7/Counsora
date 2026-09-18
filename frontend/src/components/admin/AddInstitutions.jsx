@@ -1,3 +1,4 @@
+import ProgramFieldSelect from "./ProgramFieldSelect";
 import { apiFetch } from "../../services/api";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -286,7 +287,7 @@ export default function AddInstitution({ onClose }) {
                 id: Date.now(),
                 name: '',
                 level: '',
-                field: '',
+                field: [],
                 duration: '',
 
                 tuitionFee: {
@@ -1982,15 +1983,10 @@ export default function AddInstitution({ onClose }) {
                                                     </Grid>
 
                                                     <Grid item xs={12}>
-                                                        <TextField
-                                                            label="Field of Study"
-                                                            fullWidth
+                                                        <ProgramFieldSelect
                                                             size="small"
                                                             value={program.field}
-                                                            onChange={(e) =>
-                                                                handleProgramChange(program.id, "field", e.target.value)
-                                                            }
-                                                            placeholder="e.g. Computer Science"
+                                                            onChange={(field) => handleProgramChange(program.id, "field", field)}
                                                         />
                                                     </Grid>
 

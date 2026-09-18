@@ -1,7 +1,6 @@
 export const FIELD_OPTIONS = [
     "Allied Health",
     "Management, Business and Accounting",
-    "Creative, Performing and Visual Arts",
     "Creative Media, Communication and Arts",
     "Education, Teaching and Childcare",
     "Engineering, Built Environment and Aviation",
@@ -20,3 +19,24 @@ export const FIELD_OPTIONS = [
     "Trades",
     "Other",
 ];
+
+export function normalizeProgramFields(value) {
+    const entries = Array.isArray(value) ? value : [value];
+    return [...new Set(entries
+        .filter(entry => typeof entry === "string")
+        .flatMap(entry => entry.split(/[;|\n]+/))
+        .map(entry => entry.trim())
+        .map(entry => entry.toLowerCase() === "creative, performing and visual arts"
+            ? "Creative Media, Communication and Arts" : entry)
+        .filter(Boolean))];
+}
+
+export function formatProgramFields(value) {
+    return normalizeProgramFields(value).join(" • ");
+}
+
+export function matchesProgramField(value, selected) {
+    const fields = normalizeProgramFields(value);
+    return selected === "all" || fields.includes(selected) ||
+        (selected === "Other" && fields.some(field => !FIELD_OPTIONS.includes(field)));
+}

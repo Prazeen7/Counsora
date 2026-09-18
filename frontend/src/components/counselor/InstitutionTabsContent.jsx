@@ -1,3 +1,4 @@
+import { formatProgramFields } from "../../constants/programFields";
 import { tuitionFeeText } from '../../utils/tuitionFees';
 import React, { useEffect, useState } from "react";
 import ListingFlags from "../admin/ListingFlags";
@@ -813,20 +814,16 @@ export default function InstitutionTabsContent({
                                                         program.name}
                                                 </Typography>
 
-                                                {program.field && (
+                                                {formatProgramFields(program.field) && (
                                                     <Typography
                                                         variant="body2"
                                                         color="text.secondary"
                                                         sx={{
                                                             mt: 0.5,
-                                                            display: "-webkit-box",
-                                                            WebkitLineClamp: 1,
-                                                            WebkitBoxOrient:
-                                                                "vertical",
-                                                            overflow: "hidden",
+                                                            overflowWrap: "anywhere",
                                                         }}
                                                     >
-                                                        {program.field_other || program.field}
+                                                        {formatProgramFields(program.field)}
                                                     </Typography>
                                                 )}
                                                 {specializations.length > 0 && (

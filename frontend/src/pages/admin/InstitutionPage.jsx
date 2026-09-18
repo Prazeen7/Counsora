@@ -1,6 +1,7 @@
+import ProgramFieldSelect from "../../components/admin/ProgramFieldSelect";
 import { tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { apiFetch } from "../../services/api";
-import { FIELD_OPTIONS } from "../../constants/programFields";
+import { FIELD_OPTIONS, normalizeProgramFields, matchesProgramField } from "../../constants/programFields";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -503,7 +504,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                 : {
                     degree_name: "",
                     level: "",
-                    field: "",
+                    field: [],
                     specialization: [],
                     credits: [],
                     format: "",
@@ -548,13 +549,12 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
             setFormData({
                 ...base,
                 isActive: base.isActive !== false,
-                field_other: base.field_other || (base.field && !FIELD_OPTIONS.includes(base.field) ? base.field : ""),
                 field_requirement_other:
                     base.entry_requirements?.academic?.field_requirement &&
                     !FIELD_OPTIONS.includes(base.entry_requirements.academic.field_requirement)
                         ? base.entry_requirements.academic.field_requirement
                         : "",
-                field: base.field && FIELD_OPTIONS.includes(base.field) ? base.field : (base.field ? "Other" : ""),
+                field: normalizeProgramFields(base.field),
                 level: base.level && LEVEL_OPTIONS.includes(base.level) ? base.level : (base.level || ""),
                 credits_raw: Array.isArray(base.credits)
                     ? base.credits.join(", ")
@@ -636,9 +636,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
         const payload = {
             ...formData,
             level: formData.level && LEVEL_OPTIONS.includes(formData.level) ? formData.level : null,
-            field: formData.field === "Other"
-                ? (formData.field_other?.trim() || "Other")
-                : (formData.field || null),
+            field: normalizeProgramFields(formData.field),
             field_other: null,
             specialization:
                 typeof formData.specialization_raw === "string"
@@ -786,34 +784,11 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                             </FormControl>
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth>
-                                <InputLabel id="program-field-label">Field of Study</InputLabel>
-                                <Select
-                                    labelId="program-field-label"
-                                    id="program-field-select"
-                                    value={formData.field || ""}
-                                    label="Field of Study"
-                                    onChange={(e) => handleChange("field", e.target.value)}
-                                    MenuProps={DEFAULT_MENU_PROPS}
-                                >
-                                    <MenuItem value=""><em>None</em></MenuItem>
-                                    {FIELD_OPTIONS.map((fld) => (
-                                        <MenuItem key={fld} value={fld}>{fld}</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <ProgramFieldSelect
+                                value={formData.field}
+                                onChange={(field) => handleChange("field", field)}
+                            />
                         </Grid>
-                        {formData.field === "Other" && (
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    required
-                                    label="Specify Other Field"
-                                    value={formData.field_other || ""}
-                                    onChange={(e) => handleChange("field_other", e.target.value)}
-                                />
-                            </Grid>
-                        )}
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
@@ -2132,7 +2107,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
             ...program,
             name: program.degree_name,
             level: program.level || extractLevel(program.degree_name),
-            field: program.field || extractField(program.degree_name),
+            field: normalizeProgramFields(program.field).length ? normalizeProgramFields(program.field) : normalizeProgramFields(extractField(program.degree_name)),
             tuitionFee: {
                 value: parseTuitionFee(program.tuition_fees),
                 currency: institution?.country?.currency || "",
@@ -2145,7 +2120,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         [transformedPrograms]
     );
     const fields = useMemo(
-        () => [...new Set(transformedPrograms.map((p) => p.field).filter(Boolean))],
+        () => [...new Set(transformedPrograms.flatMap((p) => normalizeProgramFields(p.field)))],
         [transformedPrograms]
     );
     const intakes = useMemo(
@@ -2179,7 +2154,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 selectedLevel === "all" || program.level === selectedLevel;
 
             const matchesField =
-                selectedField === "all" || program.field === selectedField;
+                matchesProgramField(program.field, selectedField);
 
             const programIntakes = Array.isArray(program.intakes)
                 ? program.intakes

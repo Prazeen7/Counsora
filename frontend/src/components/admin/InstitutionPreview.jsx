@@ -1,3 +1,4 @@
+import { formatProgramFields } from "../../constants/programFields";
 import {
     Box,
     Button,
@@ -202,7 +203,7 @@ export default function InstitutionPreview({ data, onEdit, onConfirm, onCancel, 
                                             <TableRow key={index}>
                                                 <TableCell>{program.name || 'N/A'}</TableCell>
                                                 <TableCell>{program.level || 'N/A'}</TableCell>
-                                                <TableCell>{program.field || 'N/A'}</TableCell>
+                                                <TableCell>{formatProgramFields(program.field) || 'N/A'}</TableCell>
                                                 <TableCell>{program.duration || 'N/A'}</TableCell>
                                                 <TableCell>
                                                     {program.tuitionFee?.value 

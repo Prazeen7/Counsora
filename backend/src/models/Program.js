@@ -1,3 +1,4 @@
+const { normalizeProgramFields } = require("../utils/programField");
 const mongoose = require("mongoose");
 
 // ========== SUB-SCHEMAS ==========
@@ -110,9 +111,9 @@ const programSchema = new mongoose.Schema(
             default: null,
         },
         field: {
-            type: String,
-            default: null,
-            trim: true,
+            type: [String],
+            set: normalizeProgramFields,
+            default: [],
         },
         specialization: {
             type: [String],

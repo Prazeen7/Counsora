@@ -1,3 +1,5 @@
+import ProgramFieldSelect from "./ProgramFieldSelect";
+import { formatProgramFields } from "../../constants/programFields";
 import { tuitionFeeText, tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { useState, useEffect } from 'react';
 import {
@@ -37,28 +39,7 @@ const LEVEL_OPTIONS = [
     'Research'
 ];
 
-const FIELD_OPTIONS = [
-    "Allied Health",
-    "Management, Business and Accounting",
-    "Creative, Performing and Visual Arts",
-    "Creative Media, Communication and Arts",
-    "Education, Teaching and Childcare",
-    "Engineering, Built Environment and Aviation",
-    "English and Study Pathways",
-    "Information Systems and Technology",
-    "Law, Criminology and Justice",
-    "Nursing, Paramedicine and Health",
-    "Psychology, Social Work and Community Services",
-    "Safety Sciences",
-    "Science, Environment and Agriculture",
-    "Service Industries",
-    "Sport, Recreation & Exercise",
-    "Cookery and Hotel Management",
-    "Hair, Beauty and Makeup",
-    "Travel and Tourism",
-    "Trades",
-    "Other",
-];
+
 
 const DEFAULT_MENU_PROPS = {
     disableAutoFocusItem: true,
@@ -213,7 +194,7 @@ export default function ReviewProgramsModal({
 
                                         <Grid item xs={12} md={6}>
                                             <Typography variant="body2" color="text.secondary">Field:</Typography>
-                                            <Typography variant="body1">{program.field || 'N/A'}</Typography>
+                                            <Typography variant="body1">{formatProgramFields(program.field) || 'N/A'}</Typography>
                                         </Grid>
 
                                         {program.specialization?.length > 0 && (
@@ -374,26 +355,10 @@ export default function ReviewProgramsModal({
                             </Select>
                         </FormControl>
 
-                        <FormControl fullWidth>
-                            <InputLabel id="review-field-label">Field</InputLabel>
-                            <Select
-                                labelId="review-field-label"
-                                id="review-field-select"
-                                value={editProgramForm.field || ''}
-                                label="Field"
-                                onChange={(e) => setEditProgramForm({ ...editProgramForm, field: e.target.value })}
-                                MenuProps={DEFAULT_MENU_PROPS}
-                            >
-                                <MenuItem value="">
-                                    <em>None</em>
-                                </MenuItem>
-                                {FIELD_OPTIONS.map((field) => (
-                                    <MenuItem key={field} value={field}>
-                                        {field}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        <ProgramFieldSelect
+                            value={editProgramForm.field}
+                            onChange={(field) => setEditProgramForm({ ...editProgramForm, field })}
+                        />
 
                         <TextField
                             label="Specializations (comma-separated)"

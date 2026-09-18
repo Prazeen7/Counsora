@@ -1,5 +1,5 @@
 import { apiFetch } from "../../services/api";
-import { FIELD_OPTIONS } from "../../constants/programFields";
+import { FIELD_OPTIONS, formatProgramFields } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
     Box,
@@ -345,7 +345,7 @@ export default function Programs() {
                     }
 
                     // Extract discipline from field or degree name
-                    const discipline = program.field ||
+                    const discipline = formatProgramFields(program.field) ||
                         program.degree_name?.split(" in ")[1]?.split(" ")[0] ||
                         program.degree_name?.split(" of ")[1]?.split(" ")[0] ||
                         "General";

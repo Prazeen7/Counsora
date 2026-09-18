@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, Divider, Paper, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { ArrowBack, ArrowForward, ExpandMore } from "@mui/icons-material";
+import { ArrowBack, ArrowForward, ExpandMore, OpenInNew } from "@mui/icons-material";
 import { useCountry } from '../../context/CountryContext';
 import { getStudyGuides, deleteStudyGuide } from '../../services/studyGuideService';
 import StudyGuideEditor from '../../components/admin/StudyGuideEditor';
@@ -9,8 +9,8 @@ function GuideText({ text }) {
   return String(text || '').split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => {
     const lines = paragraph.split('\n');
     return lines.every(line => line.startsWith('- '))
-      ? <Box component="ul" key={index} sx={{ pl: 2.5, my: 2, '& li': { mb: 1 } }}>{lines.map((line, i) => <li key={i}><Typography sx={{ lineHeight: 1.8 }}>{line.slice(2)}</Typography></li>)}</Box>
-      : <Typography key={index} sx={{ mb: 2, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.8 }}>{paragraph}</Typography>;
+      ? <Box component="ul" key={index} sx={{ pl: 2.5, my: 1.5, '& li': { mb: 1.25, pl: 0.5 }, '& li::marker': { color: 'primary.main' } }}>{lines.map((line, i) => <li key={i}><Typography sx={{ lineHeight: 1.75, fontWeight: 400 }}>{line.slice(2)}</Typography></li>)}</Box>
+      : <Typography key={index} sx={{ mb: 2, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.75 }}>{paragraph}</Typography>;
   });
 }
 
@@ -20,9 +20,9 @@ export default function StudyGuide({ isAdmin = false }) {
   return <GuideContent key={selectedCountry._id} country={selectedCountry} isAdmin={isAdmin} />;
 }
 
-const Detail = ({ title, children }) => <Accordion disableGutters elevation={0} sx={{ my: 2, border: "1px solid", borderColor: "divider", borderRadius: "12px !important", "&:before": { display: "none" } }}>
-  <AccordionSummary expandIcon={<ExpandMore />}><Typography component="h3" fontWeight={600}>{title}</Typography></AccordionSummary>
-  <AccordionDetails sx={{ px: { xs: 2, md: 3 }, pt: 1, pb: 3 }}>{children}</AccordionDetails>
+const Detail = ({ title, children }) => <Accordion disableGutters elevation={0} sx={{ my: 2, border: '1px solid', borderColor: 'divider', borderRadius: '12px !important', '&:before': { display: 'none' } }}>
+  <AccordionSummary expandIcon={<ExpandMore />}><Typography component="h3" sx={{ fontSize: '1.1rem', fontWeight: 400, color: 'text.primary' }}>{title}</Typography></AccordionSummary>
+  <AccordionDetails sx={{ px: { xs: 2, md: 3 }, pt: 1, pb: 3, '& > :last-child': { mb: 0 } }}>{children}</AccordionDetails>
 </Accordion>;
 
 function GuideContent({ country, isAdmin }) {
@@ -61,6 +61,10 @@ function GuideContent({ country, isAdmin }) {
     finally { setDeleteBusy(false); }
   };
   const topic = topics[activeTopic];
+  const sources = (topic?.sources || []).filter(source => {
+    try { const url = new URL(source.url); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password; }
+    catch { return false; }
+  });
   const selectTopic = (index) => {
     setActiveTopic(index);
     document.getElementById("guide-navigation")?.scrollIntoView({ block: "nearest" });
@@ -70,8 +74,8 @@ function GuideContent({ country, isAdmin }) {
   return <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: { xs: 3, md: 5 } }}>
     <Container maxWidth="lg">
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography variant="overline" color="primary" fontWeight={700} sx={{ letterSpacing: 1.5 }}>STUDY IN {country.name.toUpperCase()}</Typography>
-        <Typography component="h1" fontWeight={750} sx={{ fontSize: { xs: "2rem", md: "2.75rem" }, color: "#1e293b", mt: 0.5 }}>Study Guide</Typography>
+        <Typography variant="overline" color="primary" fontWeight={400} sx={{ letterSpacing: 1.5 }}>STUDY IN {country.name.toUpperCase()}</Typography>
+        <Typography component="h1" fontWeight={400} sx={{ fontSize: { xs: "2rem", md: "2.75rem" }, color: "#1e293b", mt: 0.5 }}>Study Guide</Typography>
         <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 620, lineHeight: 1.7 }}>From planning your finances to life after graduation. Choose a topic and explore it at your own pace.</Typography>
         {isAdmin && <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setEditor({ record: null })} disabled={loading || Boolean(error)}>Add topic</Button>}
       </Box>
@@ -79,21 +83,30 @@ function GuideContent({ country, isAdmin }) {
         <Paper id="guide-navigation" component="nav" aria-label="Study guide topics" variant="outlined" sx={{ borderRadius: 3, p: { xs: 1, md: 2 }, position: { md: "sticky" }, top: { md: 88 }, minWidth: 0 }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, px: 1, mb: 1 }}>IN THIS GUIDE</Typography>
           <Tabs value={activeTopic} onChange={(_, value) => setActiveTopic(value)} orientation={desktop ? "vertical" : "horizontal"} aria-label="Choose a study guide topic" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile
-            sx={{ "& .MuiTabs-list": { flexDirection: { xs: "row", md: "column" }, gap: 0.75 }, "& .MuiTabs-indicator": { display: "none" }, "& .MuiTab-root": { minHeight: 48, textTransform: "none", alignItems: "flex-start", textAlign: "left", borderRadius: 2, px: 2, fontWeight: 600, maxWidth: "none", "&.Mui-selected": { bgcolor: "#eef2ff", color: "#4338ca" }, "&.Mui-focusVisible": { outline: "2px solid #4338ca", outlineOffset: -2 } } }}>
+            sx={{ "& .MuiTabs-list": { flexDirection: { xs: "row", md: "column" }, gap: 0.75 }, "& .MuiTabs-indicator": { display: "none" }, "& .MuiTab-root": { minHeight: 48, textTransform: "none", alignItems: "flex-start", textAlign: "left", borderRadius: 2, px: 2, fontWeight: 400, maxWidth: "none", "&.Mui-selected": { bgcolor: "#eef2ff", color: "#4338ca" }, "&.Mui-focusVisible": { outline: "2px solid #4338ca", outlineOffset: -2 } } }}>
             {topics.map((item, index) => <Tab key={item.label} id={"guide-tab-" + index} aria-controls={"guide-panel-" + index} label={(index + 1) + ". " + item.label} />)}
           </Tabs>
         </Paper>
         <Paper variant="outlined" sx={{ minWidth: 0, borderRadius: 3, overflow: "hidden" }}>
           <Box role="tabpanel" id={"guide-panel-" + activeTopic} aria-labelledby={"guide-tab-" + activeTopic} tabIndex={0} sx={{ p: { xs: 2.5, md: 4 } }}>
             <Stack direction="row" justifyContent="space-between" spacing={2} sx={{ mb: 1.5 }}>
-              <Typography variant="overline" color="primary" fontWeight={600}>{topic.category}</Typography>
+              <Typography variant="overline" color="primary" fontWeight={400}>{topic.category}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center", whiteSpace: "nowrap" }}>Topic {activeTopic + 1} of {topics.length}</Typography>
             </Stack>
-            <Typography component="h2" fontWeight={700} sx={{ fontSize: { xs: "1.6rem", md: "2rem" } }}>{topic.title}</Typography>
+            <Typography component="h2" fontWeight={400} sx={{ fontSize: { xs: "1.6rem", md: "2rem" } }}>{topic.title}</Typography>
             {isAdmin && <Stack direction="row" spacing={1} sx={{ mt: 1 }}><Button onClick={() => setEditor({ record: topic })}>Edit topic</Button><Button color="error" onClick={() => { setDeleteError(''); setDeleting(topic); }}>Delete topic</Button></Stack>}
             <Typography color="text.secondary" sx={{ mt: 1, lineHeight: 1.7 }}>{topic.description}</Typography>
             <Divider sx={{ my: 3 }} />
-            <Box key={activeTopic} sx={{ maxWidth: 720, color: "#475569", "& .MuiTypography-root": { lineHeight: 1.8 }, "& > .MuiTypography-root": { mb: 2 }, "& .MuiTypography-h6": { color: "#1e293b", mt: 2 } }}><GuideText text={topic.introduction} />{topic.sections.map((section, index) => <Detail key={index} title={section.title}><GuideText text={section.content} /></Detail>)}</Box>
+            <Box key={activeTopic} sx={{ maxWidth: '68ch', color: 'text.secondary' }}><GuideText text={topic.introduction} />{topic.sections.map((section, index) => <Detail key={index} title={section.title}><GuideText text={section.content} /></Detail>)}</Box>
+            {sources.length > 0 && <Box sx={{ mt: 3 }}>
+              <Divider sx={{ mb: 2 }} />
+              <Typography component="h3" variant="h6" fontWeight={400}>Sources</Typography>
+              <Box component="ul" sx={{ pl: 2.5, '& li': { my: 1.5 } }}>
+                {sources.map((source, index) => <li key={index}>
+                  <Typography component="a" href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`${source.title} (opens in a new tab)`} sx={{ color: 'primary.main', overflowWrap: 'anywhere', lineHeight: 1.7, textUnderlineOffset: '3px', '&:hover': { textDecorationThickness: '2px' } }}>{source.title}<OpenInNew aria-hidden="true" sx={{ fontSize: 14, ml: 0.75, verticalAlign: 'middle' }} /></Typography>
+                </li>)}
+              </Box>
+            </Box>}
           </Box>
           <Divider />
           <Stack direction="row" justifyContent="space-between" spacing={1} sx={{ px: { xs: 2, md: 4 }, py: 2, bgcolor: "#fcfcfd" }}>

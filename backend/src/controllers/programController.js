@@ -1,3 +1,4 @@
+const { FIELD_OPTIONS, normalizeProgramField, normalizeProgramFields, programFieldFilter } = require("../utils/programField");
 const programGpaFilter = require("../utils/programGpaFilter");
 const programEnglishFilter = require("../utils/programEnglishFilter");
 const programAcademicLevelFilter = require("../utils/programAcademicLevelFilter");
@@ -26,7 +27,7 @@ const getProgramsByInstitution = async (req, res) => {
 
         return res.status(200).json({
             count: programs.length,
-            programs,
+            programs: programs.map(program => ({ ...program, field: normalizeProgramFields(program.field) })),
         });
 
     } catch (error) {
@@ -40,29 +41,7 @@ const getProgramsByInstitution = async (req, res) => {
 
 
 const VALID_LEVELS = ["Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null];
-const VALID_FIELDS = [
-    "Allied Health",
-    "Management, Business and Accounting",
-    "Creative, Performing and Visual Arts",
-    "Creative Media, Communication and Arts",
-    "Education, Teaching and Childcare",
-    "Engineering, Built Environment and Aviation",
-    "English and Study Pathways",
-    "Information Systems and Technology",
-    "Law, Criminology and Justice",
-    "Nursing, Paramedicine and Health",
-    "Psychology, Social Work and Community Services",
-    "Safety Sciences",
-    "Science, Environment and Agriculture",
-    "Service Industries",
-    "Sport, Recreation & Exercise",
-    "Cookery and Hotel Management",
-    "Hair, Beauty and Makeup",
-    "Travel and Tourism",
-    "Trades",
-    "Other",
-    null,
-];
+const VALID_FIELDS = FIELD_OPTIONS;
 const VALID_QUALIFICATIONS = ["Higher Secondary", "Diploma", "Bachelor", "Master", "Doctoral", null];
 const VALID_SCORE_TYPES = ["GPA", "Percentage", null];
 
@@ -92,9 +71,7 @@ const sanitizeProgramData = (data) => {
     delete sanitized.tuitionFee;
 
     if (sanitized.field !== undefined) {
-        sanitized.field = typeof sanitized.field === "string"
-            ? sanitized.field.trim() || null
-            : null;
+        sanitized.field = normalizeProgramFields(sanitized.field);
     }
     if (sanitized.specialization !== undefined) {
         const values = Array.isArray(sanitized.specialization)
@@ -303,14 +280,12 @@ const getAllProgram = async (req, res) => {
             ],
         } : null;
         const countryFilter = country ? { "programInstitution.country": new mongoose.Types.ObjectId(country) } : null;
-        const fieldOfStudy = req.query.fieldOfStudy;
+        const fieldOfStudy = normalizeProgramField(req.query.fieldOfStudy);
         if (fieldOfStudy !== undefined && fieldOfStudy !== "" &&
             (typeof fieldOfStudy !== "string" || !VALID_FIELDS.includes(fieldOfStudy))) {
             return res.status(400).json({ error: "Select a valid field of study" });
         }
-        const fieldFilter = !fieldOfStudy ? null : fieldOfStudy === "Other"
-            ? { field: { $exists: true, $nin: [...VALID_FIELDS.filter(field => field !== "Other"), ""] } }
-            : { field: fieldOfStudy };
+        const fieldFilter = programFieldFilter(fieldOfStudy);
         let englishFilter;
         let academicLevelFilter;
         let programLevelFilter;
@@ -408,6 +383,7 @@ const getAllProgram = async (req, res) => {
 
         const allPrograms = programs.map((program) => ({
             ...program,
+            field: normalizeProgramFields(program.field),
             institution: program.institutionId,
             institutionId: program.institutionId?._id,
             institutionName: program.institutionId?.name,

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const StudyGuide = require('../models/StudyGuide');
 const Country = require('../models/Country');
+const { normalizeSources } = require('../utils/studyGuideSources');
 const { saveOrderedStudyGuide, deleteOrderedStudyGuide } = require('../utils/saveOrderedStudyGuide');
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const respondError = (res, error) => {
@@ -23,7 +24,7 @@ async function saveStudyGuide(req, res) {
         if (updating && !mongoose.isObjectIdOrHexString(req.params.id)) throw fail('Invalid study guide ID.');
         const body = req.body || {};
         const textFields = ['country', 'label', 'title', 'description', 'category', 'introduction'];
-        if (Object.keys(body).some(key => ![...textFields, 'sections', 'order'].includes(key))) throw fail('Unsupported study guide field.');
+        if (Object.keys(body).some(key => ![...textFields, 'sections', 'sources', 'order'].includes(key))) throw fail('Unsupported study guide field.');
         const record = updating ? await StudyGuide.findById(req.params.id) : new StudyGuide();
         if (!record) throw fail('Study guide not found.', 404);
         for (const field of textFields) {
@@ -44,6 +45,10 @@ async function saveStudyGuide(req, res) {
                 Object.keys(section).some(key => !['title', 'content'].includes(key)) ||
                 typeof section.title !== 'string' || typeof section.content !== 'string')) throw fail('Provide up to 50 sections with a title and content.');
             record.sections = body.sections;
+        }
+        if (body.sources !== undefined) {
+            try { record.sources = normalizeSources(body.sources); }
+            catch (error) { throw fail(error.message); }
         }
         if (!record.introduction?.trim() && !record.sections.length) throw fail('Add an introduction or at least one section.');
         await saveOrderedStudyGuide(record);

@@ -1,3 +1,4 @@
+const { normalizeProgramFields } = require("./programField");
 /**
  * Normalize program data from crawler to ensure consistent schema
  */
@@ -221,7 +222,7 @@ function normalizeProgramData(program) {
         level: normalizeEnum(program.level, [
             "Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research",
         ]),
-        field: normalizeString(program.field),
+        field: normalizeProgramFields(program.field),
         specialization: normalizeStringArray(program.specialization),
         credits: normalizeStringArray(program.credits),
         format: normalizeString(program.format),

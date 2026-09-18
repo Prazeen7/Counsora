@@ -1,3 +1,4 @@
+import { normalizeProgramFields, matchesProgramField } from "../../constants/programFields";
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -76,7 +77,7 @@ export default function InstitutionPage() {
         return [
             ...new Set(
                 programs
-                    .map((program) => program.field)
+                    .flatMap((program) => normalizeProgramFields(program.field))
                     .filter(Boolean)
             ),
         ].sort();
@@ -166,8 +167,7 @@ export default function InstitutionPage() {
                 program.level === selectedLevel;
 
             const matchesField =
-                selectedField === "all" ||
-                program.field === selectedField;
+                matchesProgramField(program.field, selectedField);
 
             const programIntakes = Array.isArray(program.intakes)
                 ? program.intakes

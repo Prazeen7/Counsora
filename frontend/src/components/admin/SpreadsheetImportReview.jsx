@@ -1,3 +1,4 @@
+import ProgramFieldSelect from "./ProgramFieldSelect";
 import { useEffect, useState } from "react";
 import {
     Alert, Autocomplete, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
@@ -170,7 +171,7 @@ export default function SpreadsheetImportReview({ open, stage, items, countries,
                                     <TextField label="Degree name" value={item.degree_name || ""} onChange={(e) => update(index, "degree_name", e.target.value)} fullWidth />
                                     <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
                                         <TextField label="Level" value={item.level || ""} onChange={(e) => update(index, "level", e.target.value || null)} fullWidth />
-                                        <TextField label="Field" value={item.field || ""} onChange={(e) => update(index, "field", e.target.value || null)} fullWidth />
+                                        <ProgramFieldSelect value={item.field} onChange={(field) => update(index, "field", field)} />
                                     </Box>
                                     <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
                                         <TextField label="Format" value={item.format || ""} onChange={(e) => update(index, "format", e.target.value || null)} fullWidth />
