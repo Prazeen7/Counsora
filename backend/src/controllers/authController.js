@@ -16,7 +16,7 @@ function verificationSession(user) {
     return {
         token: jwt.sign({ id: user._id, role: user.role, email: user.email, sessionToken: user.sessionToken },
             process.env.JWT_SECRET, { expiresIn: "7d" }),
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: user.isVerified, isApproved: user.isApproved },
+        user: { id: user._id, name: user.name, organizationName: user.organizationName, email: user.email, role: user.role, isVerified: user.isVerified, isApproved: user.isApproved },
     };
 }
 
@@ -79,6 +79,7 @@ const signUp = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                organizationName: user.organizationName,
                 email: user.email,
                 role: user.role,
                 isVerified: user.isVerified,
@@ -175,6 +176,7 @@ const login = async (req, res) => {
             user: {
                 id: existingUser._id,
                 name: existingUser.name,
+                organizationName: existingUser.organizationName,
                 email: existingUser.email,
                 role: existingUser.role,
                 isVerified: existingUser.isVerified,
@@ -321,7 +323,7 @@ const currentUser = (req, res) => {
     const user = req.user;
     res.set("Cache-Control", "no-store");
     return res.json({ user: {
-        id: user._id, name: user.name, email: user.email,
+        id: user._id, name: user.name, organizationName: user.organizationName, email: user.email,
                 role: user.role, isVerified: user.isVerified,
         isApproved: user.isApproved,
     } });

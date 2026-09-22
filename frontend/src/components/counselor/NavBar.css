@@ -115,7 +115,22 @@ body {
 
 .auth-buttons {
     display: flex;
+    align-items: center;
     gap: 1rem;
+}
+
+.user-name {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: #374151;
+    max-width: 8rem;
+    overflow-wrap: anywhere;
+}
+
+.organization-name {
+    color: #4f46e5;
 }
 
 .login-button,
@@ -195,6 +210,16 @@ body {
     }
 
     .auth-buttons {
+        display: none;
+    }
+
+    .logged-in-actions {
+        display: flex;
+        margin-left: auto;
+        margin-right: 0.5rem;
+    }
+
+    .logged-in-actions .login-button {
         display: none;
     }
 

@@ -471,7 +471,10 @@ const crawlInBackground = async (institutionId, websiteUrl, { importMissingOnly 
 
         if (crawlerResponse.data.complete === false ||
             crawlerResponse.data.steps?.some((step) => ['incomplete', 'failed'].includes(step.status))) {
-            throw new Error('Crawler still has programs missing structured data; finish extraction before review');
+            if (!Array.isArray(crawlerResponse.data.data) || crawlerResponse.data.data.length === 0) {
+                throw new Error('Crawler extraction is incomplete and returned no available programs');
+            }
+            console.warn('Crawler extraction is incomplete; sending available programs for review');
         }
 
         if (crawlerResponse.data.success && crawlerResponse.data.data) {

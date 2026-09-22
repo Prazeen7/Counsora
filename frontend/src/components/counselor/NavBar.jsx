@@ -14,7 +14,7 @@ const Navbar = () => {
     const [showRegionDropdown, setShowRegionDropdown] = useState(false);
     const [regionSearch, setRegionSearch] = useState("");
     const [countries, setCountries] = useState([]);
-    const { isLoggedIn, logout } = useAuth();
+    const { isLoggedIn, user, logout } = useAuth();
     const { selectedCountry, setSelectedCountry } = useCountry();
 
     const toggleMenu = () => {
@@ -53,6 +53,8 @@ const Navbar = () => {
     }
 
     const selectedRegion = selectedCountry;
+    const [firstName, ...lastNameParts] = (user?.name || "").trim().split(/\s+/);
+    const lastName = lastNameParts.join(" ");
 
     const filteredRegions = countries.filter(item =>
         item.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -181,7 +183,14 @@ const Navbar = () => {
 
                     </ul>
 
-                    <div className="auth-buttons">
+                    <div className="auth-buttons logged-in-actions">
+                        {(firstName || user?.organizationName) && (
+                            <span className="user-name" aria-label={[user?.name, user?.organizationName].filter(Boolean).join(", ")}>
+                                {firstName && <span>{firstName}</span>}
+                                {lastName && <span>{lastName}</span>}
+                                {user?.organizationName && <span className="organization-name">{user.organizationName}</span>}
+                            </span>
+                        )}
                         <button className="login-button" onClick={logout}>
                             Logout
                         </button>
