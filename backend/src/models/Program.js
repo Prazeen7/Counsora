@@ -192,6 +192,7 @@ const programSchema = new mongoose.Schema(
 programSchema.index({ degree_name: "text" });
 programSchema.index({ institutionId: 1, level: 1, isActive: 1 });
 programSchema.index({ institutionId: 1, field: 1 });
+programSchema.index({ institutionId: 1, isActive: 1, isDimmed: 1, isPinned: -1, _id: 1 });
 
 // ========== OPTIONAL: VIRTUAL FOR INSTITUTION NAME ==========
 // This gives you a virtual property that resolves to the populated institution's name.

@@ -1,5 +1,4 @@
-import { normalizeProgramFields, matchesProgramField } from "../../constants/programFields";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
     Box,
@@ -15,13 +14,13 @@ import Loading from "../../components/Loading";
 import InstitutionTabsContent from "../../components/counselor/InstitutionTabsContent";
 
 import { getInstitutionById } from "../../services/institutionService";
-import { getProgramsByInstitution } from "../../services/programService";
+import useInstitutionPrograms from "../../hooks/useInstitutionPrograms";
 
 export default function InstitutionPage() {
     const { institutionId } = useParams();
 
     const [institution, setInstitution] = useState(null);
-    const [programs, setPrograms] = useState([]);
+
 
     const [tabIndex, setTabIndex] = useState(0);
 
@@ -31,16 +30,22 @@ export default function InstitutionPage() {
     const [selectedIntake, setSelectedIntake] = useState("all");
     const [selectedTuition, setSelectedTuition] = useState("all");
 
+    const programList = useInstitutionPrograms(institutionId, {
+        search: searchQuery, level: selectedLevel, field: selectedField,
+        intake: selectedIntake, tuition: selectedTuition,
+    });
+    const { programs, summary } = programList;
+    const levels = summary?.levels || [];
+    const fields = summary?.fields || [];
+    const intakes = summary?.intakes || [];
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [institutionData, programData] = await Promise.all([
-                    getInstitutionById(institutionId),
-                    getProgramsByInstitution(institutionId),
-                ]);
+                const institutionData = await getInstitutionById(institutionId);
 
                 setInstitution(institutionData);
-                setPrograms(programData?.programs || []);
+
             } catch (err) {
                 console.error("Error fetching institution:", err);
             }
@@ -53,170 +58,6 @@ export default function InstitutionPage() {
 
         fetchData();
     }, [institutionId]);
-
-    /*
-     * -----------------------------
-     * FILTER OPTIONS
-     * -----------------------------
-     *
-     * These now come directly from
-     * the Program documents.
-     */
-
-    const levels = useMemo(() => {
-        return [
-            ...new Set(
-                programs
-                    .map((program) => program.level)
-                    .filter(Boolean)
-            ),
-        ].sort();
-    }, [programs]);
-
-    const fields = useMemo(() => {
-        return [
-            ...new Set(
-                programs
-                    .flatMap((program) => normalizeProgramFields(program.field))
-                    .filter(Boolean)
-            ),
-        ].sort();
-    }, [programs]);
-
-    const intakes = useMemo(() => {
-        return [
-            ...new Set(
-                programs.flatMap((program) => {
-                    if (Array.isArray(program.intakes)) {
-                        return program.intakes;
-                    }
-
-                    if (typeof program.intakes === "string") {
-                        return program.intakes
-                            .split(",")
-                            .map((intake) => intake.trim())
-                            .filter(Boolean);
-                    }
-
-                    return [];
-                })
-            ),
-        ].sort();
-    }, [programs]);
-
-    /*
-     * -----------------------------
-     * TUITION HELPER
-     * -----------------------------
-     *
-     * New structure:
-     *
-     * tuition_fees: [
-     *   {
-     *      credits: "...",
-     *      annual_fee_eur: 13825
-     *   }
-     * ]
-     *
-     * We use annual_fee_eur directly.
-     */
-
-    const getProgramTuition = (program) => {
-        if (
-            !Array.isArray(program?.tuition_fees) ||
-            program.tuition_fees.length === 0
-        ) {
-            return 0;
-        }
-
-        const fees = program.tuition_fees
-            .map((fee) => Number(fee?.annual_fee_eur))
-            .filter((fee) => Number.isFinite(fee) && fee > 0);
-
-        if (fees.length === 0) {
-            return 0;
-        }
-
-        return Math.min(...fees);
-    };
-
-    /*
-     * -----------------------------
-     * FILTER PROGRAMS
-     * -----------------------------
-     *
-     * No transformation is performed.
-     * Programs are already in the new
-     * schema.
-     */
-
-    const filteredPrograms = useMemo(() => {
-        return programs.filter((program) => {
-            const programName = (
-                program.degree_name ||
-                program.name ||
-                ""
-            ).toLowerCase();
-
-            const matchesSearch =
-                !searchQuery ||
-                programName.includes(searchQuery.toLowerCase());
-
-            const matchesLevel =
-                selectedLevel === "all" ||
-                program.level === selectedLevel;
-
-            const matchesField =
-                matchesProgramField(program.field, selectedField);
-
-            const programIntakes = Array.isArray(program.intakes)
-                ? program.intakes
-                : typeof program.intakes === "string"
-                    ? program.intakes
-                        .split(",")
-                        .map((intake) => intake.trim())
-                        .filter(Boolean)
-                    : [];
-
-            const matchesIntake =
-                selectedIntake === "all" ||
-                programIntakes.includes(selectedIntake);
-
-            const tuition = getProgramTuition(program);
-
-            const matchesTuition =
-                selectedTuition === "all" ||
-                (
-                    selectedTuition === "under20000" &&
-                    tuition > 0 &&
-                    tuition < 20000
-                ) ||
-                (
-                    selectedTuition === "20000to30000" &&
-                    tuition >= 20000 &&
-                    tuition <= 30000
-                ) ||
-                (
-                    selectedTuition === "above30000" &&
-                    tuition > 30000
-                );
-
-            return (
-                matchesSearch &&
-                matchesLevel &&
-                matchesField &&
-                matchesIntake &&
-                matchesTuition
-            );
-        });
-    }, [
-        programs,
-        searchQuery,
-        selectedLevel,
-        selectedField,
-        selectedIntake,
-        selectedTuition,
-    ]);
 
     if (!institution) {
         return <Loading loading={true} />;
@@ -354,7 +195,7 @@ export default function InstitutionPage() {
                      * directly. No transformation.
                      */
                     programs={programs}
-                    filteredPrograms={filteredPrograms}
+                    filteredPrograms={programs} programList={programList} programSummary={summary}
 
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}

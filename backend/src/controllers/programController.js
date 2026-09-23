@@ -5,9 +5,10 @@ const programAcademicLevelFilter = require("../utils/programAcademicLevelFilter"
 const Program = require("../models/Program");
 const Institution = require("../models/Institution");
 const mongoose = require("mongoose");
+const { buildInstitutionProgramSummary } = require("../utils/institutionProgramSummary");
 
 
-// Get all programs for an institution
+// Fetch a program page or institution-wide summary; unpaged access supports exports.
 const getProgramsByInstitution = async (req, res) => {
     try {
         const { institutionId } = req.params;
@@ -20,14 +21,46 @@ const getProgramsByInstitution = async (req, res) => {
 
         const includeInactive = req.query.includeInactive === "true" &&
             ["admin", "superAdmin"].includes(req.user?.role);
-        const programs = await Program.find({
+        const baseFilter = {
             institutionId,
             ...(includeInactive ? {} : { isActive: true }),
-        }).lean();
+        };
+        if (req.query.summary === "true") {
+            const rows = await Program.find(baseFilter)
+                .select("degree_name level field intakes campuses scholarship entry_requirements").lean();
+            return res.json(buildInstitutionProgramSummary(rows));
+        }
+        const filter = { ...baseFilter };
+        const { search, level, field, intake, tuition, status } = req.query;
+        if (includeInactive && ["active", "inactive"].includes(status)) filter.isActive = status === "active";
+        if (search) filter.degree_name = { $regex: String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+        if (level && level !== "all") filter.level = level;
+        if (field && field !== "all") Object.assign(filter, programFieldFilter(field));
+        if (intake && intake !== "all") filter.intakes = intake;
+        if (["under20000", "20000to30000", "above30000"].includes(tuition)) {
+            const fee = { $min: { $filter: {
+                input: { $map: { input: { $ifNull: ["$tuition_fees", []] }, as: "fee", in: {
+                    $convert: { input: "$$fee.annual_fee_eur", to: "double", onError: 0, onNull: 0 },
+                } } }, as: "amount", cond: { $gt: ["$$amount", 0] },
+            } } };
+            filter.$expr = tuition === "under20000"
+                ? { $and: [{ $gt: [fee, 0] }, { $lt: [fee, 20000] }] }
+                : tuition === "above30000" ? { $gt: [fee, 30000] }
+                    : { $and: [{ $gte: [fee, 20000] }, { $lte: [fee, 30000] }] };
+        }
+        const paginated = req.query.limit !== undefined;
+        const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
+        const offset = Math.max(0, Number.parseInt(req.query.offset, 10) || 0);
+        let query = Program.find(filter).sort({ isDimmed: 1, isPinned: -1, _id: 1 });
+        if (paginated) query = query.skip(offset).limit(limit);
+        const [programs, total] = await Promise.all([
+            query.lean(), paginated ? Program.countDocuments(filter) : Promise.resolve(null),
+        ]);
 
         return res.status(200).json({
             count: programs.length,
             programs: programs.map(program => ({ ...program, field: normalizeProgramFields(program.field) })),
+            ...(paginated ? { pagination: { total, offset, limit, hasMore: offset + programs.length < total } } : {}),
         });
 
     } catch (error) {

@@ -1,4 +1,4 @@
-import { formatProgramFields } from "../../constants/programFields";
+import { normalizeProgramFields } from "../../constants/programFields";
 import { tuitionFeeText } from '../../utils/tuitionFees';
 import React, { useEffect, useState } from "react";
 import ListingFlags from "../admin/ListingFlags";
@@ -31,6 +31,7 @@ import {
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 import { formatLanguageRequirement, hasLanguageScore } from "../../utils/formatLanguageRequirement";
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
+import ProgramLoadMore from "./ProgramLoadMore";
 import ProgramDocumentRequirements from "./ProgramDocumentRequirements";
 import { getProgramAdditionalRequirements, hasDocumentRequirements } from "../../utils/documentRequirements";
 
@@ -145,6 +146,8 @@ export default function InstitutionTabsContent({
     activeTab,
     institution,
     programs = [],
+    programList,
+    programSummary,
     filteredPrograms = [],
     searchQuery,
     setSearchQuery,
@@ -173,7 +176,7 @@ export default function InstitutionTabsContent({
     );
 
     useEffect(() => {
-        const latestCampuses = getDisplayCampuses(institution, programs);
+        const latestCampuses = institution?.campuses?.length ? institution.campuses : programSummary?.campuses || getDisplayCampuses(institution, programs);
 
         setSelectedCampus((currentCampus) => {
             if (latestCampuses.length === 0) return null;
@@ -186,17 +189,22 @@ export default function InstitutionTabsContent({
 
             return matchingCampus || latestCampuses[0];
         });
-    }, [institution, programs]);
+    }, [institution, programs, programSummary]);
 
     const undergraduateEntry = resolveEntryRequirement(
         institution?.entryRequirements?.undergraduate,
-        deriveLowestProgramRequirements(programs, true)
+        programSummary?.undergraduate || deriveLowestProgramRequirements(programs, true)
     );
     const postgraduateEntry = resolveEntryRequirement(
         institution?.entryRequirements?.postgraduate,
-        deriveLowestProgramRequirements(programs, false)
+        programSummary?.postgraduate || deriveLowestProgramRequirements(programs, false)
     );
     const sortedIntakes = sortIntakesByMonth(intakes);
+
+    if (programList && !programSummary && activeTab !== 2) {
+        return <ProgramLoadMore loading={!programList.summaryError}
+            error={programList.summaryError} retry={programList.reload} />;
+    }
 
     switch (activeTab) {
         case 0:
@@ -289,7 +297,7 @@ export default function InstitutionTabsContent({
             );
 
         case 1:
-            const displayCampuses = getDisplayCampuses(institution, programs);
+            const displayCampuses = institution?.campuses?.length ? institution.campuses : programSummary?.campuses || getDisplayCampuses(institution, programs);
             const institutionCountry =
                 typeof institution?.country === "object"
                     ? institution.country?.name
@@ -548,7 +556,7 @@ export default function InstitutionTabsContent({
                             color="text.secondary"
                             sx={{ py: 4, textAlign: "center" }}
                         >
-                            No programs found.
+                            {programList?.loading || programList?.error ? "" : "No programs found."}
                         </Typography>
                     ) : (
                         <Box
@@ -814,17 +822,10 @@ export default function InstitutionTabsContent({
                                                         program.name}
                                                 </Typography>
 
-                                                {formatProgramFields(program.field) && (
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                        sx={{
-                                                            mt: 0.5,
-                                                            overflowWrap: "anywhere",
-                                                        }}
-                                                    >
-                                                        {formatProgramFields(program.field)}
-                                                    </Typography>
+                                                {normalizeProgramFields(program.field).length > 0 && (
+                                                    <Box sx={{ mt: 0.5, minWidth: 0, color: "text.secondary" }}>
+                                                        <ProgramDetailsTicker items={normalizeProgramFields(program.field)} />
+                                                    </Box>
                                                 )}
                                                 {specializations.length > 0 && (
                                                     <Box sx={{ mt: 0.5, minWidth: 0 }}>
@@ -1261,11 +1262,18 @@ export default function InstitutionTabsContent({
                             })}
                         </Box>
                     )}
+                    {programList && <ProgramLoadMore
+                        loading={programList.loading}
+                        error={programList.error}
+                        hasMore={programList.pagination.hasMore}
+                        loadMore={programList.loadMore}
+                        retry={programList.retry}
+                    />}
                 </Paper>
             );
 
         case 3: {
-            const allIntakes = sortIntakesByMonth([
+            const allIntakes = sortIntakesByMonth(programSummary?.intakes || [
                 ...new Set(
                     programs.flatMap((program) =>
                         Array.isArray(program.intakes)
@@ -1357,7 +1365,7 @@ export default function InstitutionTabsContent({
                 }
                 if (!group.url && program.scholarship.url) group.url = program.scholarship.url;
             });
-            const programScholarships = [...groupedScholarships.values()];
+            const programScholarships = hasInstitutionScholarshipValue ? [] : programSummary?.scholarships || [...groupedScholarships.values()];
             const fallbackValue = programScholarships.map(({ value }) => value).join("; ");
             const displayScholarships = institution?.scholarships?.length
                 ? institution.scholarships.map((scholarship) => ({
@@ -1761,7 +1769,7 @@ export default function InstitutionTabsContent({
 
         case 7: {
             const hasDocuments = hasDocumentRequirements(institution?.documents);
-            const programRequirements = hasDocuments ? [] : getProgramAdditionalRequirements(programs);
+            const programRequirements = hasDocuments ? [] : programSummary?.documents || getProgramAdditionalRequirements(programs);
             return (
                 <Paper sx={{ p: 4, borderRadius: 3 }}>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -1769,7 +1777,7 @@ export default function InstitutionTabsContent({
                     </Typography>
 
                     {!hasDocuments ? (
-                        <ProgramDocumentRequirements requirements={programRequirements} totalPrograms={programs.length} />
+                        <ProgramDocumentRequirements requirements={programRequirements} totalPrograms={programSummary?.total ?? programs.length} />
                     ) : (
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>

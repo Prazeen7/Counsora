@@ -1,7 +1,7 @@
 import ProgramFieldSelect from "../../components/admin/ProgramFieldSelect";
 import { tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { apiFetch } from "../../services/api";
-import { FIELD_OPTIONS, normalizeProgramFields, matchesProgramField } from "../../constants/programFields";
+import { FIELD_OPTIONS, normalizeProgramFields } from "../../constants/programFields";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -49,6 +49,7 @@ import Loading from "../../components/Loading";
 import InstitutionTabsContent from "../../components/counselor/InstitutionTabsContent";
 import { getInstitutionById, deleteInstitution } from "../../services/institutionService";
 import { getProgramsByInstitution } from "../../services/programService";
+import useInstitutionPrograms from "../../hooks/useInstitutionPrograms";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 import LanguageRequirementFields from "../../components/admin/LanguageRequirementFields";
 
@@ -2000,7 +2001,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const institutionId = institutionProp?._id || routeInstitutionId;
 
     const [institution, setInstitution] = useState(institutionProp || null);
-    const [programs, setPrograms] = useState([]);
+
     const [tabIndex, setTabIndex] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedLevel, setSelectedLevel] = useState("all");
@@ -2008,6 +2009,12 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     const [selectedIntake, setSelectedIntake] = useState("all");
     const [selectedTuition, setSelectedTuition] = useState("all");
     const [selectedStatus, setSelectedStatus] = useState("active");
+
+    const programList = useInstitutionPrograms(institutionId, {
+        search: searchQuery, level: selectedLevel, field: selectedField,
+        intake: selectedIntake, tuition: selectedTuition, status: selectedStatus,
+    }, true);
+    const { programs, summary, reload: reloadPrograms } = programList;
 
     // Edit mode states
     const [editMode, setEditMode] = useState(false);
@@ -2039,13 +2046,10 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [institutionData, programData] = await Promise.all([
-                    getInstitutionById(institutionId),
-                    getProgramsByInstitution(institutionId, { includeInactive: true }),
-                ]);
+                const institutionData = await getInstitutionById(institutionId);
 
                 setInstitution(institutionData);
-                setPrograms(programData.programs || []);
+
             } catch (err) {
                 console.error("Error fetching data:", err);
             }
@@ -2115,79 +2119,11 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         }));
     }, [programs, institution?.country?.currency, extractLevel, extractField, parseTuitionFee]);
 
-    const levels = useMemo(
-        () => [...new Set(transformedPrograms.map((p) => p.level).filter(Boolean))],
-        [transformedPrograms]
-    );
-    const fields = useMemo(
-        () => [...new Set(transformedPrograms.flatMap((p) => normalizeProgramFields(p.field)))],
-        [transformedPrograms]
-    );
-    const intakes = useMemo(
-        () => [
-            ...new Set(
-                transformedPrograms.flatMap((p) => {
-                    if (Array.isArray(p.intakes)) return p.intakes;
-                    if (typeof p.intakes === "string") {
-                        return p.intakes
-                            .split(",")
-                            .map((i) => i.trim())
-                            .filter(Boolean);
-                    }
-                    return [];
-                })
-            ),
-        ],
-        [transformedPrograms]
-    );
-
-    const filteredPrograms = useMemo(() => {
-        return transformedPrograms.filter((program) => {
-            const matchesStatus = selectedStatus === "active"
-                ? program.isActive !== false
-                : program.isActive === false;
-            const matchesSearch = program.name
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase());
-
-            const matchesLevel =
-                selectedLevel === "all" || program.level === selectedLevel;
-
-            const matchesField =
-                matchesProgramField(program.field, selectedField);
-
-            const programIntakes = Array.isArray(program.intakes)
-                ? program.intakes
-                : typeof program.intakes === "string"
-                    ? program.intakes
-                        .split(",")
-                        .map((i) => i.trim())
-                        .filter(Boolean)
-                    : [];
-
-            const matchesIntake =
-                selectedIntake === "all" || programIntakes.includes(selectedIntake);
-
-            const fee = Number(program.tuitionFee?.value || 0);
-
-            const matchesTuition =
-                selectedTuition === "all" ||
-                (selectedTuition === "under20000" && fee < 20000) ||
-                (selectedTuition === "20000to30000" && fee >= 20000 && fee <= 30000) ||
-                (selectedTuition === "above30000" && fee > 30000);
-
-            return (
-                matchesStatus &&
-                matchesSearch &&
-                matchesLevel &&
-                matchesField &&
-                matchesIntake &&
-                matchesTuition
-            );
-        });
-    }, [transformedPrograms, searchQuery, selectedLevel, selectedField, selectedIntake, selectedTuition, selectedStatus]);
-
-    const displayCampuses = useMemo(() => getDisplayCampuses(institution, programs), [institution, programs]);
+    const levels = summary?.levels || [];
+    const fields = summary?.fields || [];
+    const intakes = summary?.intakes || [];
+    const filteredPrograms = transformedPrograms;
+    const displayCampuses = useMemo(() => institution?.campuses?.length ? institution.campuses : summary?.campuses || getDisplayCampuses(institution, programs), [institution, programs, summary]);
 
     const handleEditInstitution = useCallback(() => {
         const clone = JSON.parse(JSON.stringify(institution));
@@ -2500,13 +2436,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     throw new Error(errorData.error || "Failed to update program");
                 }
 
-                const updatedProgram = await response.json();
+                await response.json();
 
-                setPrograms((prevPrograms) =>
-                    prevPrograms.map((p) =>
-                        p._id === updatedProgram._id ? updatedProgram : p
-                    )
-                );
+                reloadPrograms();
 
                 setSnackbar({
                     open: true,
@@ -2532,9 +2464,9 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     throw new Error(errorData.error || "Failed to create program");
                 }
 
-                const newProgram = await response.json();
+                await response.json();
 
-                setPrograms((prevPrograms) => [...prevPrograms, newProgram]);
+                reloadPrograms();
 
                 setSnackbar({
                     open: true,
@@ -2577,9 +2509,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 throw new Error(errorData.error || "Failed to delete program");
             }
 
-            setPrograms((prevPrograms) =>
-                prevPrograms.filter((p) => p._id !== programToDelete._id)
-            );
+            reloadPrograms();
 
             setSnackbar({
                 open: true,
@@ -2745,15 +2675,21 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         openProgramDialog();
     }, [openProgramDialog]);
 
-    const handleExportData = useCallback(() => {
-        const dataStr = JSON.stringify({ institution, programs }, null, 2);
-        const dataBlob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${institution?.name?.replace(/\s+/g, "-") || "institution"}-data.json`;
-        link.click();
-    }, [institution, programs]);
+    const handleExportData = useCallback(async () => {
+        try {
+            const { programs: allPrograms } = await getProgramsByInstitution(institutionId, { includeInactive: true });
+            const dataStr = JSON.stringify({ institution, programs: allPrograms }, null, 2);
+            const dataBlob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${institution?.name?.replace(/\s+/g, "-") || "institution"}-data.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            setSnackbar({ open: true, message: `Export failed: ${error.message}`, severity: "error" });
+        }
+    }, [institution, institutionId]);
 
     const speedDialActions = useMemo(
         () => [
@@ -2827,7 +2763,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         </Typography>
 
                         <Typography variant="body2" color="text.secondary">
-                            {displayCampuses.length} campuses • {programs.length} programs
+                            {displayCampuses.length} campuses • {summary?.total ?? programs.length} programs
                         </Typography>
 
                         {(institution.applicationFee?.amount || Number(institution.applicationFee) || 0) > 0 && (
@@ -2992,7 +2928,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 activeTab={tabIndex}
                                 institution={institution}
                                 programs={transformedPrograms}
-                                filteredPrograms={filteredPrograms}
+                                filteredPrograms={filteredPrograms} programList={programList} programSummary={summary}
                                 searchQuery={searchQuery}
                                 setSearchQuery={setSearchQuery}
                                 selectedLevel={selectedLevel}
@@ -3010,7 +2946,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 intakes={intakes}
                                 navigate={navigate}
                                 isAdmin={true}
-                                onProgramFlagsSaved={(updated) => setPrograms((items) => items.map((item) => item._id === updated._id ? { ...item, isPinned: updated.isPinned, isDimmed: updated.isDimmed } : item))}
+                                onProgramFlagsSaved={reloadPrograms}
                                 isEditMode={true}
                                 onEditProgram={openProgramDialog}
                                 onDeleteProgram={(program) => {
@@ -3027,7 +2963,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         activeTab={tabIndex}
                         institution={institution}
                         programs={transformedPrograms}
-                        filteredPrograms={filteredPrograms}
+                        filteredPrograms={filteredPrograms} programList={programList} programSummary={summary}
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
                         selectedLevel={selectedLevel}
@@ -3045,7 +2981,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                         intakes={intakes}
                         navigate={navigate}
                         isAdmin={true}
-                        onProgramFlagsSaved={(updated) => setPrograms((items) => items.map((item) => item._id === updated._id ? { ...item, isPinned: updated.isPinned, isDimmed: updated.isDimmed } : item))}
+                        onProgramFlagsSaved={reloadPrograms}
                         isEditMode={editMode}
                         onEditProgram={openProgramDialog}
                         onDeleteProgram={(program) => {
