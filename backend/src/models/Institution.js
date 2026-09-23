@@ -40,6 +40,9 @@ const campusSchema = new mongoose.Schema(
 
 const gpaSchema = new mongoose.Schema(
     {
+        minimumQualification: { type: String, trim: true },
+        fieldRequirement: { type: String, trim: true },
+        scale: { type: String, trim: true },
         type: {
             type: String,
             enum: ["GPA", "Percentage", "Qualification", ""],
@@ -56,8 +59,10 @@ const gpaSchema = new mongoose.Schema(
 const languageRequirementSchema = new mongoose.Schema(
     {
         testType: String,
+        testName: String,
         overall: String,
         minimum: String,
+        minimum_band: String,
         hasIndividualScores: Boolean,
 
         listening: String,

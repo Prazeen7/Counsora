@@ -51,7 +51,8 @@ import { getInstitutionById, deleteInstitution } from "../../services/institutio
 import { getProgramsByInstitution } from "../../services/programService";
 import useInstitutionPrograms from "../../hooks/useInstitutionPrograms";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
-import LanguageRequirementFields from "../../components/admin/LanguageRequirementFields";
+import LanguageScoreInputGroup from "../../components/admin/LanguageScoreInputGroup";
+import InstitutionEntryRequirementsFields from "../../components/admin/InstitutionEntryRequirementsFields";
 
 const INSTITUTION_TYPE_OPTIONS = ["Public", "Private", "Community", "Other"];
 
@@ -417,83 +418,7 @@ function LocationDialog({ open, onClose, location, institution, onSave }) {
     );
 }
 
-function LanguageScoreInputGroup({ title, lang, test, data, onChange }) {
-    const scores = data?.[lang]?.[test] || {};
-    return (
-        <Grid item xs={12}>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: "#f8fafc" }}>
-                <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 1.5, color: "text.primary" }}>
-                    {title}
-                </Typography>
-                <Grid container spacing={1.5}>
-                    <Grid item xs={12} sm={4}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Overall Score"
-                            value={scores.overall ?? ""}
-                            onChange={(e) => onChange(lang, test, "overall", e.target.value)}
-                            placeholder="e.g. 6.5"
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Minimum Band"
-                            type="number"
-                            slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                            value={scores.minimum_band ?? ""}
-                            onChange={(e) => onChange(lang, test, "minimum_band", e.target.value)}
-                            placeholder="e.g. 6.0"
-                            helperText="Minimum score required in each component"
-                        />
-                    </Grid>
-                    <Grid item xs={6} sm={2}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Listening"
-                            value={scores.listening ?? ""}
-                            onChange={(e) => onChange(lang, test, "listening", e.target.value)}
-                            placeholder="e.g. 6.0"
-                        />
-                    </Grid>
-                    <Grid item xs={6} sm={2}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Reading"
-                            value={scores.reading ?? ""}
-                            onChange={(e) => onChange(lang, test, "reading", e.target.value)}
-                            placeholder="e.g. 6.0"
-                        />
-                    </Grid>
-                    <Grid item xs={6} sm={2}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Writing"
-                            value={scores.writing ?? ""}
-                            onChange={(e) => onChange(lang, test, "writing", e.target.value)}
-                            placeholder="e.g. 6.0"
-                        />
-                    </Grid>
-                    <Grid item xs={6} sm={2}>
-                        <TextField
-                            size="small"
-                            fullWidth
-                            label="Speaking"
-                            value={scores.speaking ?? ""}
-                            onChange={(e) => onChange(lang, test, "speaking", e.target.value)}
-                            placeholder="e.g. 6.0"
-                        />
-                    </Grid>
-                </Grid>
-            </Paper>
-        </Grid>
-    );
-}
+
 
 function ProgramDialog({ open, onClose, program, onSave, saving }) {
     const [formData, setFormData] = useState(null);
@@ -1640,202 +1565,19 @@ const ScholarshipsEditTab = React.memo(({ scholarships, onAddScholarship, onEdit
     );
 });
 
-const EntryRequirementsEditTab = React.memo(({ entryRequirements, onUndergradChange, onPostgradChange }) => {
-    return (
-        <Box>
-            <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
-                Edit Entry Requirements
-            </Typography>
-
-            <Grid container spacing={3}>
-                {/* Undergraduate Requirements */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, border: "1px solid #e0e0e0" }}>
-                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                            Undergraduate Requirements
-                        </Typography>
-
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={4}>
-                                    <FormControl fullWidth>
-                                        <InputLabel id="undergrad-score-type-label">Score Type</InputLabel>
-                                        <Select
-                                            labelId="undergrad-score-type-label"
-                                            id="undergrad-score-type-select"
-                                            value={entryRequirements?.undergraduate?.gpa?.type || ""}
-                                            label="Score Type"
-                                            onChange={(e) => {
-                                                const type = e.target.value;
-                                                const score = type === "Qualification" ? "University entrance qualification" : "";
-                                                onUndergradChange({
-                                                    ...entryRequirements?.undergraduate,
-                                                    gpa: {
-                                                        ...entryRequirements?.undergraduate?.gpa,
-                                                        type,
-                                                        score,
-                                                    },
-                                                });
-                                            }}
-                                            MenuProps={DEFAULT_MENU_PROPS}
-                                        >
-                                            <MenuItem value="GPA">GPA</MenuItem>
-                                            <MenuItem value="Percentage">Percentage</MenuItem>
-                                            <MenuItem value="Qualification">Qualification</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid item xs={12} sm={8}>
-                                    <TextField
-                                        label={
-                                            entryRequirements?.undergraduate?.gpa?.type === "Percentage"
-                                                ? "Percentage"
-                                                : entryRequirements?.undergraduate?.gpa?.type === "Qualification"
-                                                    ? "Qualification"
-                                                    : "GPA"
-                                        }
-                                        fullWidth
-                                        value={entryRequirements?.undergraduate?.gpa?.score || ""}
-                                        onChange={(e) => {
-                                            const score = e.target.value;
-                                            onUndergradChange({
-                                                ...entryRequirements?.undergraduate,
-                                                gpa: {
-                                                    ...entryRequirements?.undergraduate?.gpa,
-                                                    score,
-                                                },
-                                            });
-                                        }}
-                                        placeholder={
-                                            entryRequirements?.undergraduate?.gpa?.type === "Percentage"
-                                                ? "e.g. 75%"
-                                                : entryRequirements?.undergraduate?.gpa?.type === "Qualification"
-                                                    ? "University entrance qualification"
-                                                    : "e.g. 3.0/4.0"
-                                        }
-                                    />
-                                </Grid>
-                            </Grid>
-
-                            <Box>
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Language Requirements
-                                </Typography>
-                                <LanguageRequirementFields
-                                    value={
-                                        Array.isArray(entryRequirements?.undergraduate?.languageRequirement)
-                                            ? entryRequirements.undergraduate.languageRequirement
-                                            : []
-                                    }
-                                    onChange={(value) => {
-                                        onUndergradChange({
-                                            ...entryRequirements?.undergraduate,
-                                            languageRequirement: value,
-                                        });
-                                    }}
-                                />
-                            </Box>
-                        </Box>
-                    </Paper>
-                </Grid>
-
-                {/* Postgraduate Requirements */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, border: "1px solid #e0e0e0" }}>
-                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                            Postgraduate Requirements
-                        </Typography>
-
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={4}>
-                                    <FormControl fullWidth>
-                                        <InputLabel id="postgrad-score-type-label">Score Type</InputLabel>
-                                        <Select
-                                            labelId="postgrad-score-type-label"
-                                            id="postgrad-score-type-select"
-                                            value={entryRequirements?.postgraduate?.gpa?.type || ""}
-                                            label="Score Type"
-                                            onChange={(e) => {
-                                                const type = e.target.value;
-                                                const score = type === "Qualification" ? "Bachelor's degree" : "";
-                                                onPostgradChange({
-                                                    ...entryRequirements?.postgraduate,
-                                                    gpa: {
-                                                        ...entryRequirements?.postgraduate?.gpa,
-                                                        type,
-                                                        score,
-                                                    },
-                                                });
-                                            }}
-                                            MenuProps={DEFAULT_MENU_PROPS}
-                                        >
-                                            <MenuItem value="GPA">GPA</MenuItem>
-                                            <MenuItem value="Percentage">Percentage</MenuItem>
-                                            <MenuItem value="Qualification">Qualification</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid item xs={12} sm={8}>
-                                    <TextField
-                                        label={
-                                            entryRequirements?.postgraduate?.gpa?.type === "Percentage"
-                                                ? "Percentage"
-                                                : entryRequirements?.postgraduate?.gpa?.type === "Qualification"
-                                                    ? "Qualification"
-                                                    : "GPA"
-                                        }
-                                        fullWidth
-                                        value={entryRequirements?.postgraduate?.gpa?.score || ""}
-                                        onChange={(e) => {
-                                            const score = e.target.value;
-                                            onPostgradChange({
-                                                ...entryRequirements?.postgraduate,
-                                                gpa: {
-                                                    ...entryRequirements?.postgraduate?.gpa,
-                                                    score,
-                                                },
-                                            });
-                                        }}
-                                        placeholder={
-                                            entryRequirements?.postgraduate?.gpa?.type === "Percentage"
-                                                ? "e.g. 75%"
-                                                : entryRequirements?.postgraduate?.gpa?.type === "Qualification"
-                                                    ? "Bachelor's degree"
-                                                    : "e.g. 3.0/4.0"
-                                        }
-                                    />
-                                </Grid>
-                            </Grid>
-
-                            <Box>
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Language Requirements
-                                </Typography>
-                                <LanguageRequirementFields
-                                    value={
-                                        Array.isArray(entryRequirements?.postgraduate?.languageRequirement)
-                                            ? entryRequirements.postgraduate.languageRequirement
-                                            : []
-                                    }
-                                    onChange={(value) => {
-                                        onPostgradChange({
-                                            ...entryRequirements?.postgraduate,
-                                            languageRequirement: value,
-                                        });
-                                    }}
-                                />
-                            </Box>
-                        </Box>
-                    </Paper>
-                </Grid>
-            </Grid>
+const EntryRequirementsEditTab = React.memo(({ entryRequirements, onUndergradChange, onPostgradChange }) => (
+    <Box>
+        <Typography variant="h6" sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
+            Edit Entry Requirements
+        </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <InstitutionEntryRequirementsFields title="Undergraduate Requirements"
+                value={entryRequirements?.undergraduate} onChange={onUndergradChange} />
+            <InstitutionEntryRequirementsFields title="Postgraduate Requirements"
+                value={entryRequirements?.postgraduate} onChange={onPostgradChange} />
         </Box>
-    );
-});
-
+    </Box>
+));
 const DeadlinesEditTab = React.memo(({ deadlines, onChange }) => {
     return (
         <Box>

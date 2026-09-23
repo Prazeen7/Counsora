@@ -1,3 +1,5 @@
+import { resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
+import ProgramEntryRequirements from "./ProgramEntryRequirements";
 import { normalizeProgramFields } from "../../constants/programFields";
 import { tuitionFeeText } from '../../utils/tuitionFees';
 import React, { useEffect, useState } from "react";
@@ -29,7 +31,7 @@ import {
     CloudDownload as ImportIcon,
 } from "@mui/icons-material";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
-import { formatLanguageRequirement, hasLanguageScore } from "../../utils/formatLanguageRequirement";
+import { hasLanguageScore } from "../../utils/formatLanguageRequirement";
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
 import ProgramLoadMore from "./ProgramLoadMore";
 import ProgramDocumentRequirements from "./ProgramDocumentRequirements";
@@ -134,7 +136,8 @@ const resolveEntryRequirement = (institutionEntry, programFallback) => {
     );
 
     return {
-        gpa: hasValue(institutionGpa?.score) ? institutionGpa : programFallback.gpa,
+        gpa: [institutionGpa?.score, institutionGpa?.minimumQualification, institutionGpa?.fieldRequirement]
+            .some(hasValue) ? institutionGpa : programFallback.gpa,
         languageRequirement: institutionLanguages.length
             ? institutionLanguages
             : programFallback.languageRequirement,
@@ -595,94 +598,7 @@ export default function InstitutionTabsContent({
                                  * }
                                  */
 
-                                const levelKey =
-                                    program.level === "Bachelor" ||
-                                        program.level === "Diploma"
-                                        ? "undergraduate"
-                                        : "postgraduate";
-
-                                const institutionEntry =
-                                    institution?.entryRequirements?.[levelKey];
-
-                                const institutionGPA =
-                                    institutionEntry?.gpa;
-
-                                const institutionLanguage =
-                                    institutionEntry?.languageRequirement || [];
-
-                                const programAcademic =
-                                    program.entry_requirements?.academic;
-
-                                const programLanguage =
-                                    program.entry_requirements
-                                        ?.language_requirements;
-
-                                const hasProgramAcademic =
-                                    !!(
-                                        programAcademic?.minimum_qualification ||
-                                        programAcademic?.field_requirement ||
-                                        programAcademic?.score != null
-                                    );
-
-                                const hasProgramLanguage =
-                                    !!(
-                                        hasLanguageScore(programLanguage?.english?.ielts) ||
-                                        hasLanguageScore(programLanguage?.english?.toefl) ||
-                                        hasLanguageScore(programLanguage?.english?.pte) ||
-                                        hasLanguageScore(programLanguage?.english?.duolingo) ||
-                                        programLanguage?.english?.cambridge ||
-                                        programLanguage?.english?.cefr ||
-                                        programLanguage?.german?.cefr ||
-                                        hasLanguageScore(programLanguage?.german?.testdaf) ||
-                                        hasLanguageScore(programLanguage?.german?.dsh)
-                                    );
-
-                                const hasInstitutionAcademic =
-                                    institutionGPA?.score != null;
-
-                                const showAcademic =
-                                    hasProgramAcademic ||
-                                    hasInstitutionAcademic;
-
-                                const getIndividualLanguageScores = (score = {}) =>
-                                    [
-                                        ["Minimum", score?.minimum_band],
-                                        ["Listening", score?.listening],
-                                        ["Reading", score?.reading],
-                                        ["Writing", score?.writing],
-                                        ["Speaking", score?.speaking],
-                                        ["Literacy", score?.literacy],
-                                        ["Comprehension", score?.comprehension],
-                                        ["Conversation", score?.conversation],
-                                        ["Production", score?.production],
-                                    ]
-                                        .filter(([, value]) => value !== undefined && value !== null && value !== "")
-                                        .map(([label, value]) => `${label}: ${value}`);
-
-                                const languageRequirementItems = hasProgramLanguage
-                                    ? [
-                                        hasLanguageScore(programLanguage?.english?.ielts) && { label: `IELTS ${programLanguage.english.ielts.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.ielts) },
-                                        hasLanguageScore(programLanguage?.english?.toefl) && { label: `TOEFL ${programLanguage.english.toefl.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.toefl) },
-                                        hasLanguageScore(programLanguage?.english?.pte) && { label: `PTE ${programLanguage.english.pte.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.pte) },
-                                        hasLanguageScore(programLanguage?.english?.duolingo) && { label: `Duolingo ${programLanguage.english.duolingo.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.english.duolingo) },
-                                        programLanguage?.english?.cambridge && { label: `Cambridge ${programLanguage.english.cambridge}`, scores: [] },
-                                        programLanguage?.english?.cefr && { label: `English CEFR ${programLanguage.english.cefr}`, scores: [] },
-                                        programLanguage?.german?.cefr && { label: `German CEFR ${programLanguage.german.cefr}`, scores: [] },
-                                        hasLanguageScore(programLanguage?.german?.testdaf) && { label: `TestDaF ${programLanguage.german.testdaf.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.german.testdaf) },
-                                        hasLanguageScore(programLanguage?.german?.dsh) && { label: `DSH ${programLanguage.german.dsh.overall ?? ""}`, scores: getIndividualLanguageScores(programLanguage.german.dsh) },
-                                    ].filter(Boolean)
-                                    : institutionLanguage.map((test) => ({
-                                        label: `${test.testType || "Test"}${test.overall ? ` ${test.overall}` : ""}`,
-                                        scores: getIndividualLanguageScores(test),
-                                    }));
-                                const languageRequirements = languageRequirementItems.map((item) =>
-                                    formatLanguageRequirement(item.label, item.scores)
-                                );
-                                const languageRequirementsText = languageRequirements.join(" | ");
-                                const scrollLanguageRequirements = languageRequirementsText.length > 38;
-
-                                const showLanguage = languageRequirements.length > 0;
-
+                                const requirements = resolveProgramRequirements(program, institution);
                                 const specializations = (
                                     Array.isArray(program.specialization)
                                         ? program.specialization
@@ -710,8 +626,8 @@ export default function InstitutionTabsContent({
                                     additionalRequirementsText.length > 48;
 
                                 const hasEntryRequirements =
-                                    showAcademic ||
-                                    showLanguage ||
+                                    requirements.academic.length > 0 ||
+                                    requirements.languages.length > 0 ||
                                     additionalRequirements.length > 0;
 
                                 return (
@@ -966,147 +882,7 @@ export default function InstitutionTabsContent({
                                                             Entry Requirements
                                                         </Typography>
 
-                                                        {/* Academic */}
-                                                        {showAcademic && (
-                                                            <Box sx={{ mb: 1 }}>
-                                                                {hasProgramAcademic ? (
-                                                                    <>
-                                                                        {programAcademic?.minimum_qualification && (
-                                                                            <Typography variant="body2">
-                                                                                <b>
-                                                                                    Academic:
-                                                                                </b>{" "}
-                                                                                {
-                                                                                    programAcademic.minimum_qualification
-                                                                                }
-                                                                            </Typography>
-                                                                        )}
-
-                                                                        {programAcademic?.field_requirement && (
-                                                                            <Typography variant="body2">
-                                                                                <b>
-                                                                                    Field:
-                                                                                </b>{" "}
-                                                                                {
-                                                                                    programAcademic.field_requirement
-                                                                                }
-                                                                            </Typography>
-                                                                        )}
-
-                                                                        {programAcademic?.score !=
-                                                                            null && (
-                                                                                <Typography variant="body2">
-                                                                                    <b>
-                                                                                        {programAcademic.score_type ||
-                                                                                            "Score"}
-                                                                                        :
-                                                                                    </b>{" "}
-                                                                                    {
-                                                                                        programAcademic.score
-                                                                                    }
-                                                                                    {programAcademic.scale &&
-                                                                                        ` / ${programAcademic.scale}`}
-                                                                                </Typography>
-                                                                            )}
-                                                                    </>
-                                                                ) : (
-                                                                    <Typography variant="body2">
-                                                                        <b>
-                                                                            Minimum{" "}
-                                                                            {institutionGPA?.type ||
-                                                                                "GPA"}
-                                                                            :
-                                                                        </b>{" "}
-                                                                        {
-                                                                            institutionGPA?.score
-                                                                        }
-                                                                    </Typography>
-                                                                )}
-                                                            </Box>
-                                                        )}
-
-                                                        {/* Language */}
-                                                        {showLanguage && (
-                                                            <Box>
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    fontWeight="medium"
-                                                                    sx={{ mb: 0.5 }}
-                                                                >
-                                                                    Language:
-                                                                </Typography>
-
-                                                                <Tooltip
-                                                                    arrow
-                                                                    placement="top"
-                                                                    title={
-                                                                        <Box sx={{ py: 0.5 }}>
-                                                                            {languageRequirementItems.map((requirement, index) => (
-                                                                                <Box
-                                                                                    key={index}
-                                                                                    sx={{ mb: index < languageRequirementItems.length - 1 ? 1 : 0 }}
-                                                                                >
-                                                                                    <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.5 }}>
-                                                                                        {requirement.label}
-                                                                                    </Typography>
-                                                                                    {requirement.scores.length > 0 && (
-                                                                                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5, opacity: 0.9 }}>
-                                                                                            {requirement.scores.join(" | ")}
-                                                                                        </Typography>
-                                                                                    )}
-                                                                                </Box>
-                                                                            ))}
-                                                                        </Box>
-                                                                    }
-                                                                >
-                                                                    <Box
-                                                                        sx={{
-                                                                            width: "100%",
-                                                                            overflow: "hidden",
-                                                                            whiteSpace: "nowrap",
-                                                                            cursor: "help",
-                                                                            "@keyframes languageRequirementsTicker": {
-                                                                                from: { transform: "translateX(0)" },
-                                                                                to: { transform: "translateX(-50%)" },
-                                                                            },
-                                                                            "&:hover .language-requirements-ticker": {
-                                                                                animationPlayState: "paused",
-                                                                            },
-                                                                        }}
-                                                                    >
-                                                                        <Typography
-                                                                            className="language-requirements-ticker"
-                                                                            variant="body2"
-                                                                            component="div"
-                                                                            sx={{
-                                                                                display: "inline-flex",
-                                                                                width: "max-content",
-                                                                                ...(scrollLanguageRequirements && {
-                                                                                    animation: `languageRequirementsTicker ${Math.max(
-                                                                                        15,
-                                                                                        languageRequirementsText.length * 0.28
-                                                                                    )}s linear infinite`,
-                                                                                }),
-                                                                                "@media (prefers-reduced-motion: reduce)": {
-                                                                                    animation: "none", width: "100%", whiteSpace: "normal", overflowWrap: "anywhere",
-                                                                                    "& > [aria-hidden]": { display: "none" },
-                                                                                },
-                                                                            }}
-                                                                        >
-                                                                            <Box component="span" sx={{ pr: scrollLanguageRequirements ? 4 : 0 }}>
-                                                                                {languageRequirementsText}
-                                                                                {scrollLanguageRequirements && " |"}
-                                                                            </Box>
-                                                                            {scrollLanguageRequirements && (
-                                                                                <Box component="span" sx={{ pr: 4 }} aria-hidden="true">
-                                                                                    {languageRequirementsText} |
-                                                                                </Box>
-                                                                            )}
-                                                                        </Typography>
-                                                                    </Box>
-                                                                </Tooltip>
-                                                            </Box>
-                                                        )}
+                                                        {(requirements.academic.length > 0 || requirements.languages.length > 0) && <ProgramEntryRequirements requirements={requirements} />}
 
                                                         {/* Additional */}
                                                         {additionalRequirements.length >
@@ -1581,103 +1357,45 @@ export default function InstitutionTabsContent({
                             gap: 3,
                         }}
                     >
-                        {/* Undergraduate */}
-                        <Card sx={{ borderRadius: 3 }}>
-                            <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Undergraduate</Typography>
-                                <Divider />
-
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Minimum {undergraduateEntry.gpa?.type || "GPA"}
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight="medium">
-                                        {hasValue(undergraduateEntry.gpa?.score)
-                                            ? `${undergraduateEntry.gpa.score}${hasValue(undergraduateEntry.gpa?.scale) ? ` / ${undergraduateEntry.gpa.scale}` : ""}`
-                                            : undergraduateEntry.gpa?.minimumQualification || "N/A"}
-                                    </Typography>
-                                    {undergraduateEntry.gpa?.minimumQualification && hasValue(undergraduateEntry.gpa?.score) && (
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            {undergraduateEntry.gpa.minimumQualification}
-                                        </Typography>
-                                    )}
-                                    {undergraduateEntry.gpa?.fieldRequirement && (
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            Field: {undergraduateEntry.gpa.fieldRequirement}
-                                        </Typography>
-                                    )}
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Language Requirements
-                                    </Typography>
-                                    {undergraduateEntry.languageRequirement.length > 0 ? (
-                                        undergraduateEntry.languageRequirement.map((test, idx) => (
-                                            <Typography key={idx} variant="body2" fontWeight="medium">
-                                                {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
-                                                {test.hasIndividualScores && (
-                                                    <span style={{ fontSize: '0.8rem', color: 'gray', marginLeft: 8 }}>
-                                                        (indiv: {test.listening || ''} {test.reading || ''} {test.writing || ''} {test.speaking || ''})
-                                                    </span>
-                                                )}
+                        {[["Undergraduate", undergraduateEntry], ["Postgraduate", postgraduateEntry]].map(([label, entry]) => (
+                            <Card key={label} sx={{ borderRadius: 3 }}>
+                                <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <Typography variant="h6" fontWeight="bold">{label}</Typography>
+                                    <Divider />
+                                    <Typography variant="subtitle2" fontWeight="bold">Academic Requirements</Typography>
+                                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2 }}>
+                                        {[
+                                            ["Minimum Qualification", entry.gpa?.minimumQualification],
+                                            ["Score Type", entry.gpa?.type],
+                                            ["Score", entry.gpa?.score],
+                                            ["Scale", entry.gpa?.scale],
+                                        ].map(([name, value]) => <Box key={name} sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                                            <Typography variant="caption" color="text.secondary">{name}</Typography>
+                                            <Typography variant="body2">{hasValue(value) ? value : "Not specified"}</Typography>
+                                        </Box>)}
+                                    </Box>
+                                    <Divider />
+                                    <Typography variant="subtitle2" fontWeight="bold">Language Requirements & Individual Band Scores</Typography>
+                                    {entry.languageRequirement.length ? entry.languageRequirement.map((test, index) => (
+                                        <Box key={index}>
+                                            <Typography variant="body2" fontWeight="bold">
+                                                {test.testType === "Other" ? test.testName || "Other" : test.testType || test.testName || "Test"}
                                             </Typography>
-                                        ))
-                                    ) : (
-                                        <Typography variant="body2">N/A</Typography>
-                                    )}
-                                </Box>
-                            </CardContent>
-                        </Card>
-
-                        {/* Postgraduate */}
-                        <Card sx={{ borderRadius: 3 }}>
-                            <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <Typography variant="h6" fontWeight="bold">Postgraduate</Typography>
-                                <Divider />
-
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Minimum {postgraduateEntry.gpa?.type || "GPA"}
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight="medium">
-                                        {hasValue(postgraduateEntry.gpa?.score)
-                                            ? `${postgraduateEntry.gpa.score}${hasValue(postgraduateEntry.gpa?.scale) ? ` / ${postgraduateEntry.gpa.scale}` : ""}`
-                                            : postgraduateEntry.gpa?.minimumQualification || "N/A"}
-                                    </Typography>
-                                    {postgraduateEntry.gpa?.minimumQualification && hasValue(postgraduateEntry.gpa?.score) && (
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            {postgraduateEntry.gpa.minimumQualification}
-                                        </Typography>
-                                    )}
-                                    {postgraduateEntry.gpa?.fieldRequirement && (
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            Field: {postgraduateEntry.gpa.fieldRequirement}
-                                        </Typography>
-                                    )}
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Language Requirements
-                                    </Typography>
-                                    {postgraduateEntry.languageRequirement.length > 0 ? (
-                                        postgraduateEntry.languageRequirement.map((test, idx) => (
-                                            <Typography key={idx} variant="body2" fontWeight="medium">
-                                                {test.testType || test.testName || 'Test'}{test.overall ? ` ${test.overall}` : ''}
-                                                {test.hasIndividualScores && (
-                                                    <span style={{ fontSize: '0.8rem', color: 'gray', marginLeft: 8 }}>
-                                                        (indiv: {test.listening || ''} {test.reading || ''} {test.writing || ''} {test.speaking || ''})
-                                                    </span>
-                                                )}
-                                            </Typography>
-                                        ))
-                                    ) : (
-                                        <Typography variant="body2">N/A</Typography>
-                                    )}
-                                </Box>
-                            </CardContent>
-                        </Card>
+                                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                                {[
+                                                    ["Overall", test.overall],
+                                                    ["Minimum Band", test.minimum_band ?? test.minimum],
+                                                    ...["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"]
+                                                        .map(field => [field[0].toUpperCase() + field.slice(1), test[field]]),
+                                                ].filter(([, score]) => hasValue(score)).map(([name, score]) => (
+                                                    <Typography key={name} variant="body2">{name}: {score}</Typography>
+                                                ))}
+                                            </Box>
+                                        </Box>
+                                    )) : <Typography variant="body2">Not specified</Typography>}
+                                </CardContent>
+                            </Card>
+                        ))}
                     </Box>
                 </Paper>
             );

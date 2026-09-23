@@ -365,10 +365,7 @@ export default function Programs() {
                     // The API might return the full institution object as `institutionData`
                     const institutionData = program.institutionData || {
                         // Fallback to program-level data if not populated
-                        entryRequirements: {
-                            undergraduate: { gpa: { score: gpa, type: "GPA" } },
-                            postgraduate: { gpa: { score: gpa, type: "GPA" } }
-                        },
+                        entryRequirements: {},
                         documents: {
                             incomeSources: [],
                             sponsors: [],

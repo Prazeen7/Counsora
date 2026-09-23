@@ -1,6 +1,7 @@
 import { tuitionFeeText } from '../../utils/tuitionFees';
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
-import { formatLanguageRequirement } from "../../utils/formatLanguageRequirement";
+import { resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
+import ProgramEntryRequirements from "./ProgramEntryRequirements";
 import {
     Avatar,
     Box,
@@ -19,7 +20,7 @@ import {
 } from "@mui/icons-material";
 
 function ProgramCard({ program, institutionData }) {
-    const academic = program.entry_requirements?.academic;
+    const requirements = resolveProgramRequirements(program, institutionData);
     const additionalRequirements = (program.entry_requirements?.additional_requirements || [])
         .filter(requirement => typeof requirement === "string" && requirement.trim());
     const additionalRequirementsText = additionalRequirements.join(" | ");
@@ -27,32 +28,6 @@ function ProgramCard({ program, institutionData }) {
 
     const specializations = (Array.isArray(program.specialization) ? program.specialization : [program.specialization])
         .filter(value => typeof value === "string" && value.trim()).map(value => value.trim());
-    const language = program.entry_requirements?.language_requirements;
-    const hasScore = value => value !== undefined && value !== null && value !== "";
-    const languageRequirements = [
-        ["IELTS", language?.english?.ielts, program.ielts],
-        ["TOEFL", language?.english?.toefl, program.toefl],
-        ["PTE", language?.english?.pte, program.pte],
-        ["Duolingo", language?.english?.duolingo],
-        ["TestDaF", language?.german?.testdaf],
-        ["DSH", language?.german?.dsh],
-    ].map(([name, score, fallback]) => {
-        const overall = score?.overall ?? fallback;
-        const individual = ["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"]
-            .filter(key => hasScore(score?.[key]))
-            .map(key => `${key[0].toUpperCase()}${key.slice(1)}: ${score[key]}`);
-        if (hasScore(score?.minimum_band)) individual.unshift(`Minimum: ${score.minimum_band}`);
-        if (!hasScore(overall) && !individual.length) return null;
-        return formatLanguageRequirement(`${name}${hasScore(overall) ? ` ${overall}` : ""}`, individual);
-    }).filter(Boolean);
-    [
-        ["Cambridge", language?.english?.cambridge],
-        ["English CEFR", language?.english?.cefr],
-        ["German CEFR", language?.german?.cefr],
-    ].forEach(([name, value]) => {
-        if (hasScore(value)) languageRequirements.push(`${name} ${value}`);
-    });
-
     // Avatar
     const avatarImage = institutionData?.profilePicture;
 
@@ -191,67 +166,10 @@ function ProgramCard({ program, institutionData }) {
                                     <Typography variant="body2">Not specified</Typography>
                                 )}
                             </Box>
-                            {/* Language Requirements */}
-                            <Box>
-                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                    Language Requirements:
-                                </Typography>
-                                {languageRequirements.length > 0 ? (
-                                    <ProgramDetailsTicker items={languageRequirements} />
-                                ) : (
-                                    <Typography variant="body2">Not specified</Typography>
-                                )}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>Entry Requirements:</Typography>
+                                <ProgramEntryRequirements requirements={requirements} />
                             </Box>
-
-                            {/* Academic and field requirements */}
-                            <Box sx={{ overflowWrap: "anywhere" }}>
-                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                    Academic:
-                                </Typography>
-                                <Typography variant="body2">
-                                    {academic?.minimum_qualification || "Not specified"}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ overflowWrap: "anywhere" }}>
-                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                    Field:
-                                </Typography>
-                                <Typography variant="body2">
-                                    {academic?.field_requirement || "Not specified"}
-                                </Typography>
-                            </Box>
-
-                            {/* GPA */}
-                            <Box>
-                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                    GPA Requirement:
-                                </Typography>
-                                <Typography variant="body2">
-                                    {(() => {
-                                        if (academic?.score != null) {
-                                            return `${academic.score}${academic.scale ? ` / ${academic.scale}` : ""}${academic.score_type ? ` (${academic.score_type})` : ""}`;
-                                        }
-                                        const level = program.level.toLowerCase();
-                                        const entryReqs = institutionData?.entryRequirements;
-
-                                        if (level === "undergraduate" && entryReqs?.undergraduate?.gpa) {
-                                            const gpaData = entryReqs.undergraduate.gpa;
-                                            return gpaData.type && gpaData.score
-                                                ? `${gpaData.score} (${gpaData.type})`
-                                                : gpaData.score || "Not specified";
-                                        } else if (level === "postgraduate" && entryReqs?.postgraduate?.gpa) {
-                                            const gpaData = entryReqs.postgraduate.gpa;
-                                            return gpaData.type && gpaData.score
-                                                ? `${gpaData.score} (${gpaData.type})`
-                                                : gpaData.score || "Not specified";
-                                        }
-
-                                        // Fallback to program's entry requirements
-                                        return "Not specified";
-                                    })()}
-                                </Typography>
-                            </Box>
-
                             {/* Tuition Fees */}
                             <Box>
                                 <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
