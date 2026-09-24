@@ -1756,7 +1756,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         search: searchQuery, level: selectedLevel, field: selectedField,
         intake: selectedIntake, tuition: selectedTuition, status: selectedStatus,
     }, true);
-    const { programs, summary, reload: reloadPrograms } = programList;
+    const { programs, summary, reload: reloadPrograms, updateProgram, removeProgram } = programList;
 
     // Edit mode states
     const [editMode, setEditMode] = useState(false);
@@ -2178,9 +2178,8 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                     throw new Error(errorData.error || "Failed to update program");
                 }
 
-                await response.json();
-
-                reloadPrograms();
+                const updatedProgram = await response.json();
+                updateProgram(updatedProgram);
 
                 setSnackbar({
                     open: true,
@@ -2251,7 +2250,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                 throw new Error(errorData.error || "Failed to delete program");
             }
 
-            reloadPrograms();
+            removeProgram(programToDelete._id);
 
             setSnackbar({
                 open: true,
