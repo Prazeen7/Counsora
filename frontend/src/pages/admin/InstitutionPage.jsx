@@ -53,6 +53,7 @@ import useInstitutionPrograms from "../../hooks/useInstitutionPrograms";
 import { getDisplayCampuses } from "../../utils/DisplayCampuses";
 import LanguageScoreInputGroup from "../../components/admin/LanguageScoreInputGroup";
 import InstitutionEntryRequirementsFields from "../../components/admin/InstitutionEntryRequirementsFields";
+import FieldEntryRequirements from "../../components/admin/FieldEntryRequirements";
 
 const INSTITUTION_TYPE_OPTIONS = ["Public", "Private", "Community", "Other"];
 
@@ -1565,16 +1566,19 @@ const ScholarshipsEditTab = React.memo(({ scholarships, onAddScholarship, onEdit
     );
 });
 
-const EntryRequirementsEditTab = React.memo(({ entryRequirements, onUndergradChange, onPostgradChange }) => (
+const EntryRequirementsEditTab = React.memo(({ entryRequirements, onDiplomaChange, onUndergradChange, onPostgradChange, onFieldsChange }) => (
     <Box>
         <Typography variant="h6" sx={{ color: "primary.main", fontWeight: "bold", mb: 3 }}>
             Edit Entry Requirements
         </Typography>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <InstitutionEntryRequirementsFields title="Diploma Requirements"
+                value={entryRequirements?.diploma} onChange={onDiplomaChange} />
             <InstitutionEntryRequirementsFields title="Undergraduate Requirements"
                 value={entryRequirements?.undergraduate} onChange={onUndergradChange} />
             <InstitutionEntryRequirementsFields title="Postgraduate Requirements"
                 value={entryRequirements?.postgraduate} onChange={onPostgradChange} />
+            <FieldEntryRequirements value={entryRequirements?.fields} onChange={onFieldsChange} />
         </Box>
     </Box>
 ));
@@ -2613,6 +2617,12 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 {tabIndex === 5 && (
                                     <EntryRequirementsEditTab
                                         entryRequirements={editedInstitution?.entryRequirements}
+                                        onDiplomaChange={diploma => setEditedInstitution(prev => ({
+                                            ...prev, entryRequirements: { ...prev?.entryRequirements, diploma },
+                                        }))}
+                                        onFieldsChange={fields => setEditedInstitution(prev => ({
+                                            ...prev, entryRequirements: { ...prev?.entryRequirements, fields },
+                                        }))}
                                         onUndergradChange={(undergrad) =>
                                             setEditedInstitution((prev) => ({
                                                 ...prev,

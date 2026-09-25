@@ -1,4 +1,5 @@
-import { resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
+import { hasResolvedRequirements, resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
+import { resolveProgramLocations } from "../../utils/programLocations";
 import ProgramEntryRequirements from "./ProgramEntryRequirements";
 import { normalizeProgramFields } from "../../constants/programFields";
 import { tuitionFeeText } from '../../utils/tuitionFees';
@@ -599,6 +600,7 @@ export default function InstitutionTabsContent({
                                  */
 
                                 const requirements = resolveProgramRequirements(program, institution);
+                                const programLocations = resolveProgramLocations(program, institution);
                                 const specializations = (
                                     Array.isArray(program.specialization)
                                         ? program.specialization
@@ -626,8 +628,7 @@ export default function InstitutionTabsContent({
                                     additionalRequirementsText.length > 48;
 
                                 const hasEntryRequirements =
-                                    requirements.academic.length > 0 ||
-                                    requirements.languages.length > 0 ||
+                                    hasResolvedRequirements(requirements) ||
                                     additionalRequirements.length > 0;
 
                                 return (
@@ -882,7 +883,7 @@ export default function InstitutionTabsContent({
                                                             Entry Requirements
                                                         </Typography>
 
-                                                        {(requirements.academic.length > 0 || requirements.languages.length > 0) && <ProgramEntryRequirements requirements={requirements} />}
+                                                        {hasResolvedRequirements(requirements) && <ProgramEntryRequirements requirements={requirements} />}
 
                                                         {/* Additional */}
                                                         {additionalRequirements.length >
@@ -965,7 +966,7 @@ export default function InstitutionTabsContent({
                                             )}
 
                                             {/* Campuses */}
-                                            {program.campuses?.length > 0 && (
+                                            {programLocations.length > 0 && (
                                                 <Box>
                                                     <Typography
                                                         variant="caption"
@@ -983,7 +984,7 @@ export default function InstitutionTabsContent({
                                                             gap: 0.5,
                                                         }}
                                                     >
-                                                        {program.campuses
+                                                        {programLocations
                                                             .slice(0, 4)
                                                             .map((campus, index) => (
                                                                 <Chip
@@ -993,9 +994,9 @@ export default function InstitutionTabsContent({
                                                                 />
                                                             ))}
 
-                                                        {program.campuses.length > 4 && (
+                                                        {programLocations.length > 4 && (
                                                             <Chip
-                                                                label={`+${program.campuses.length -
+                                                                label={`+${programLocations.length -
                                                                     4
                                                                     }`}
                                                                 size="small"
@@ -1347,6 +1348,26 @@ export default function InstitutionTabsContent({
                         Minimum academic and language requirements for admission to this institution.
                     </Typography>
 
+                    {[
+                        { title: null, entries: [
+                            ["Diploma", { ...institution?.entryRequirements?.diploma,
+                                languageRequirement: institution?.entryRequirements?.diploma?.languageRequirement || [] }],
+                            ["Undergraduate", undergraduateEntry], ["Postgraduate", postgraduateEntry],
+                        ] },
+                        {
+                            title: "Field-specific Requirements",
+                            entries: (institution?.entryRequirements?.fields || []).map(item => [
+                                `${item.field} — ${item.level === "diploma" ? "Diploma" : item.level === "postgraduate" ? "Postgraduate" : "Undergraduate"}`,
+                                { ...item.requirements, languageRequirement: item.requirements?.languageRequirement || [] },
+                            ]),
+                        },
+                    ].filter(section => section.entries.length).map(section => <Box key={section.title || "general"} sx={{ mb: 3 }}>
+                    {section.title && <>
+                        <Typography variant="h6" fontWeight="bold" sx={{ mt: 3, mb: 1 }}>{section.title}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                            These requirements apply to programs with the matching field and study level. Unspecified values use the general requirements; program-specific requirements take precedence.
+                        </Typography>
+                    </>}
                     <Box
                         sx={{
                             display: "grid",
@@ -1357,7 +1378,7 @@ export default function InstitutionTabsContent({
                             gap: 3,
                         }}
                     >
-                        {[["Undergraduate", undergraduateEntry], ["Postgraduate", postgraduateEntry]].map(([label, entry]) => (
+                        {section.entries.map(([label, entry]) => (
                             <Card key={label} sx={{ borderRadius: 3 }}>
                                 <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                     <Typography variant="h6" fontWeight="bold">{label}</Typography>
@@ -1397,6 +1418,7 @@ export default function InstitutionTabsContent({
                             </Card>
                         ))}
                     </Box>
+                    </Box>)}
                 </Paper>
             );
 

@@ -1,4 +1,5 @@
 import { apiFetch } from "../../services/api";
+import { resolveProgramLocations } from "../../utils/programLocations";
 import { FIELD_OPTIONS, formatProgramFields } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -351,9 +352,7 @@ export default function Programs() {
                         "General";
 
                     // Display all campuses, including locations matched by the backend filter.
-                    const campus = program.campuses && program.campuses.length > 0
-                        ? program.campuses.join(", ")
-                        : "N/A";
+                    const campus = resolveProgramLocations(program, program.institutionData).join(", ") || "N/A";
 
                     // Extract language scores
                     const ielts = getLanguageScore(program.entry_requirements, 'ielts');

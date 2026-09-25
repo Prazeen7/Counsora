@@ -180,11 +180,16 @@ function normalizeScholarship(value) {
 
 // ---------- Tuition Fee ----------
 function normalizeTuitionFee(value) {
+    if (typeof value === "string") {
+        const displayText = normalizeString(value);
+        return displayText ? { display_text: displayText, credits: null, annual_fee_eur: null } : null;
+    }
     if (!value || typeof value !== "object") {
         return null;
     }
 
     return {
+        display_text: normalizeString(value.display_text),
         credits: normalizeString(value.credits),
         annual_fee_eur: normalizeNumber(value.annual_fee_eur),
     };

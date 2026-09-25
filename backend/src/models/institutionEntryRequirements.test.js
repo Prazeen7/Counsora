@@ -2,6 +2,15 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const Institution = require("./Institution");
 
+test("field requirements survive a save round trip with field and level links", () => {
+    const fields = [{ field: "Allied Health", level: "undergraduate", requirements: {
+        gpa: { type: "Percentage", score: "80" }, languageRequirement: [{ testType: "IELTS", overall: "7" }],
+    } }];
+    const original = new Institution({ entryRequirements: { fields } });
+    const restored = new Institution(JSON.parse(JSON.stringify(original.toObject())));
+    assert.deepEqual(restored.entryRequirements.fields.map(item => item.toObject()), fields);
+});
+
 test("institution requirements retain program-style academic fields and language scores", () => {
     const requirements = {
         gpa: { type: "GPA", score: "3.0", scale: "4.0", minimumQualification: "Bachelor", fieldRequirement: "Related engineering field" },
@@ -11,9 +20,9 @@ test("institution requirements retain program-style academic fields and language
             { testType: "Other", testName: "Custom exam", overall: "0" },
         ],
     };
-    const original = new Institution({ entryRequirements: { undergraduate: requirements, postgraduate: requirements } });
+    const original = new Institution({ entryRequirements: { diploma: requirements, undergraduate: requirements, postgraduate: requirements } });
     const restored = new Institution(JSON.parse(JSON.stringify(original.toObject())));
-    for (const level of ["undergraduate", "postgraduate"]) {
+    for (const level of ["diploma", "undergraduate", "postgraduate"]) {
         assert.deepEqual(restored.entryRequirements[level].toObject(), requirements);
     }
 });

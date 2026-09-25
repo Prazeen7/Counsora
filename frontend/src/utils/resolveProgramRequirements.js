@@ -1,7 +1,13 @@
 import { formatLanguageRequirement } from "./formatLanguageRequirement.js";
+import { normalizeProgramFields } from "../constants/programFields.js";
 
 const hasValue = value => value !== undefined && value !== null && String(value).trim() !== "";
 const components = ["listening", "reading", "writing", "speaking", "literacy", "comprehension", "conversation", "production"];
+
+export function hasResolvedRequirements(requirements) {
+    return Boolean(requirements.academic?.length || requirements.languages?.length ||
+        requirements.fieldRequirements?.some(hasResolvedRequirements));
+}
 
 function languageText(name, score = {}) {
     const bands = components.filter(key => hasValue(score[key]))
@@ -14,9 +20,29 @@ function languageText(name, score = {}) {
 
 export function resolveProgramRequirements(program, institution) {
     const level = String(program.level || "");
-    const levelKey = /foundation|diploma|associate|bachelor|undergraduate/i.test(level) ? "undergraduate"
-        : /master|postgraduate|phd|doctoral|doctorate|research/i.test(level) ? "postgraduate" : null;
+    const levelKey = /master|postgraduate|phd|doctoral|doctorate|research/i.test(level) ? "postgraduate"
+        : /diploma/i.test(level) ? "diploma"
+        : /foundation|associate|bachelor|undergraduate/i.test(level) ? "undergraduate" : null;
     const general = institution?.entryRequirements?.[levelKey];
+    const fields = normalizeProgramFields(program.field);
+    const matching = (institution?.entryRequirements?.fields || []).filter(item =>
+        item.level === levelKey && normalizeProgramFields(item.field).some(field => fields.includes(field)));
+    if (matching.length) {
+        return { academic: [], languages: [], generalLanguage: false, fieldRequirements: matching.map(item => {
+            const specific = item.requirements || {};
+            const gpa = { ...general?.gpa };
+            if (hasValue(specific.gpa?.minimumQualification)) gpa.minimumQualification = specific.gpa.minimumQualification;
+            if (hasValue(specific.gpa?.score)) {
+                gpa.score = specific.gpa.score;
+                gpa.type = specific.gpa.type;
+                gpa.scale = specific.gpa.scale;
+            }
+            const languages = (specific.languageRequirement || []).filter(test => languageText(test.testType, test));
+            return { field: item.field, ...resolveProgramRequirements(program, { entryRequirements: {
+                [levelKey]: { gpa, languageRequirement: languages.length ? languages : general?.languageRequirement },
+            } }) };
+        }) };
+    }
     const academic = program.entry_requirements?.academic || {};
     const rows = [];
     const addRow = (label, specific, fallback) => {

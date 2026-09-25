@@ -186,8 +186,15 @@ const institutionSchema = new mongoose.Schema(
         },
 
         entryRequirements: {
+            diploma: entryRequirementSchema,
             undergraduate: entryRequirementSchema,
             postgraduate: entryRequirementSchema,
+            fields: [{
+                _id: false,
+                field: { type: String, required: true, trim: true },
+                level: { type: String, enum: ["diploma", "undergraduate", "postgraduate"], required: true },
+                requirements: entryRequirementSchema,
+            }],
         },
 
         documents: requiredDocumentSchema,
