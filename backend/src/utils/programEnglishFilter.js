@@ -13,21 +13,11 @@ module.exports = function programEnglishFilter(query) {
     if (typeof test !== "string" || !["ielts", "toefl", "pte", "duolingo"].includes(test)) {
         throw new Error("Select a valid English proficiency test");
     }
-    const path = `entry_requirements.language_requirements.english.${test}`;
-    const conditions = [{
-        // Require evidence that the program accepts the selected test.
-        $or: Object.values(scoreFields).map(field => ({ [`${path}.${field}`]: { $gte: 0 } })),
-    }];
-    for (const [key, field] of supplied) {
+    for (const [key] of supplied) {
         const score = Number(query[key]);
         if (typeof query[key] !== "string" || !query[key].trim() || !Number.isFinite(score) || score < 0) {
             throw new Error(`${key} must be a non-negative number`);
         }
-        // An unspecified program minimum adds no restriction for that component.
-        conditions.push({ $or: [
-            { [`${path}.${field}`]: null },
-            { [`${path}.${field}`]: { $lte: score } },
-        ] });
     }
-    return { $and: conditions };
+    return require("./resolvedEnglishFilter")(test, Object.fromEntries(supplied.map(([key, field]) => [field, Number(query[key])])));
 };

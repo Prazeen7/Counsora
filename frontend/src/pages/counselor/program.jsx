@@ -1,6 +1,6 @@
 import { apiFetch } from "../../services/api";
 import { resolveProgramLocations } from "../../utils/programLocations";
-import { FIELD_OPTIONS, formatProgramFields } from "../../constants/programFields";
+import { FIELD_OPTIONS, formatProgramFields, normalizeProgramFields } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
 import {
     Box,
@@ -383,6 +383,7 @@ export default function Programs() {
                         institution: program.institutionName || "N/A",
                         level: level,
                         discipline: discipline,
+                        field: normalizeProgramFields(program.field),
                         duration: program.duration || "N/A",
                         intakes: program.intakes || [],
                         tuition_fees: program.tuition_fees || [],
@@ -1034,7 +1035,7 @@ export default function Programs() {
                                     ))}
                                 </Box>
                                 <Typography variant="body2" color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
-                                    Enter your scores. Programs must accept the selected test and have minimum requirements no higher than the scores you enter.
+                                    Enter your scores. Results include programs with requirements at or below your scores and programs with unknown requirements for the selected test.
                                 </Typography>
                             </Box>
                         </TabPanel>
