@@ -1,3 +1,4 @@
+import AdditionalRequirementsContent from "./AdditionalRequirementsContent";
 import { tuitionFeeText } from '../../utils/tuitionFees';
 import ProgramDetailsTicker from "./ProgramDetailsTicker";
 import { resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
@@ -205,31 +206,7 @@ function ProgramCard({ program, institutionData }) {
                                 </Typography>
                                 {additionalRequirements.length ? (
                                     <Tooltip arrow placement="top" title={
-                                        <Box tabIndex={0} sx={{
-                                            py: 0.5,
-                                            pr: 0.5,
-                                            borderRadius: "6px",
-                                            maxHeight: "min(240px, calc(100vh - 64px))",
-                                            overflowY: "auto",
-                                            overflowWrap: "anywhere",
-                                            overscrollBehavior: "contain",
-                                            scrollbarWidth: "thin",
-                                            scrollbarColor: "rgba(255, 255, 255, 0.5) transparent",
-                                            "&::-webkit-scrollbar": { width: 6 },
-                                            "&::-webkit-scrollbar-track": { background: "transparent", marginBlock: "6px" },
-                                            "&::-webkit-scrollbar-thumb": {
-                                                backgroundColor: "rgba(255, 255, 255, 0.5)",
-                                                borderRadius: "999px",
-                                            },
-                                        }}>
-                                            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
-                                            {additionalRequirements.map((requirement, index) => (
-                                                <Typography component="li" variant="body2" key={index} sx={{ lineHeight: 1.5, mb: 0.75 }}>
-                                                    {requirement}
-                                                </Typography>
-                                            ))}
-                                            </Box>
-                                        </Box>
+                                        <AdditionalRequirementsContent requirements={additionalRequirements} />
                                     }>
                                         <Box tabIndex={0} sx={{
                                             width: "100%", overflow: "hidden", whiteSpace: "nowrap", cursor: "help",

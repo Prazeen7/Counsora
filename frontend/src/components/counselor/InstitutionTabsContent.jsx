@@ -1,3 +1,4 @@
+import AdditionalRequirementsContent from "./AdditionalRequirementsContent";
 import Loading from '../Loading';
 import { hasResolvedRequirements, resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
 import { resolveProgramLocations } from "../../utils/programLocations";
@@ -900,23 +901,11 @@ export default function InstitutionTabsContent({
                                                                         arrow
                                                                         placement="top"
                                                                         title={
-                                                                            <Box sx={{ py: 0.5 }}>
-                                                                                {additionalRequirements.map((requirement, index) => (
-                                                                                    <Typography
-                                                                                        key={index}
-                                                                                        variant="body2"
-                                                                                        sx={{
-                                                                                            lineHeight: 1.5,
-                                                                                            mb: index < additionalRequirements.length - 1 ? 0.75 : 0,
-                                                                                        }}
-                                                                                    >
-                                                                                        {requirement}
-                                                                                    </Typography>
-                                                                                ))}
-                                                                            </Box>
+                                                                            <AdditionalRequirementsContent requirements={additionalRequirements} />
                                                                         }
                                                                     >
                                                                         <Box
+                                                                            tabIndex={0}
                                                                             sx={{
                                                                                 mt: 0.5,
                                                                                 width: "100%",
