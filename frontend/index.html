@@ -5,6 +5,7 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Counsora</title>
+    <link rel="stylesheet" href="/src/components/Loading.css" />
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-69FKBGC4V3"></script>
@@ -25,7 +26,13 @@
 </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div role="status" aria-label="Loading Counsora" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+        <span class="brand-loader" aria-hidden="true">
+          <img class="brand-loader__logo" src="/src/assets/Logo.png" alt="" />
+        </span>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

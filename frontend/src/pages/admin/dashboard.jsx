@@ -1,6 +1,7 @@
+import Loading from '../../components/Loading';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { useCountry } from '../../context/CountryContext';
 import { apiRequest } from '../../services/api';
@@ -99,7 +100,7 @@ function DashboardContent({ country }) {
             </Box>
             <Button startIcon={<Refresh />} onClick={refresh} disabled={loading}>Refresh</Button>
         </Stack>
-        {loading ? <Box sx={{ py: 8, textAlign: 'center' }}><CircularProgress aria-label="Loading dashboard" /></Box> : error ?
+        {loading ? <Box sx={{ py: 8, textAlign: 'center' }}><Loading centered aria-label="Loading dashboard" /></Box> : error ?
             <Alert severity="error" action={<Button onClick={refresh}>Retry</Button>}>{error}</Alert> : data && <>
                 <DashboardChart data={data} days={days} onDaysChange={changeDays} />
                 <Typography variant="h6" component="h2" fontWeight={700}>Newly added</Typography>

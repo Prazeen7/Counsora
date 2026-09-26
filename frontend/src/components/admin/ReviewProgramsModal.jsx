@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import ProgramFieldSelect from "./ProgramFieldSelect";
 import { formatProgramFields } from "../../constants/programFields";
 import { tuitionFeeText, tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
@@ -16,7 +17,6 @@ import {
     Grid,
     Chip,
     Alert,
-    CircularProgress,
     TextField,
     MenuItem,
     Select,
@@ -310,7 +310,7 @@ export default function ReviewProgramsModal({
                         variant="contained"
                         color="success"
                         disabled={reviewPrograms.length === 0 || approving}
-                        startIcon={approving ? <CircularProgress size={20} /> : null}
+                        startIcon={approving ? <Loading size={20} /> : null}
                     >
                         {approving ? 'Approving...' : `Approve All (${reviewPrograms.length})`}
                     </Button>

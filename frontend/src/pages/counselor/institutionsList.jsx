@@ -329,7 +329,7 @@ function CountryInstitutionList({ selectedCountry }) {
                     </Select>
                 </Sheet>
 
-                <Loading loading={loading} />
+                <Loading centered loading={loading} />
 
                 {error && !loading && (
                     <Box sx={{ textAlign: "center", py: 8 }}>

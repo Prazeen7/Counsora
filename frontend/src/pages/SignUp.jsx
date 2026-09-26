@@ -1,3 +1,4 @@
+import Loading from '../components/Loading';
 import React, { useEffect, useState } from 'react';
 import Card from '../components/auth/AuthCard';
 import PrimaryButton from '../components/auth/PrimaryButton';
@@ -23,7 +24,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
-import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 
 // customized container
@@ -403,7 +403,7 @@ export default function SignUp() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <CircularProgress size={24} color="inherit" />
+                                <Loading size={24} color="inherit" />
                             ) : (
                                 'Sign up'
                             )}

@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { styled, useTheme } from "@mui/material/styles"
@@ -199,7 +200,7 @@ function Sidebar() {
                     <ListItemText primary="Worldwide" />
                 </MenuItem>
 
-                {countriesLoading && <MenuItem disabled>Loading countries…</MenuItem>}
+                {countriesLoading && <MenuItem disabled><Loading size={24} sx={{ mr: 1 }} label="Loading countries" />Loading countries…</MenuItem>}
                 {countriesError && <Alert severity="error">{countriesError}</Alert>}
                 {!countriesLoading && !countriesError && !filteredCountries.length && <MenuItem disabled>No countries found.</MenuItem>}
                 {!countriesLoading && !countriesError && filteredCountries.map((country) => (

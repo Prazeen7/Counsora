@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import { useEffect, useState } from "react";
 import { Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
@@ -130,7 +131,7 @@ export default function DocumentEditor({ record, countries, defaultCountry, defa
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} disabled={saving}>Cancel</Button>
-                <Button type="submit" variant="contained" disabled={saving || Boolean(fileError)}>{saving ? "Saving…" : "Save"}</Button>
+                <Button type="submit" variant="contained" disabled={saving || Boolean(fileError)}>{saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving…" />Saving…</> : "Save"}</Button>
             </DialogActions>
         </Box>
     </Dialog>;

@@ -1,5 +1,6 @@
+import Loading from './Loading';
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from "@mui/material";
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 import { getDocumentPreview } from "../services/documentService";
 
@@ -24,7 +25,7 @@ export default function DocumentPreview({ record, onClose }) {
         <DialogTitle sx={{ overflowWrap: 'anywhere' }}>{record.title}<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{currentPreview.name || 'Document attachment'}</Typography></DialogTitle>
         <DialogContent dividers sx={{ bgcolor: 'action.hover', p: { xs: 1, sm: 3 } }}>
             <Box sx={{ position: "relative", minHeight: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {error ? <Alert severity="error">{error}</Alert> : !url ? <Box sx={{ p: 4, textAlign: "center" }}><CircularProgress aria-label="Loading preview" /></Box> :
+                {error ? <Alert severity="error">{error}</Alert> : !url ? <Box sx={{ p: 4, textAlign: "center" }}><Loading centered aria-label="Loading preview" /></Box> :
                     currentPreview.mimeType === "application/pdf" ?
                         <Box component="iframe" title={record.title} src={url} sx={{ width: "100%", height: "70vh", border: 0 }} /> :
                         <Box component="img" alt={record.title} src={url} sx={{ display: "block", maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", mx: "auto" }} />}

@@ -1,6 +1,7 @@
+import Loading from '../../components/Loading';
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Autocomplete, Box, Button, Container, Paper, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Container, Paper, Stack, TextField, Typography } from "@mui/material";
 import { ArrowForward, Calculate, Description, MenuBook, Public, School, TravelExplore } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { useCountry } from "../../context/CountryContext";
@@ -65,7 +66,7 @@ function CountryOverview({ country }) {
             </Alert> : <Box aria-live="polite" aria-busy={!counts} sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2 }}>
                 {[{ key: "institutions", label: "Institutions", to: "/institutions" }, { key: "programs", label: "Programs", to: "/programs" }].map(item => (
                     <Box key={item.key} component={Link} to={item.to} sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 2, textDecoration: "none", color: "#0f172a", "&:hover": { bgcolor: "#eef2ff" }, "&:focus-visible": focusStyle }}>
-                        {counts ? <Typography variant="h4" fontWeight={700}>{counts[item.key].toLocaleString()}</Typography> : <Skeleton width={70} height={42} aria-label={`Loading ${item.label.toLowerCase()}`} />}
+                        {counts ? <Typography variant="h4" fontWeight={700}>{counts[item.key].toLocaleString()}</Typography> : <Loading size={36} sx={{ py: 0.375, alignItems: "flex-start" }} aria-label={`Loading ${item.label.toLowerCase()}`} />}
                         <Typography variant="body2" sx={{ mt: 0.5 }}>{item.label} <ArrowForward sx={{ fontSize: 14, verticalAlign: "middle" }} /></Typography>
                     </Box>
                 ))}
@@ -118,6 +119,7 @@ export default function CounselorDashboard() {
                                 getOptionLabel={country => country.name}
                                 isOptionEqualToValue={(option, value) => (option._id || option.id) === (value._id || value.id)}
                                 loading={loading}
+                                loadingText={<Loading size={28} label="Loading countries" />}
                                 noOptionsText={error ? "Countries couldn't be loaded" : "No countries found"}
                                 renderInput={params => <TextField {...params} label="Select country" placeholder="Search countries" helperText={selectedCountry ? `Currently advising for ${selectedCountry.name}` : "Worldwide — choose a country for local resources"} />}
                                 sx={{ "& .MuiOutlinedInput-root": { bgcolor: "white" } }}

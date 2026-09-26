@@ -1,0 +1,23 @@
+.brand-loader {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+.brand-loader__logo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: brand-fade 1.6s ease-in-out infinite;
+}
+@keyframes brand-fade {
+    0%, 100% { opacity: .25; }
+    50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brand-loader__logo { animation: none; }
+}

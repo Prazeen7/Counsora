@@ -1,5 +1,6 @@
+import Loading from './Loading';
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Container, InputAdornment,
+import { Alert, Box, Button, Card, CardContent, Chip, Container, InputAdornment,
     LinearProgress, Stack, Tab, Tabs, TextField, Typography, Paper, CardHeader, CardActions,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { Calculate, Download, RestartAlt, School, AccountBalance, Flight, ArrowForward, Description } from "@mui/icons-material";
@@ -97,7 +98,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
         setMissingSheet(false); setError(''); setAttempt((value) => value + 1);
     };
     const management = canManage && (sheet || missingSheet) ? <CostSheetManager countryId={countryId} countryName={countryName} countryCurrency={sheet?.country?.currency || countryCurrency} sheet={sheet} onChanged={reload} /> : null;
-    if (loading) return <Box sx={{ py: 8, textAlign: "center" }} role="status"><CircularProgress /><Typography>Loading cost sheet…</Typography></Box>;
+    if (loading) return <Box sx={{ py: 8, textAlign: "center" }} role="status"><Loading centered /><Typography>Loading cost sheet…</Typography></Box>;
     if (!sheet) return <Stack spacing={3}>{management}<Alert severity="info" action={<Button onClick={reload}>Retry</Button>}>{error || "No cost sheet available for this country."}</Alert></Stack>;
 
     const allItems = sheet.stages.flatMap((stage) => stage.items);
@@ -120,7 +121,7 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mt: 3 }}>
                 <Typography fontWeight={600}>{sheet.country.name}</Typography>
                 
-                <Button type="button" onClick={calculate} color="inherit" variant="contained" disabled={calculating} startIcon={calculating ? <CircularProgress size={18} /> : <Calculate />}
+                <Button type="button" onClick={calculate} color="inherit" variant="contained" disabled={calculating} startIcon={calculating ? <Loading size={18} /> : <Calculate />}
                     sx={{ bgcolor: "white", color: primaryColor, "&:hover": { bgcolor: "#eef2ff" }, "&.Mui-disabled": { bgcolor: "#e0e7ff", color: primaryColor } }}>{calculating ? "Calculating…" : "Calculate Total"}</Button>
             </Stack>
         </Paper>
@@ -209,12 +210,12 @@ function CountryEstimate({ countryId, countryName, countryCurrency, canManage })
                         setValues({}); setResult(null); setError(""); setActiveStage(0);
                         formRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
                     }}>Reset to defaults</Button>
-                    <Button type="button" variant="contained" sx={{ width: { xs: '100%', sm: 'auto' } }} startIcon={<Download />} disabled={downloading || calculating} onClick={async () => {
+                    <Button type="button" variant="contained" sx={{ width: { xs: '100%', sm: 'auto' } }} startIcon={downloading ? null : <Download />} disabled={downloading || calculating} onClick={async () => {
                         setDownloading(true); setError("");
                         try { const { downloadCostReport } = await import("../utils/costReport"); await downloadCostReport(result); }
                         catch { setError("Unable to generate the PDF. Please try again."); }
                         finally { setDownloading(false); }
-                    }}>{downloading ? "Preparing PDF…" : "Download Detailed Report (PDF)"}</Button>
+                    }}>{downloading ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Preparing PDF…" />Preparing PDF…</> : "Download Detailed Report (PDF)"}</Button>
                 </CardActions>
             </Card>}
         </Box>

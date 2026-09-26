@@ -1,7 +1,8 @@
+import Loading from '../Loading';
 import ProgramFieldSelect from "./ProgramFieldSelect";
 import { useEffect, useState } from "react";
 import {
-    Alert, Autocomplete, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
+    Alert, Autocomplete, Box, Button, Checkbox, Dialog, DialogActions, DialogContent,
     DialogTitle, FormControl, InputLabel, MenuItem, Paper, Select, Stack,
     TextField, Typography,
 } from "@mui/material";
@@ -104,7 +105,7 @@ export default function SpreadsheetImportReview({ open, stage, items, countries,
                     {error && <Alert severity="error">{error}</Alert>}
                     {busy && (
                         <Box sx={{ py: 6, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                            <CircularProgress />
+                            <Loading />
                             <Typography>{loadingMessage || `Loading ${stage}...`}</Typography>
                             <Typography variant="body2" color="text.secondary">Please wait. Previously reviewed records will not be submitted again.</Typography>
                         </Box>

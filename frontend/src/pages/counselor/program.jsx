@@ -17,7 +17,6 @@ import {
     FormControlLabel,
     Grid,
     IconButton,
-    CircularProgress,
     InputLabel,
     Menu,
     MenuItem,
@@ -838,7 +837,7 @@ export default function Programs() {
                         {/* Loading State */}
                         {loading && (
                             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                                <Loading />
+                                <Loading centered />
                             </Box>
                         )}
 

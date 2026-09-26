@@ -16,7 +16,6 @@ import {
     SpeedDial,
     SpeedDialAction,
     SpeedDialIcon,
-    CircularProgress,
     TextField,
     Paper,
     Card,
@@ -1156,7 +1155,7 @@ function ProgramDialog({ open, onClose, program, onSave, saving }) {
                     sx={{ backgroundColor: "#4f46e5" }}
                     disabled={saving}
                 >
-                    {saving ? "Saving..." : "Save"}
+                    {saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving..." />Saving...</> : "Save"}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -2447,7 +2446,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
     );
 
     if (!institution) {
-        return <Loading loading={true} />;
+        return <Loading centered loading={true} />;
     }
 
     return (
@@ -2535,7 +2534,7 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
                                 color="success"
                                 onClick={handleSaveEdit}
                                 disabled={saving}
-                                startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+                                startIcon={saving ? <Loading size={20} /> : <SaveIcon />}
                             >
                                 {saving ? "Saving..." : "Save Changes"}
                             </Button>

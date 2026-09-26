@@ -1,5 +1,6 @@
+import Loading from '../../components/Loading';
 import { useEffect, useState } from "react";
-import { Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, Divider, Paper, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Alert, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, Divider, Paper, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { ArrowBack, ArrowForward, ExpandMore, OpenInNew } from "@mui/icons-material";
 import { useCountry } from '../../context/CountryContext';
 import { getStudyGuides, deleteStudyGuide } from '../../services/studyGuideService';
@@ -79,7 +80,7 @@ function GuideContent({ country, isAdmin }) {
         <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 620, lineHeight: 1.7 }}>From planning your finances to life after graduation. Choose a topic and explore it at your own pace.</Typography>
         {isAdmin && <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setEditor({ record: null })} disabled={loading || Boolean(error)}>Add topic</Button>}
       </Box>
-      {loading ? <Box sx={{ py: 5, textAlign: 'center' }}><CircularProgress aria-label="Loading study guide" /></Box> : error ? <Alert severity="error" action={<Button onClick={() => { setLoading(true); setVersion(value => value + 1); }}>Retry</Button>}>{error}</Alert> : !topic ? <Paper variant="outlined" sx={{ p: 4, borderRadius: 3 }}><Typography>No study guide has been added for {country.name} yet.</Typography>{isAdmin && <Typography color="text.secondary" sx={{ mt: 1 }}>Add the first topic to make this guide available to counselors.</Typography>}</Paper> : <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "250px minmax(0, 1fr)" }, gap: { xs: 2, md: 4 }, alignItems: "start" }}>
+      {loading ? <Box sx={{ py: 5, textAlign: 'center' }}><Loading centered aria-label="Loading study guide" /></Box> : error ? <Alert severity="error" action={<Button onClick={() => { setLoading(true); setVersion(value => value + 1); }}>Retry</Button>}>{error}</Alert> : !topic ? <Paper variant="outlined" sx={{ p: 4, borderRadius: 3 }}><Typography>No study guide has been added for {country.name} yet.</Typography>{isAdmin && <Typography color="text.secondary" sx={{ mt: 1 }}>Add the first topic to make this guide available to counselors.</Typography>}</Paper> : <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "250px minmax(0, 1fr)" }, gap: { xs: 2, md: 4 }, alignItems: "start" }}>
         <Paper id="guide-navigation" component="nav" aria-label="Study guide topics" variant="outlined" sx={{ borderRadius: 3, p: { xs: 1, md: 2 }, position: { md: "sticky" }, top: { md: 88 }, minWidth: 0 }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, px: 1, mb: 1 }}>IN THIS GUIDE</Typography>
           <Tabs value={activeTopic} onChange={(_, value) => setActiveTopic(value)} orientation={desktop ? "vertical" : "horizontal"} aria-label="Choose a study guide topic" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile

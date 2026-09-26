@@ -1,5 +1,6 @@
+import Loading from '../../components/Loading';
 import { useState } from "react";
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Switch, TextField, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { TablePagination } from "@mui/material";
 import { createCountry, updateCountry, deleteCountry } from "../../services/countryService";
 import useAdminList from "../../hooks/useAdminList";
@@ -80,7 +81,7 @@ export default function Countries() {
         <Button variant="contained" sx={{ mb: 3 }} disabled={loading || Boolean(error)} onClick={() => { setActionError(""); setEditing({ code: "", name: "", currency: "", isActive: true }); }}>Add country</Button>
         <ListSearch label="Search countries" placeholder="Name, code, or currency" onSearch={value => { setSearch(value); setPage(1); }} />
         {error ? <Alert severity="error" action={<Button onClick={retryFetch}>Retry</Button>}>{error}</Alert>
-            : loading ? <CircularProgress aria-label="Loading countries" />
+            : loading ? <Loading centered aria-label="Loading countries" />
                 : <>
                     <Typography mb={2}>{data.total} countries{search ? ` matching “${search}”` : ""}</Typography>
                     <TableContainer component={Paper}>
@@ -117,7 +118,7 @@ export default function Countries() {
                     />)}
                     <FormControlLabel label="isActive" control={<Switch checked={editing?.isActive === true} disabled={saving} onChange={(event) => setEditing((current) => ({ ...current, isActive: event.target.checked }))} />} />
                 </DialogContent>
-                <DialogActions><Button onClick={closeDialog} disabled={saving}>Cancel</Button><Button type="submit" variant="contained" disabled={saving}>{saving ? "Saving…" : isCreating ? "Add country" : "Save"}</Button></DialogActions>
+                <DialogActions><Button onClick={closeDialog} disabled={saving}>Cancel</Button><Button type="submit" variant="contained" disabled={saving}>{saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving…" />Saving…</> : isCreating ? "Add country" : "Save"}</Button></DialogActions>
             </Box>
         </Dialog>
         <Dialog open={Boolean(deleting)} onClose={closeDialog} fullWidth maxWidth="xs">
@@ -126,7 +127,7 @@ export default function Countries() {
                 {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
                 <Typography>Delete {deleting?.name} ({deleting?.code})? This permanently removes the country.</Typography>
             </DialogContent>
-            <DialogActions><Button onClick={closeDialog} disabled={saving}>Cancel</Button><Button color="error" variant="contained" onClick={confirmDelete} disabled={saving}>{saving ? "Deleting…" : "Delete"}</Button></DialogActions>
+            <DialogActions><Button onClick={closeDialog} disabled={saving}>Cancel</Button><Button color="error" variant="contained" onClick={confirmDelete} disabled={saving}>{saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Deleting…" />Deleting…</> : "Delete"}</Button></DialogActions>
         </Dialog>
     </Box>;
 }

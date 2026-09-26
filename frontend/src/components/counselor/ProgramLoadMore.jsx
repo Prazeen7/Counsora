@@ -1,5 +1,6 @@
+import Loading from '../Loading';
 import { useEffect, useRef } from "react";
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 
 export default function ProgramLoadMore({ loading, error, hasMore, loadMore, retry }) {
     const sentinel = useRef(null);
@@ -12,7 +13,7 @@ export default function ProgramLoadMore({ loading, error, hasMore, loadMore, ret
         return () => observer.disconnect();
     }, [loading, error, hasMore, loadMore]);
     return <Box ref={sentinel} sx={{ py: 3, textAlign: "center" }} aria-live="polite">
-        {loading ? <CircularProgress size={26} aria-label="Loading programs" /> : error ? <>
+        {loading ? <Loading size={26} aria-label="Loading programs" /> : error ? <>
             <Typography color="error">{error}</Typography>
             <Button onClick={retry || loadMore}>Retry</Button>
         </> : hasMore ? <Button onClick={loadMore}>Load more programs</Button> : null}

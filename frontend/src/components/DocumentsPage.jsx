@@ -1,5 +1,6 @@
+import Loading from './Loading';
 import { useEffect, useState } from "react";
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Tab, Tabs, TextField, InputAdornment, Tooltip, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Tab, Tabs, TextField, InputAdornment, Tooltip, Typography } from "@mui/material";
 import { Add, DeleteOutlineOutlined as DeleteOutline, EditOutlined, ExpandMore, VisibilityOutlined, Search, DescriptionOutlined } from "@mui/icons-material";
 import { useCountry } from "../context/CountryContext";
 import { getCountries } from "../services/countryService";
@@ -126,7 +127,7 @@ export default function DocumentsPage({ isAdmin = false }) {
                 <TextField size="small" placeholder="Search documents…" value={search} onChange={event => setSearch(event.target.value)} sx={{ width: { xs: '100%', sm: 280 }, flexShrink: 0 }} slotProps={{ htmlInput: { 'aria-label': 'Search documents and stages' }, input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }} />
             </Box>
         </Paper>
-            {loading ? <Box sx={{ p: 5, textAlign: "center" }}><CircularProgress aria-label="Loading documents" /></Box> : error ?
+            {loading ? <Box sx={{ p: 5, textAlign: "center" }}><Loading centered aria-label="Loading documents" /></Box> : error ?
                 <Alert severity="error" action={<Button onClick={() => setVersion((value) => value + 1)}>Retry</Button>}>{error}</Alert> :
                 byStage ? <Stack spacing={1}>{visibleStageGroups.length ? visibleStageGroups.map((stage, stageIndex) =>
                     <Accordion key={`${countryId}:${stage._id}:${Boolean(search.trim())}`} defaultExpanded={Boolean(search.trim()) || stageIndex === 0} disableGutters sx={sectionStyle}>

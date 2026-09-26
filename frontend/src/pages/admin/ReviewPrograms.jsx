@@ -1,3 +1,4 @@
+import Loading from '../../components/Loading';
 import { tuitionFeeText, tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { apiFetch } from "../../services/api";
 import { useState, useEffect } from 'react';
@@ -19,7 +20,6 @@ import {
     TextField,
     Typography,
     Alert,
-    CircularProgress,
     Stack
 } from '@mui/material';
 import {
@@ -167,7 +167,7 @@ export default function ReviewPrograms() {
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <CircularProgress />
+                <Loading />
             </Box>
         );
     }
@@ -200,7 +200,7 @@ export default function ReviewPrograms() {
                 <Button
                     variant="contained"
                     color="success"
-                    startIcon={<ApproveIcon />}
+                    startIcon={saving ? <Loading size={20} label="Saving programs" /> : <ApproveIcon />}
                     onClick={handleApprove}
                     disabled={saving || programs.length === 0}
                 >

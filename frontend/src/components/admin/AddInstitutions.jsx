@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import ProgramFieldSelect from "./ProgramFieldSelect";
 import { apiFetch } from "../../services/api";
 import { useState, useEffect, useRef } from "react";
@@ -8,7 +9,6 @@ import {
     CardContent,
     Checkbox,
     Chip,
-    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -2871,7 +2871,7 @@ export default function AddInstitution({ onClose }) {
                 open={crawlStatus === 'crawling' || crawlStatus === 'checking'}
             >
                 <Box sx={{ textAlign: 'center' }}>
-                    <CircularProgress size={60} thickness={4} sx={{ mb: 3 }} />
+                    <Loading sx={{ mb: 3 }} />
                     <Typography variant="h5" sx={{ mb: 1, fontWeight: 500 }}>
                         {crawlStatus === 'checking' ? 'Checking status...' : 'Crawling Programs'}
                     </Typography>
@@ -2885,7 +2885,7 @@ export default function AddInstitution({ onClose }) {
                         gap: 1,
                         flexWrap: 'wrap'
                     }}>
-                        <CircularProgress size={16} />
+                        <Loading size={16} />
                         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             Please wait...
                         </Typography>

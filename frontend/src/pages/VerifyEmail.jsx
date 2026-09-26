@@ -1,3 +1,4 @@
+import Loading from '../components/Loading';
 import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
@@ -128,7 +129,7 @@ export default function VerifyEmail() {
     if ((!token && !isVerificationFlowActive(location.state?.flowId)) || tokenStatus === "invalid") {
         return <Navigate to="/login" replace />;
     }
-    if (token && tokenStatus === "pending") return <Typography role="status">Checking verification link…</Typography>;
+    if (token && tokenStatus === "pending") return <Loading fullPage label="Checking verification link…" />;
 
     return (
         <Stack sx={{ minHeight: "100vh", p: 3, justifyContent: "center", alignItems: "center" }}>
@@ -141,12 +142,12 @@ export default function VerifyEmail() {
                     <Typography>
                         {token ? "Confirm your email address to finish signing up." : "Open the verification link in your inbox to activate your account. Check your spam folder too. Links expire after 24 hours."}
                     </Typography>
-                    {token && <Button variant="contained" disabled={busy} onClick={(event) => submit(event, true)}>
+                    {token && <Button variant="contained" disabled={busy} startIcon={busy ? <Loading size={20} label="Verifying email" /> : null} onClick={(event) => submit(event, true)}>
                         {busy ? "Please wait…" : "Verify email"}
                     </Button>}
                     {!token && <Box component="form" onSubmit={(event) => submit(event, false)} sx={{ display: "grid", gap: 2 }}>
                         <TextField label="Email address" type="email" required disabled={busy} value={email} onChange={(event) => setEmail(event.target.value)} helperText="Entered the wrong address? Update it here before verifying." />
-                        <Button type="submit" disabled={busy}>{busy ? "Sending…" : email.trim().toLowerCase() !== location.state?.email?.trim().toLowerCase() ? "Update email and send verification" : "Resend verification email"}</Button>
+                        <Button type="submit" disabled={busy} startIcon={busy ? <Loading size={20} label="Sending verification email" /> : null}>{busy ? "Sending…" : email.trim().toLowerCase() !== location.state?.email?.trim().toLowerCase() ? "Update email and send verification" : "Resend verification email"}</Button>
                     </Box>}
                 </>
                 {!token && <Button disabled={busy} onClick={() => goToLogin()}>Go to login</Button>}

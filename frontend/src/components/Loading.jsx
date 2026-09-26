@@ -1,45 +1,27 @@
-import React from 'react';
-import { styled } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
+import logo from '../assets/Logo.png';
+import './Loading.css';
 
-// Styled component with optional size and color props
-const StyledCircularProgress = styled(CircularProgress)(({ theme, size, color }) => ({
-    color: color || '#4f46e5', 
-    width: size || 24,
-    height: size || 24,
-}));
-
-// Loading container with optional overlay
-const LoadingContainer = styled(Box, {
-    shouldForwardProp: (prop) => prop !== 'overlay'
-})(({ theme, overlay }) => ({
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...(overlay && {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        zIndex: 9999,
-    }),
-}));
-
-export default function CircularLoading({
-    loading = true,
-    color,
-    size,
-    overlay = false,
-    children
+/** Shared brand loader for pages, dialogs, and compact button states. */
+export default function Loading({
+    loading = true, size, overlay = false, fullPage = false, centered = false,
+    label = 'Loading…', 'aria-label': ariaLabel, sx, children,
 }) {
-    if (!loading) return children || null;
-
+    if (!loading) return children ?? null;
     return (
-        <LoadingContainer overlay={overlay}>
-            <StyledCircularProgress size={size} color={color} />
-        </LoadingContainer>
+        <Box component="span" role="status" aria-label={ariaLabel || label}
+            sx={[{
+                display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0,
+                ...(centered && { minHeight: '50dvh', width: '100%' }),
+                ...(fullPage && { minHeight: '100dvh', width: '100%' }),
+                ...(overlay && {
+                    position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,.85)',
+                    zIndex: 1301, borderRadius: 'inherit',
+                }),
+            }, ...(Array.isArray(sx) ? sx : [sx])]}>
+            <span className="brand-loader" style={{ width: size, height: size }} aria-hidden="true">
+                <img className="brand-loader__logo" src={logo} alt="" />
+            </span>
+        </Box>
     );
 }

@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import { useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { Add, Delete as DeleteOutline, Edit } from "@mui/icons-material";
@@ -69,7 +70,7 @@ export default function CostSheetManager({ countryId, countryName, countryCurren
                         <Button startIcon={<Add />} disabled={draft.stages.length >= 20} onClick={() => setDraft({ ...draft, stages: [...draft.stages, newStage()] })}>Add stage</Button>
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ p: 2 }}><Button disabled={busy} onClick={() => setDraft(null)}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Save cost sheet'}</Button></DialogActions>
+                <DialogActions sx={{ p: 2 }}><Button disabled={busy} onClick={() => setDraft(null)}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving…" />Saving…</> : 'Save cost sheet'}</Button></DialogActions>
             </Box>}
         </Dialog>
         <Dialog open={confirmDelete} onClose={() => { if (!busy) setConfirmDelete(false); }}>
@@ -80,7 +81,7 @@ export default function CostSheetManager({ countryId, countryName, countryCurren
                 try { await deleteCostSheet(countryId); setConfirmDelete(false); onChanged(); }
                 catch (err) { setError(err.message); }
                 finally { setBusy(false); }
-            }}>{busy ? 'Deleting…' : 'Delete cost sheet'}</Button></DialogActions>
+            }}>{busy ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Deleting…" />Deleting…</> : 'Delete cost sheet'}</Button></DialogActions>
         </Dialog>
     </>;
 }

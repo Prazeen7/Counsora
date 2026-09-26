@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import { useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { saveStudyGuide } from '../../services/studyGuideService';
@@ -64,7 +65,7 @@ export default function StudyGuideEditor({ record, country, defaultOrder, onClos
                     <Button variant="outlined" disabled={saving || fields.sections.length >= 50} onClick={() => setFields(current => ({ ...current, sections: [...current.sections, { title: '', content: '' }] }))}>Add section</Button>
                 </Stack>
             </DialogContent>
-            <DialogActions><Button disabled={saving} onClick={onClose}>Cancel</Button><Button variant="contained" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save topic'}</Button></DialogActions>
+            <DialogActions><Button disabled={saving} onClick={onClose}>Cancel</Button><Button variant="contained" type="submit" disabled={saving}>{saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving…" />Saving…</> : 'Save topic'}</Button></DialogActions>
         </Box>
     </Dialog>;
 }

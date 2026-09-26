@@ -60,7 +60,7 @@ export default function InstitutionPage() {
     }, [institutionId]);
 
     if (!institution) {
-        return <Loading loading={true} />;
+        return <Loading centered loading={true} />;
     }
 
     if (institution?.isDimmed) {

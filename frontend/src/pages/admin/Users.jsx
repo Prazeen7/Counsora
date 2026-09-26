@@ -1,5 +1,6 @@
+import Loading from '../../components/Loading';
 import { useState } from "react";
-import { Alert, Box, Button, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { apiRequest } from "../../services/api";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { TablePagination } from "@mui/material";
@@ -79,7 +80,7 @@ export default function Users() {
             </Select>
         </FormControl>}
         {error || fetchError ? <Alert severity="error" action={<Button onClick={() => { setError(""); setRetry(retry + 1); }}>Retry</Button>}>{error || fetchError}</Alert>
-            : loading ? <CircularProgress aria-label="Loading users" />
+            : loading ? <Loading centered aria-label="Loading users" />
                 : <>
                     <TableContainer component={Paper}>
                         <Table aria-label="Registered users">
@@ -122,7 +123,7 @@ export default function Users() {
                 {unit === 'date' ? <TextField fullWidth label="Last-access date (Nepal)" type="date" slotProps={{ inputLabel: { shrink: true } }} value={endDate} onChange={event => setEndDate(event.target.value)} />
                     : <TextField fullWidth label="Number" type="number" slotProps={{ htmlInput: { min: 1, step: 1 } }} value={duration} onChange={event => setDuration(event.target.value)} />}
             </DialogContent>
-            <DialogActions><Button disabled={saving} onClick={() => setSubscriptionUser(null)}>Cancel</Button><Button variant="contained" disabled={saving || (unit === 'date' ? !endDate : !Number.isSafeInteger(Number(duration)) || Number(duration) < 1)} onClick={saveSubscription}>{saving ? 'Saving…' : 'Save subscription'}</Button></DialogActions>
+            <DialogActions><Button disabled={saving} onClick={() => setSubscriptionUser(null)}>Cancel</Button><Button variant="contained" disabled={saving || (unit === 'date' ? !endDate : !Number.isSafeInteger(Number(duration)) || Number(duration) < 1)} onClick={saveSubscription}>{saving ? <><Loading size={20} sx={{ display: 'inline-flex', mr: 1 }} label="Saving…" />Saving…</> : 'Save subscription'}</Button></DialogActions>
         </Dialog>
     </Box>;
 }

@@ -1,3 +1,4 @@
+import Loading from '../Loading';
 import { hasResolvedRequirements, resolveProgramRequirements } from "../../utils/resolveProgramRequirements";
 import { resolveProgramLocations } from "../../utils/programLocations";
 import ProgramEntryRequirements from "./ProgramEntryRequirements";
@@ -23,8 +24,7 @@ import {
     Button,
     IconButton,
     Tooltip,
-    CircularProgress,
-} from "@mui/material";
+    } from "@mui/material";
 import {
     OpenInNew as OpenInNewIcon,
     Edit as EditIcon,
@@ -429,7 +429,7 @@ export default function InstitutionTabsContent({
                                 {onImportPrograms && (
                                     <Button
                                         variant="outlined"
-                                        startIcon={importingPrograms ? <CircularProgress size={16} /> : <ImportIcon />}
+                                        startIcon={importingPrograms ? <Loading size={16} /> : <ImportIcon />}
                                         onClick={onImportPrograms}
                                         disabled={importingPrograms}
                                     >
