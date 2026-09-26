@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Tab, Tabs, TextField, InputAdornment, Tooltip, Typography } from "@mui/material";
 import { Add, DeleteOutlineOutlined as DeleteOutline, EditOutlined, ExpandMore, VisibilityOutlined, Search, DescriptionOutlined } from "@mui/icons-material";
 import { useCountry } from "../context/CountryContext";
+import CountrySelectionPrompt from './CountrySelectionPrompt';
 import { getCountries } from "../services/countryService";
 import { getDocuments, deleteDocument } from "../services/documentService";
 import DocumentEditor from "./admin/DocumentEditor";
@@ -75,6 +76,7 @@ export default function DocumentsPage({ isAdmin = false }) {
     }, [isAdmin, version]);
 
     useEffect(() => {
+        if (!countryId) return;
         let active = true;
         setLoading(true);
         setError("");
@@ -106,7 +108,7 @@ export default function DocumentsPage({ isAdmin = false }) {
         finally { setDeleteBusy(false); }
     };
 
-    if (!selectedCountry) return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 5 } }}><Alert severity="info">Select a country from the navigation menu to view its required documents and process stages.</Alert></Box>;
+    if (!selectedCountry) return <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 5 } }}><CountrySelectionPrompt title="Documents" message="Select a country to view its required documents and process stages." /></Box>;
     return <Box sx={{ maxWidth: 1440, mx: "auto", p: { xs: 1.5, md: 2 }, pb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="space-between" alignItems={{ sm: "center" }} sx={{ mb: 1.5 }}>
             <Box>

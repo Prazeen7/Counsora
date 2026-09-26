@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Alert, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, Divider, Paper, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { ArrowBack, ArrowForward, ExpandMore, OpenInNew } from "@mui/icons-material";
 import { useCountry } from '../../context/CountryContext';
+import CountrySelectionPrompt from '../../components/CountrySelectionPrompt';
 import { getStudyGuides, deleteStudyGuide } from '../../services/studyGuideService';
 import StudyGuideEditor from '../../components/admin/StudyGuideEditor';
 
@@ -17,7 +18,7 @@ function GuideText({ text }) {
 
 export default function StudyGuide({ isAdmin = false }) {
   const { selectedCountry } = useCountry();
-  if (!selectedCountry) return <Container sx={{ py: 4 }}><Alert severity="info">Select a country from the navigation menu to view its study guide.</Alert></Container>;
+  if (!selectedCountry) return <Container sx={{ py: 4 }}><CountrySelectionPrompt title="Study Guide" message="Select a country to view its study guide." /></Container>;
   return <GuideContent key={selectedCountry._id} country={selectedCountry} isAdmin={isAdmin} />;
 }
 

@@ -5,6 +5,7 @@ import { Alert, Box, Button, Card, CardContent, Chip, Container, InputAdornment,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { Calculate, Download, RestartAlt, School, AccountBalance, Flight, ArrowForward, Description } from "@mui/icons-material";
 import { useCountry } from "../context/CountryContext";
+import CountrySelectionPrompt from './CountrySelectionPrompt';
 import { useAuth } from "../context/AuthContext";
 import CostSheetManager from "./admin/CostSheetManager";
 
@@ -229,6 +230,6 @@ export default function CostEstimationPage() {
     return <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, mt: { xs: 5, lg: 0 }, "& .MuiButton-containedPrimary": { bgcolor: primaryColor }, "& .MuiTextField-root .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor } }}>
         {selectedCountry?._id
             ? <CountryEstimate key={selectedCountry._id} countryId={selectedCountry._id} countryName={selectedCountry.name} countryCurrency={selectedCountry.currency} canManage={['admin', 'superAdmin'].includes(user?.role)} />
-            : <Alert severity="info">Select a country from the navigation menu to view its cost estimate.</Alert>}
+            : <CountrySelectionPrompt title="Cost Estimation" message="Select a country to view its cost estimate." />}
     </Container>;
 }
