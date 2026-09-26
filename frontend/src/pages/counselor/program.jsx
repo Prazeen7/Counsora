@@ -21,6 +21,9 @@ import {
     Menu,
     MenuItem,
     Select,
+    Radio,
+    RadioGroup,
+    FormLabel,
     Slider,
     Stack,
     Switch,
@@ -159,6 +162,7 @@ export default function Programs() {
     const [filterTabValue, setFilterTabValue] = useState(0); // For filter dialog tabs
     const [tempFilters, setTempFilters] = useState({
         gpa: 0,
+        percentage: "",
         englishTest: "",
         testScore: "",
         listeningScore: "",
@@ -177,6 +181,7 @@ export default function Programs() {
     const [scoreWarning, setScoreWarning] = useState("");
     const [appliedFilters, setAppliedFilters] = useState({
         gpa: 0,
+        percentage: "",
         englishTest: "",
         testScore: "",
         listeningScore: "",
@@ -208,7 +213,9 @@ export default function Programs() {
     );
     const batchSize = itemsPerPage * 5;
     const gpaFilter = Number(appliedFilters.gpa) || 0;
-    const backendParams = new URLSearchParams({ gpa: String(gpaFilter) });
+    const backendParams = new URLSearchParams();
+    if (appliedFilters.percentage !== "") backendParams.set("percentage", String(appliedFilters.percentage));
+    else backendParams.set("gpa", String(gpaFilter));
     if (selectedCountry?._id) backendParams.set("country", selectedCountry._id);
     if (searchQuery.trim()) backendParams.set("search", searchQuery.trim());
     backendParams.set("programLevel", ["all", "undergraduate", "postgraduate"][tabValue]);
@@ -234,6 +241,7 @@ export default function Programs() {
     // Default filter values
     const defaultFilters = {
         gpa: 0,
+        percentage: "",
         englishTest: "",
         testScore: "",
         listeningScore: "",
@@ -659,14 +667,8 @@ export default function Programs() {
         setTempFilters((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "gpa" ? { percentage: "" } : name === "percentage" ? { gpa: 0 } : {}),
             ...(name === "englishTest" ? { testScore: "", listeningScore: "", readingScore: "", writingScore: "", speakingScore: "" } : {}),
-        }));
-    };
-
-    const handleSliderChange = (name) => (event, newValue) => {
-        setTempFilters((prev) => ({
-            ...prev,
-            [name]: newValue,
         }));
     };
 
@@ -683,6 +685,12 @@ export default function Programs() {
     };
 
     const handleApplyFilters = () => {
+        const score = tempFilters.percentage !== "" ? Number(tempFilters.percentage) : Number(tempFilters.gpa);
+        const maximum = tempFilters.percentage !== "" ? 100 : 4;
+        if (!Number.isFinite(score) || score < 0 || score > maximum) {
+            setScoreWarning(`Academic score must be between 0 and ${maximum}.`);
+            return;
+        }
         const individualKeys = ["listeningScore", "readingScore", "writingScore", "speakingScore"];
         const individual = individualKeys
             .filter((key) => tempFilters[key] !== "" && tempFilters[key] !== null && tempFilters[key] !== undefined)
@@ -981,21 +989,59 @@ export default function Programs() {
                                         ))}
                                     </Select>
                                 </FormControl>
-                                <Box sx={{ gridColumn: "1 / -1", px: 1 }}>
-                                    <Typography gutterBottom>GPA Range</Typography>
-                                    <Slider
-                                        value={tempFilters.gpa}
-                                        step={0.1}
-                                        min={0}
-                                        max={4.0}
-                                        marks={[
-                                            { value: 0, label: "0.0" },
-                                            { value: 4, label: "4.0" },
-                                        ]}
-                                        valueLabelDisplay="auto"
-                                        onChange={handleSliderChange("gpa")}
+                                <FormControl sx={{ gridColumn: "1 / -1", px: 1 }}>
+                                    <FormLabel id="academic-score-format">Academic score</FormLabel>
+                                    <RadioGroup row aria-labelledby="academic-score-format"
+                                        value={tempFilters.percentage !== "" ? "percentage" : "gpa"}
+                                        onChange={(_, format) => {
+                                            setScoreWarning("");
+                                            setTempFilters(prev => format === "percentage"
+                                                ? { ...prev, percentage: Number(prev.gpa) * 25, gpa: 0 }
+                                                : { ...prev, gpa: Number(prev.percentage) / 25, percentage: "" });
+                                        }}>
+                                        <FormControlLabel value="gpa" control={<Radio />} label="GPA" />
+                                        <FormControlLabel value="percentage" control={<Radio />} label="Percentage" />
+                                    </RadioGroup>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                                    <Typography id="academic-score-range" sx={{ flex: 1 }}>
+                                        {tempFilters.percentage !== "" ? `Percentage: ${tempFilters.percentage ?? 0}%` : `GPA: ${Number(tempFilters.gpa).toFixed(2)} / 4`}
+                                    </Typography>
+                                    <TextField size="small" type="number"
+                                        label={tempFilters.percentage !== "" ? 'Percentage' : 'GPA'}
+                                        value={(tempFilters.percentage !== "" ? tempFilters.percentage : tempFilters.gpa) ?? ""}
+                                        sx={{ width: 120, flexShrink: 0 }}
+                                        slotProps={{ htmlInput: { min: 0, max: tempFilters.percentage !== "" ? 100 : 4, step: 0.01 } }}
+                                        onChange={event => {
+                                            const value = event.target.value;
+                                            setScoreWarning("");
+                                            setTempFilters(prev => prev.percentage !== ""
+                                                ? { ...prev, percentage: value === "" ? null : value, gpa: 0 }
+                                                : { ...prev, gpa: value, percentage: "" });
+                                        }}
+                                        onBlur={() => setTempFilters(prev => prev.percentage !== ""
+                                            ? { ...prev, percentage: Math.min(100, Math.max(0, Number(prev.percentage) || 0)) }
+                                            : { ...prev, gpa: Math.min(4, Math.max(0, Number(prev.gpa) || 0)) })}
                                     />
-                                </Box>
+                                    </Box>
+                                    <Slider aria-labelledby="academic-score-range"
+                                        value={Math.min(tempFilters.percentage !== "" ? 100 : 4, Math.max(0, Number(tempFilters.percentage !== "" ? tempFilters.percentage : tempFilters.gpa) || 0))}
+                                        min={0} max={tempFilters.percentage !== "" ? 100 : 4}
+                                        step={tempFilters.percentage !== "" ? 0.5 : 0.1}
+                                        marks={tempFilters.percentage !== ""
+                                            ? [{ value: 0, label: "0%" }, { value: 100, label: "100%" }]
+                                            : [{ value: 0, label: "0.0" }, { value: 4, label: "4.0" }]}
+                                        valueLabelDisplay="auto"
+                                        valueLabelFormat={value => tempFilters.percentage !== "" ? `${value}%` : value.toFixed(2)}
+                                        onChange={(_, value) => {
+                                            setScoreWarning("");
+                                            setTempFilters(prev => prev.percentage !== ""
+                                                ? { ...prev, percentage: value, gpa: 0 }
+                                                : { ...prev, gpa: value, percentage: "" });
+                                        }} />
+                                </FormControl>
+                                <Typography variant="body2" color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
+                                    Matches requirements at or below your score in either format; unknown requirements remain included.
+                                </Typography>
                                 <FormControl fullWidth>
                                     <InputLabel>English Proficiency Test</InputLabel>
                                     <Select

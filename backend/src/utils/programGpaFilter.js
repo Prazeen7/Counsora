@@ -1,12 +1,23 @@
 const Institution = require("../models/Institution");
 
-// The counselor GPA input uses a four-point scale. Percentages are not GPA scores.
-const numericGpa = (score, type) => ({
-    $cond: [
-        { $in: [{ $ifNull: [type, ""] }, ["GPA", ""]] },
-        { $convert: { input: score, to: "double", onError: null, onNull: null } },
-        null,
-    ],
+// Proportional filtering estimate on a common four-point scale.
+const numericGpa = (score, type, scale) => ({
+    $let: {
+        vars: {
+            score: { $convert: { input: score, to: "double", onError: null, onNull: null } },
+            scale: { $convert: { input: scale, to: "double", onError: null, onNull: null } },
+            type: { $ifNull: [type, ""] },
+        },
+        in: { $cond: [
+            { $and: [{ $ne: ["$$score", null] }, { $gte: ["$$score", 0] },
+                { $in: ["$$type", ["GPA", "Percentage", ""]] }] },
+            { $multiply: [{ $divide: ["$$score", { $cond: [
+                { $eq: ["$$type", "Percentage"] }, 100,
+                { $cond: [{ $gt: ["$$scale", 0] }, "$$scale", 4] },
+            ] }] }, 4] },
+            null,
+        ] },
+    },
 });
 
 module.exports = function programGpaFilter(gpa) {
@@ -41,19 +52,11 @@ module.exports = function programGpaFilter(gpa) {
             } },
         } },
         { $set: {
-            programGpa: numericGpa("$entry_requirements.academic.score", "$entry_requirements.academic.score_type"),
-            fallbackGpa: numericGpa("$institutionGpa.score", "$institutionGpa.type"),
+            programGpa: numericGpa("$entry_requirements.academic.score", "$entry_requirements.academic.score_type", "$entry_requirements.academic.scale"),
+            fallbackGpa: numericGpa("$institutionGpa.score", "$institutionGpa.type", "$institutionGpa.scale"),
         } },
         { $set: {
-            requiredGpa: { $cond: [
-                { $ne: ["$programGpa", null] },
-                { $cond: [
-                    { $gt: ["$entry_requirements.academic.scale", 0] },
-                    { $multiply: [{ $divide: ["$programGpa", "$entry_requirements.academic.scale"] }, 4] },
-                    "$programGpa",
-                ] },
-                "$fallbackGpa",
-            ] },
+            requiredGpa: { $ifNull: ["$programGpa", "$fallbackGpa"] },
         } },
         { $match: { $or: [{ requiredGpa: null }, { requiredGpa: { $lte: gpa } }] } },
     ];

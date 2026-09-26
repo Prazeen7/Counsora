@@ -1,3 +1,4 @@
+const applicantAcademicScore = require("../utils/applicantAcademicScore");
 const { FIELD_OPTIONS, normalizeProgramField, normalizeProgramFields, programFieldFilter } = require("../utils/programField");
 const programGpaFilter = require("../utils/programGpaFilter");
 const programEnglishFilter = require("../utils/programEnglishFilter");
@@ -283,7 +284,9 @@ const getAllProgram = async (req, res) => {
         const limit = Number(req.query.limit ?? 60);
         const offset = Number(req.query.offset ?? 0);
         const seed = req.query.seed;
-        const gpa = Number(req.query.gpa ?? 0);
+        let gpa;
+        try { gpa = applicantAcademicScore(req.query); }
+        catch (error) { return res.status(400).json({ error: error.message }); }
         const sortOrder = req.query.sortOrder;
         if (sortOrder !== undefined && !["", "highToLow", "lowToHigh"].includes(sortOrder)) {
             return res.status(400).json({ error: "Select a valid sort order" });
@@ -336,10 +339,6 @@ const getAllProgram = async (req, res) => {
         } catch (error) {
             return res.status(400).json({ error: error.message });
         }
-        if (req.query.gpa !== undefined && (typeof req.query.gpa !== "string" ||
-            !req.query.gpa.trim() || !Number.isFinite(gpa) || gpa < 0 || gpa > 4)) {
-            return res.status(400).json({ error: "GPA must be a number between 0 and 4" });
-        }
         if (seed !== undefined && (typeof seed !== "string" || !/^[a-zA-Z0-9-]{1,64}$/.test(seed))) {
             return res.status(400).json({ error: "Invalid shuffle seed" });
         }
@@ -384,7 +383,7 @@ const getAllProgram = async (req, res) => {
                 ...(fieldFilter ? [{ $match: fieldFilter }] : []),
                 ...(academicLevelFilter ? [{ $match: academicLevelFilter }] : []),
                 ...(englishFilter ? [{ $match: englishFilter }] : []),
-                ...(gpa > 0 ? programGpaFilter(gpa) : []),
+                ...(gpa !== null ? programGpaFilter(gpa) : []),
                 { $facet: {
                     programs: [...orderStages, ...(paginated ? [{ $skip: offset }, { $limit: limit }] : [])],
                     count: [{ $count: "total" }],
