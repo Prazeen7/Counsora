@@ -3,6 +3,7 @@ const { FIELD_OPTIONS, normalizeProgramField, normalizeProgramFields, programFie
 const programGpaFilter = require("../utils/programGpaFilter");
 const programEnglishFilter = require("../utils/programEnglishFilter");
 const programAcademicLevelFilter = require("../utils/programAcademicLevelFilter");
+const programFeeSort = require("../utils/programFeeSort");
 const Program = require("../models/Program");
 const Institution = require("../models/Institution");
 const mongoose = require("mongoose");
@@ -349,15 +350,7 @@ const getAllProgram = async (req, res) => {
         let randomizedIds;
         let matchingTotal;
         {
-            const orderStages = sortOrder ? [
-                { $addFields: {
-                    sortFee: { $convert: {
-                        input: { $arrayElemAt: ["$tuition_fees.annual_fee_eur", 0] },
-                        to: "double", onError: 0, onNull: 0,
-                    } },
-                } },
-                { $sort: { listingRank: 1, sortFee: sortOrder === "highToLow" ? -1 : 1, _id: 1 } },
-            ] : seed ? [
+            const orderStages = sortOrder ? programFeeSort(sortOrder) : seed ? [
                 { $project: {
                     _id: 1,
                     listingRank: 1,
