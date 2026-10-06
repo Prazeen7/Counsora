@@ -717,6 +717,11 @@ export default function InstitutionTabsContent({
                                                 flexDirection: "column",
                                                 gap: 1.25,
                                                 flex: 1,
+                                                "& .MuiTypography-caption": {
+                                                    fontWeight: 600,
+                                                    lineHeight: 1.5,
+                                                    mb: 0.5,
+                                                },
                                             }}
                                         >
                                             {/* Title */}
@@ -802,8 +807,9 @@ export default function InstitutionTabsContent({
                                             <Box
                                                 sx={{
                                                     display: "grid",
-                                                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                                                    gap: 1.5,
+                                                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                                                    columnGap: 2,
+                                                    rowGap: 1.75,
                                                     alignItems: "start",
                                                 }}
                                             >
@@ -811,52 +817,37 @@ export default function InstitutionTabsContent({
                                                     <Typography variant="caption" color="text.secondary" display="block">
                                                         Level
                                                     </Typography>
-                                                    <Typography variant="body2" fontWeight="medium" noWrap title={program.level || "Not specified"}>
+                                                    <Typography variant="body2" fontWeight="medium" sx={{ overflowWrap: "anywhere" }}>
                                                         {program.level || "—"}
                                                     </Typography>
                                                 </Box>
 
-                                                {isAdmin && (
-                                                    <Box sx={{ minWidth: 0 }}>
-                                                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
-                                                            Status
-                                                        </Typography>
-                                                        <Chip
-                                                            label={program.isActive !== false ? "Active" : "Inactive"}
-                                                            color={program.isActive !== false ? "success" : "default"}
-                                                            size="small"
-                                                            variant="outlined"
-                                                            sx={{ height: 22, "& .MuiChip-label": { px: 1 } }}
-                                                        />
-                                                    </Box>
-                                                )}
+
 
                                                 <Box sx={{ minWidth: 0 }}>
                                                     <Typography variant="caption" color="text.secondary" display="block">
                                                         Duration
                                                     </Typography>
-                                                    <Typography variant="body2" fontWeight="medium" noWrap title={program.duration || "Not specified"}>
+                                                    <Typography variant="body2" fontWeight="medium" sx={{ overflowWrap: "anywhere" }}>
                                                         {program.duration || "—"}
                                                     </Typography>
                                                 </Box>
-                                            </Box>
-
                                             {program.tuition_fees?.length > 0 && (
-                                                <Box>
+                                                <Box sx={{ minWidth: 0 }}>
                                                     <Typography variant="caption" color="text.secondary" display="block">
                                                         Tuition
                                                     </Typography>
                                                     {program.tuition_fees.map((fee, index) => (
                                                         <Typography key={index} variant="body2" fontWeight="bold" color="primary.main">
                                                             {tuitionFeeText(fee)}
-</Typography>
+                                                        </Typography>
                                                     ))}
                                                 </Box>
                                             )}
 
                                             {/* Intakes */}
                                             {program.intakes?.length > 0 && (
-                                                <Box>
+                                                <Box sx={{ minWidth: 0 }}>
                                                     <Typography
                                                         variant="caption"
                                                         color="text.secondary"
@@ -869,6 +860,21 @@ export default function InstitutionTabsContent({
                                                     <ProgramDetailsTicker items={sortIntakesByMonth(program.intakes)} />
                                                 </Box>
                                             )}
+                                                {isAdmin && (
+                                                    <Box sx={{ gridColumn: "1 / -1", minWidth: 0 }}>
+                                                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
+                                                            Status
+                                                        </Typography>
+                                                        <Chip
+                                                            label={program.isActive !== false ? "Active" : "Inactive"}
+                                                            color={program.isActive !== false ? "success" : "default"}
+                                                            size="small"
+                                                            variant="outlined"
+                                                            sx={{ height: 22, "& .MuiChip-label": { px: 1 } }}
+                                                        />
+                                                    </Box>
+                                                )}
+                                            </Box>
 
                                             {/* Entry requirements */}
                                             {hasEntryRequirements && (
