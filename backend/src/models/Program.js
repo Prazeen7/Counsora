@@ -107,7 +107,7 @@ const programSchema = new mongoose.Schema(
         },
         level: {
             type: String,
-            enum: ["Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null],
+            enum: ["Foundation", "UG Certificate", "PG Certificate", "Diploma", "PG Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null],
             default: null,
         },
         field: {

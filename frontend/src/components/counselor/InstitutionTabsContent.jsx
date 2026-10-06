@@ -816,18 +816,20 @@ export default function InstitutionTabsContent({
                                                     </Typography>
                                                 </Box>
 
-                                                <Box sx={{ minWidth: 0 }}>
-                                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
-                                                        Status
-                                                    </Typography>
-                                                    <Chip
-                                                        label={program.isActive !== false ? "Active" : "Inactive"}
-                                                        color={program.isActive !== false ? "success" : "default"}
-                                                        size="small"
-                                                        variant="outlined"
-                                                        sx={{ height: 22, "& .MuiChip-label": { px: 1 } }}
-                                                    />
-                                                </Box>
+                                                {isAdmin && (
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.25 }}>
+                                                            Status
+                                                        </Typography>
+                                                        <Chip
+                                                            label={program.isActive !== false ? "Active" : "Inactive"}
+                                                            color={program.isActive !== false ? "success" : "default"}
+                                                            size="small"
+                                                            variant="outlined"
+                                                            sx={{ height: 22, "& .MuiChip-label": { px: 1 } }}
+                                                        />
+                                                    </Box>
+                                                )}
 
                                                 <Box sx={{ minWidth: 0 }}>
                                                     <Typography variant="caption" color="text.secondary" display="block">

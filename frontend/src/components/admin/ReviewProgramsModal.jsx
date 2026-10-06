@@ -31,7 +31,10 @@ import {
 
 const LEVEL_OPTIONS = [
     'Foundation',
+    'UG Certificate',
+    'PG Certificate',
     'Diploma',
+    'PG Diploma',
     'Bachelor',
     'Master',
     'PhD',

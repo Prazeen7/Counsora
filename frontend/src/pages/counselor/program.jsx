@@ -1,4 +1,5 @@
 import { apiFetch } from "../../services/api";
+import programLevelOptions from "../../../../shared/programLevelOptions.json";
 import { resolveProgramLocations } from "../../utils/programLocations";
 import { FIELD_OPTIONS, formatProgramFields, normalizeProgramFields } from "../../constants/programFields";
 import { useState, useEffect, useRef } from "react";
@@ -15,6 +16,8 @@ import {
     DialogTitle,
     FormControl,
     FormControlLabel,
+    FormGroup,
+    Checkbox,
     Grid,
     IconButton,
     InputLabel,
@@ -170,6 +173,7 @@ export default function Programs() {
         writingScore: "",
         speakingScore: "",
         academicLevel: "",
+        levels: [],
         fieldOfStudy: "",
         preferredLocation: "",
         visaRefusal: false,
@@ -189,6 +193,7 @@ export default function Programs() {
         writingScore: "",
         speakingScore: "",
         academicLevel: "",
+        levels: [],
         fieldOfStudy: "",
         preferredLocation: "",
         visaRefusal: false,
@@ -220,6 +225,7 @@ export default function Programs() {
     if (searchQuery.trim()) backendParams.set("search", searchQuery.trim());
     backendParams.set("programLevel", ["all", "undergraduate", "postgraduate"][tabValue]);
     if (appliedFilters.academicLevel) backendParams.set("academicLevel", appliedFilters.academicLevel);
+    if (appliedFilters.levels.length) backendParams.set("levels", appliedFilters.levels.join(","));
     if (appliedFilters.englishTest) {
         backendParams.set("englishTest", appliedFilters.englishTest);
         ["testScore", "listeningScore", "readingScore", "writingScore", "speakingScore"].forEach(key => {
@@ -249,6 +255,7 @@ export default function Programs() {
         writingScore: "",
         speakingScore: "",
         academicLevel: "",
+        levels: [],
         fieldOfStudy: "",
         preferredLocation: "",
         visaRefusal: false,
@@ -338,9 +345,11 @@ export default function Programs() {
                     // Determine level from degree_name or level field
                     let level = "N/A";
                     const levelField = program.level || "";
-                    if (levelField === "Bachelor" || levelField === "Diploma" || levelField === "Foundation") {
+                    if (levelField === "Certificate" && /postgraduate|post[ -]graduate|graduate certificate|pgcert/i.test(program.degree_name || "")) {
+                        level = "Postgraduate";
+                    } else if (levelField === "Bachelor" || levelField === "UG Certificate" || levelField === "Certificate" || levelField === "Diploma" || levelField === "Foundation") {
                         level = "Undergraduate";
-                    } else if (levelField === "Master" || levelField === "PhD" || levelField === "Doctoral" || levelField === "Research") {
+                    } else if (levelField === "PG Diploma" || levelField === "PG Certificate" || levelField === "Master" || levelField === "PhD" || levelField === "Doctoral" || levelField === "Research") {
                         level = "Postgraduate";
                     } else {
                         // Fallback: search in degree_name
@@ -573,13 +582,16 @@ export default function Programs() {
 
     // Function to remove a specific filter
     const handleRemoveFilter = (filterKey) => {
+        if (filterKey === "academicLevel") setTabValue(0);
         setAppliedFilters((prev) => ({
             ...prev,
             [filterKey]: defaultFilters[filterKey],
+            ...(filterKey === "academicLevel" ? { levels: [] } : {}),
         }));
         setTempFilters((prev) => ({
             ...prev,
             [filterKey]: defaultFilters[filterKey],
+            ...(filterKey === "academicLevel" ? { levels: [] } : {}),
         }));
     };
 
@@ -587,6 +599,16 @@ export default function Programs() {
     const getAppliedFilterChips = () => {
         const chips = [];
         for (const [key, value] of Object.entries(appliedFilters)) {
+            if (key === "levels") {
+                value.forEach(level => chips.push(
+                    <Chip key={`level-${level}`} label={`Level: ${level}`} sx={{ m: 0.5 }}
+                        onDelete={() => {
+                            setAppliedFilters(prev => ({ ...prev, levels: prev.levels.filter(item => item !== level) }));
+                            setTempFilters(prev => ({ ...prev, levels: prev.levels.filter(item => item !== level) }));
+                        }} />
+                ));
+                continue;
+            }
             if (value && value !== defaultFilters[key]) {
                 let displayValue = value;
 
@@ -667,6 +689,7 @@ export default function Programs() {
         setTempFilters((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "academicLevel" ? { levels: [] } : {}),
             ...(name === "gpa" ? { percentage: "" } : name === "percentage" ? { gpa: 0 } : {}),
             ...(name === "englishTest" ? { testScore: "", listeningScore: "", readingScore: "", writingScore: "", speakingScore: "" } : {}),
         }));
@@ -706,6 +729,7 @@ export default function Programs() {
         }
         setScoreWarning("");
         setAppliedFilters(tempFilters);
+        if (tempFilters.academicLevel) setTabValue(tempFilters.academicLevel === "high_school" ? 1 : 2);
         setCurrentPage(1);
         setFilterOpen(false);
         setTimeout(() => {
@@ -721,6 +745,7 @@ export default function Programs() {
     const handleClearFilters = () => {
         setTempFilters(defaultFilters);
         setAppliedFilters(defaultFilters);
+        setTabValue(0);
     };
 
     // Handle income source change
@@ -945,6 +970,24 @@ export default function Programs() {
                                         <MenuItem value="phd">PhD</MenuItem>
                                     </Select>
                                 </FormControl>
+                                {tempFilters.academicLevel && (
+                                    <FormControl component="fieldset" sx={{ gridColumn: "1 / -1" }}>
+                                        <FormLabel component="legend">Program Levels</FormLabel>
+                                        <Typography variant="caption" sx={{ mt: 0.5 }}>Select levels to narrow your results. No selection shows all available levels below.</Typography>
+                                        <FormGroup row sx={{ gap: 1, mt: 1 }}>
+                                            {programLevelOptions[tempFilters.academicLevel].map(level => (
+                                                <FormControlLabel key={level} label={level}
+                                                    control={<Checkbox checked={tempFilters.levels.includes(level)}
+                                                        onChange={event => {
+                                                            const checked = event.target.checked;
+                                                            setTempFilters(prev => ({ ...prev, levels: checked
+                                                                ? [...prev.levels, level] : prev.levels.filter(item => item !== level) }));
+                                                        }} />}
+                                                    sx={{ m: 0, pr: 1.5, border: "1px solid", borderColor: tempFilters.levels.includes(level) ? "primary.main" : "divider", borderRadius: 2 }} />
+                                            ))}
+                                        </FormGroup>
+                                    </FormControl>
+                                )}
                                 <FormControl fullWidth>
                                     <InputLabel id="counselor-program-field-label">Field of Study</InputLabel>
                                     <Select

@@ -1,5 +1,5 @@
-const undergraduateLevels = ["Bachelor", "Diploma", "Foundation", "Undergraduate"];
-const postgraduateLevels = ["Master", "PhD", "Doctoral", "Research", "Postgraduate"];
+const undergraduateLevels = ["Bachelor", "UG Certificate", "Certificate", "Diploma", "Foundation", "Undergraduate"];
+const postgraduateLevels = ["PG Diploma", "PG Certificate", "Master", "PhD", "Doctoral", "Research", "Postgraduate"];
 
 module.exports = function programAcademicLevelFilter(qualification) {
     if (qualification === undefined || qualification === "") return null;
@@ -15,8 +15,13 @@ module.exports = function programAcademicLevelFilter(qualification) {
     if (!undergraduate) {
         fallback.$nor = [{ degree_name: { $regex: "bachelor|undergraduate", $options: "i" } }];
     }
-    return { $or: [
-        { level: { $in: undergraduate ? undergraduateLevels : postgraduateLevels } },
-        fallback,
-    ] };
+    const postgraduateCertificate = {
+        level: "Certificate",
+        degree_name: { $regex: "postgraduate|post[ -]graduate|graduate certificate|pgcert", $options: "i" },
+    };
+    const explicitLevel = { level: { $in: undergraduate ? undergraduateLevels : postgraduateLevels } };
+    if (undergraduate) explicitLevel.$nor = [postgraduateCertificate];
+    return { $or: undergraduate
+        ? [explicitLevel, fallback]
+        : [explicitLevel, postgraduateCertificate, fallback] };
 };

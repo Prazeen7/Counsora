@@ -1972,8 +1972,10 @@ export default function AddInstitution({ onClose }) {
                                                                     },
                                                                 }}
                                                             >
-                                                                <MenuItem value="Certificate">Certificate</MenuItem>
+                                                                <MenuItem value="UG Certificate">UG Certificate</MenuItem>
+                                                                <MenuItem value="PG Certificate">PG Certificate</MenuItem>
                                                                 <MenuItem value="Diploma">Diploma</MenuItem>
+                                                                <MenuItem value="PG Diploma">PG Diploma</MenuItem>
                                                                 <MenuItem value="Bachelor">Bachelor</MenuItem>
                                                                 <MenuItem value="Master">Master</MenuItem>
                                                                 <MenuItem value="PhD">PhD</MenuItem>
@@ -2118,7 +2120,7 @@ export default function AddInstitution({ onClose }) {
                                                         {!program.useInstitutionRequirements && (
                                                             <Box sx={{ mt: 2 }}>
                                                                 {/* Undergraduate */}
-                                                                {["Certificate", "Diploma", "Bachelor"].includes(program.level) && (
+                                                                {["UG Certificate", "Diploma", "Bachelor"].includes(program.level) && (
                                                                     <Box>
                                                                         <Typography variant="body2" fontWeight="bold" sx={{ mb: 2 }}>
                                                                             Undergraduate Requirements

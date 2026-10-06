@@ -82,6 +82,11 @@ test("diploma defaults are separate, while postgraduate diplomas retain postgrad
         assert.deepEqual(result.languages, ["IELTS 5.5"]);
     }
     assert.equal(resolveProgramRequirements({ level: "Postgraduate Diploma" }, scoped).academic[0].value, "Bachelor");
+    assert.equal(resolveProgramRequirements({ level: "PG Diploma" }, scoped).academic[0].value, "Bachelor");
+    assert.equal(resolveProgramRequirements({ level: "PG Certificate" }, scoped).academic[0].value, "Bachelor");
+    assert.deepEqual(resolveProgramRequirements({ level: "UG Certificate" }, scoped).academic,
+        resolveProgramRequirements({ level: "Bachelor" }, scoped).academic);
+    assert.equal(resolveProgramRequirements({ level: "Certificate", degree_name: "Postgraduate Certificate in Education" }, scoped).academic[0].value, "Bachelor");
     assert.deepEqual(resolveProgramRequirements({ level: "Diploma" }, institution).academic, []);
     const override = resolveProgramRequirements({ level: "Diploma", entry_requirements: {
         academic: { score: "65", score_type: "Percentage" },

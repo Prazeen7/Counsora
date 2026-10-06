@@ -19,10 +19,11 @@ function languageText(name, score = {}) {
 }
 
 export function resolveProgramRequirements(program, institution) {
-    const level = String(program.level || "");
-    const levelKey = /master|postgraduate|phd|doctoral|doctorate|research/i.test(level) ? "postgraduate"
+    const level = program.level === "Certificate" && /postgraduate|post[ -]graduate|graduate certificate|pgcert/i.test(program.degree_name || "")
+        ? "Postgraduate Certificate" : String(program.level || "");
+    const levelKey = /master|postgraduate|pg\s+(?:diploma|certificate)|phd|doctoral|doctorate|research/i.test(level) ? "postgraduate"
         : /diploma/i.test(level) ? "diploma"
-        : /foundation|associate|bachelor|undergraduate/i.test(level) ? "undergraduate" : null;
+        : /foundation|associate|bachelor|undergraduate|ug\s+certificate/i.test(level) ? "undergraduate" : null;
     const general = institution?.entryRequirements?.[levelKey];
     const fields = normalizeProgramFields(program.field);
     const matching = (institution?.entryRequirements?.fields || []).filter(item =>

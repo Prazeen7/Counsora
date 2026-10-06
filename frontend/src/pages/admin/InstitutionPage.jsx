@@ -58,7 +58,10 @@ const INSTITUTION_TYPE_OPTIONS = ["Public", "Private", "Community", "Other"];
 
 const LEVEL_OPTIONS = [
     "Foundation",
+    "UG Certificate",
+    "PG Certificate",
     "Diploma",
+    "PG Diploma",
     "Bachelor",
     "Master",
     "PhD",
@@ -1814,7 +1817,10 @@ export default function AdminInstitutionPage({ institution: institutionProp, onC
         if (lower.includes("master") || lower.includes("msc") || lower.includes("ma ") || lower.includes("mba")) return "Master";
         if (lower.includes("bachelor") || lower.includes("bsc") || lower.includes("ba ") || lower.includes("bba")) return "Bachelor";
         if (lower.includes("phd") || lower.includes("doctorate")) return "PhD";
-        if (lower.includes("diploma") || lower.includes("certificate")) return "Diploma";
+        if (/\b(?:pg|post[ -]?graduate|graduate)\s+diploma\b|\bpgdip/i.test(lower)) return "PG Diploma";
+        if (/\b(?:pg|post[ -]?graduate|graduate)\s+certificate\b|\bpgcert/i.test(lower)) return "PG Certificate";
+        if (lower.includes("certificate")) return "UG Certificate";
+        if (lower.includes("diploma")) return "Diploma";
         return "Other";
     }, []);
 

@@ -1,0 +1,6 @@
+{
+  "high_school": ["Foundation", "UG Certificate", "Diploma", "Bachelor"],
+  "bachelors": ["PG Diploma", "PG Certificate", "Master"],
+  "masters": ["PhD", "Doctoral", "Research"],
+  "phd": ["Research"]
+}

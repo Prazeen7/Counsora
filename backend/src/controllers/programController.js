@@ -1,4 +1,5 @@
 const applicantAcademicScore = require("../utils/applicantAcademicScore");
+const programLevelSelectionFilter = require("../utils/programLevelSelectionFilter");
 const { FIELD_OPTIONS, normalizeProgramField, normalizeProgramFields, programFieldFilter } = require("../utils/programField");
 const programGpaFilter = require("../utils/programGpaFilter");
 const programEnglishFilter = require("../utils/programEnglishFilter");
@@ -75,7 +76,7 @@ const getProgramsByInstitution = async (req, res) => {
 };
 
 
-const VALID_LEVELS = ["Foundation", "Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null];
+const VALID_LEVELS = ["Foundation", "UG Certificate", "PG Certificate", "Diploma", "PG Diploma", "Bachelor", "Master", "PhD", "Doctoral", "Research", null];
 const VALID_FIELDS = FIELD_OPTIONS;
 const VALID_QUALIFICATIONS = ["Higher Secondary", "Diploma", "Bachelor", "Master", "Doctoral", null];
 const VALID_SCORE_TYPES = ["GPA", "Percentage", null];
@@ -326,9 +327,11 @@ const getAllProgram = async (req, res) => {
         let englishFilter;
         let academicLevelFilter;
         let programLevelFilter;
+        let selectedLevelFilter;
         try {
             englishFilter = programEnglishFilter(req.query);
             academicLevelFilter = programAcademicLevelFilter(req.query.academicLevel);
+            selectedLevelFilter = programLevelSelectionFilter(req.query);
             const programLevel = req.query.programLevel;
             if (programLevel !== undefined && !["all", "undergraduate", "postgraduate"].includes(programLevel)) {
                 throw new Error("Select a valid program level");
@@ -375,6 +378,7 @@ const getAllProgram = async (req, res) => {
                 ...(locationFilter ? [{ $match: locationFilter }] : []),
                 ...(fieldFilter ? [{ $match: fieldFilter }] : []),
                 ...(academicLevelFilter ? [{ $match: academicLevelFilter }] : []),
+                ...(selectedLevelFilter ? [{ $match: selectedLevelFilter }] : []),
                 ...(englishFilter ? [{ $match: englishFilter }] : []),
                 ...(gpa !== null ? programGpaFilter(gpa) : []),
                 { $facet: {
