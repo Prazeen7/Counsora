@@ -37,8 +37,14 @@ const getInstitutions = async (req, res) => {
 
         const query = {};
 
-        if (search) {
-            query.name = { $regex: search, $options: 'i' };
+        if (search !== undefined && (typeof search !== "string" || search.length > 200)) {
+            return res.status(400).json({ error: "Invalid institution search" });
+        }
+        const searchWords = (search || "").trim().split(/\s+/).filter(Boolean);
+        if (searchWords.length) {
+            query.$and = searchWords.map(word => ({
+                name: { $regex: word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" },
+            }));
         }
 
         if (location && location !== 'all') {

@@ -1,3 +1,4 @@
+import { extractMapEmbedUrl } from "../../utils/extractMapEmbedUrl";
 import ProgramFieldSelect from "../../components/admin/ProgramFieldSelect";
 import { tuitionFeesText, tuitionFeesFromText } from '../../utils/tuitionFees';
 import { apiFetch } from "../../services/api";
@@ -402,9 +403,9 @@ function LocationDialog({ open, onClose, location, institution, onSave }) {
                             fullWidth
                             label="Google Maps Embed URL"
                             value={formData.mapEmbedUrl}
-                            onChange={(e) => handleChange("mapEmbedUrl", e.target.value)}
+                            onChange={(e) => handleChange("mapEmbedUrl", extractMapEmbedUrl(e.target.value))}
                             placeholder="e.g., https://www.google.com/maps/embed?pb=..."
-                            helperText="Paste the embed URL from Google Maps (Share > Embed a map > Copy HTML > extract the src URL)"
+                            helperText="Paste a Google Maps URL or the full iframe embed code. The HTTPS link is extracted automatically."
                             multiline
                             rows={2}
                         />

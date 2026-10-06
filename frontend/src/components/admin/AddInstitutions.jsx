@@ -1,3 +1,4 @@
+import { extractMapEmbedUrl } from "../../utils/extractMapEmbedUrl";
 import Loading from '../Loading';
 import ProgramFieldSelect from "./ProgramFieldSelect";
 import { apiFetch } from "../../services/api";
@@ -1597,10 +1598,11 @@ export default function AddInstitution({ onClose }) {
                                                                 handleLocationChange(
                                                                     location.id,
                                                                     'mapEmbedUrl',
-                                                                    e.target.value
+                                                                    extractMapEmbedUrl(e.target.value)
                                                                 )
                                                             }
                                                             placeholder="https://www.google.com/maps/embed?..."
+                                                            helperText="Paste a Google Maps URL or iframe code; the HTTPS link is extracted automatically."
                                                         />
                                                     </Grid>
                                                 </Grid>

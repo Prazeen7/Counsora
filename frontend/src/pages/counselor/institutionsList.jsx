@@ -46,6 +46,7 @@ function CountryInstitutionList({ selectedCountry }) {
     const navigate = useNavigate();
     const brandColor = "#4f46e5";
     const searchBarRef = useRef(null);
+    const requestVersion = useRef(0);
     const [pagination, setPagination] = useState({
         page: 1,
         totalPages: 1,
@@ -197,7 +198,7 @@ function CountryInstitutionList({ selectedCountry }) {
 
     // ----- Fetch institutions -----
 
-    const fetchInstitution = async (query, location, page) => {
+    const fetchInstitution = async (query, location, page, version) => {
         try {
             setLoading(true);
 
@@ -210,6 +211,7 @@ function CountryInstitutionList({ selectedCountry }) {
             };
 
             const jsonResponse = await getInstitutions(params);
+            if (version !== requestVersion.current) return;
 
             const institutionsWithCounts = await Promise.all(
                 jsonResponse.institutions.map(async (inst) => {
@@ -243,30 +245,31 @@ function CountryInstitutionList({ selectedCountry }) {
                 })
             );
 
+            if (version !== requestVersion.current) return;
             setInstitutions(institutionsWithCounts);
             setPagination(jsonResponse.pagination);
 
             setAllLocations(jsonResponse.locations || []);
             setError(null);
         } catch (err) {
-            setError(err.message);
+            if (version === requestVersion.current) setError(err.message);
         } finally {
-            setLoading(false);
+            if (version === requestVersion.current) setLoading(false);
         }
     };
 
-    // Initial fetch
     useEffect(() => {
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-        fetchInstitution(searchQuery, selectedLocation, currentPage);
+        const version = ++requestVersion.current;
+        setLoading(true);
+        setError(null);
+        const timer = setTimeout(() => {
+            fetchInstitution(searchQuery.trim(), selectedLocation, currentPage, version);
+        }, searchQuery.trim() ? 300 : 0);
+        return () => {
+            clearTimeout(timer);
+            requestVersion.current += 1;
+        };
     }, [searchQuery, selectedLocation, selectedCountry, currentPage]);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, selectedLocation]);
 
     const handlePageChange = (event, value) => {
         setCurrentPage(value);
@@ -309,13 +312,19 @@ function CountryInstitutionList({ selectedCountry }) {
                         placeholder="Search institutions..."
                         sx={{ flex: 1 }}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
                     />
                     <Select
                         placeholder="Select location"
                         startDecorator={<LocationOn sx={{ color: brandColor }} />}
                         value={selectedLocation}
-                        onChange={(_, value) => setSelectedLocation(value)}
+                        onChange={(_, value) => {
+                            setSelectedLocation(value);
+                            setCurrentPage(1);
+                        }}
                         sx={{
                             minWidth: 200,
                         }}

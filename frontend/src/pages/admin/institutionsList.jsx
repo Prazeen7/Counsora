@@ -53,14 +53,19 @@ function CountryInstitutions({ selectedCountry }) {
     const requestVersion = useRef(0);
 
     useEffect(() => {
-        fetchInstitutions();
+        requestVersion.current += 1;
+        const timer = setTimeout(fetchInstitutions, searchTerm.trim() ? 300 : 0);
+        return () => {
+            clearTimeout(timer);
+            requestVersion.current += 1;
+        };
     }, [searchTerm, selectedCountry, page, rowsPerPage, order, orderBy]);
 
     const fetchInstitutions = async () => {
         const version = ++requestVersion.current;
         try {
             const response = await getInstitutions({
-                search: searchTerm,
+                search: searchTerm.trim(),
                 country: selectedCountry?._id,
                 page: page + 1,
                 limit: rowsPerPage,
