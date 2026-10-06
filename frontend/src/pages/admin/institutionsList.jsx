@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
     Box,
+    Avatar,
     Paper,
     Table,
     TableBody,
@@ -208,7 +209,19 @@ function CountryInstitutions({ selectedCountry }) {
                                             <TableCell>{page * rowsPerPage + index + 1}</TableCell>
 
                                             {/* Institution Name */}
-                                            <TableCell>{institution.name}</TableCell>
+                                            <TableCell>
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                                    <Avatar
+                                                        src={institution.logo?.url || undefined}
+                                                        alt={institution.name}
+                                                        variant="rounded"
+                                                        sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: "#ffffff", color: "primary.main", "& img": { objectFit: "contain" } }}
+                                                    >
+                                                        {institution.name?.trim().charAt(0).toUpperCase() || "I"}
+                                                    </Avatar>
+                                                    <Box component="span">{institution.name}</Box>
+                                                </Box>
+                                            </TableCell>
 
                                             {/* Country */}
                                             <TableCell>
